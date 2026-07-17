@@ -142,9 +142,6 @@ export function Cash() {
       <div className="page-head">
         <div>
           <h1>{tr('cashBox')}</h1>
-          <p>
-            Main box, coin reserve, event counts — plus live POS cash (customer paid − change).
-          </p>
         </div>
         <span className={`badge ${mismatchBad ? 'warn' : 'ok'}`}>
           {mismatchBad ? tr('mismatch') : 'Cash + PayPal matches ledger'}

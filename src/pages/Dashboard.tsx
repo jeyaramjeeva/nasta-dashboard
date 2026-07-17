@@ -802,14 +802,6 @@ export function Dashboard() {
               <CircleDollarSign size={12} /> Diff <Money value={metrics.cashMismatch} signed />
             </span>
           </div>
-          {metrics.settlementPlan.length > 0 && (
-            <p className="hint-inline" style={{ marginBottom: '0.65rem' }}>
-              {tr('payThisWeek')}:{' '}
-              {metrics.settlementPlan
-                .map((p) => `${p.name} €${p.suggestedPay.toFixed(2)}`)
-                .join(', ')}
-            </p>
-          )}
           {metrics.alerts.length === 0 ? (
             <p style={{ color: 'var(--muted)', margin: 0 }}>All clear — no alerts right now.</p>
           ) : (

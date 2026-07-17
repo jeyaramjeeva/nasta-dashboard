@@ -54,7 +54,6 @@ export function CalendarPage() {
     setEventInventory,
     updateUnitCost,
     addDish: addDishExtra,
-    cloudExtras,
   } = useExtras()
   const {
     prepChecklists,
@@ -75,7 +74,6 @@ export function CalendarPage() {
   const [liveByDate, setLiveByDate] = useState<LiveWeatherByDate>({})
   const [liveByEventDate, setLiveByEventDate] = useState<Record<string, LiveDayWeather>>({})
   const [wxLoading, setWxLoading] = useState(false)
-  const [wxError, setWxError] = useState<string | null>(null)
   const [wxTick, setWxTick] = useState(0)
 
   const cards = useMemo(() => {
@@ -99,7 +97,6 @@ export function CalendarPage() {
   const loadLiveWeather = useCallback(async () => {
     if (!cards.length) return
     setWxLoading(true)
-    setWxError(null)
     try {
       const stalls = cards
         .filter((c) => c.event.location && c.dateSpan.length)
@@ -111,9 +108,8 @@ export function CalendarPage() {
       const result = await fetchLiveWeatherForStalls(stalls)
       setLiveByDate(result.byDate)
       setLiveByEventDate(result.byEventDate)
-      if (result.errors.length) setWxError(result.errors[0]!)
-    } catch (e) {
-      setWxError(e instanceof Error ? e.message : 'Could not load live weather')
+    } catch {
+      /* keep last good weather silently */
     } finally {
       setWxLoading(false)
     }
@@ -216,10 +212,6 @@ export function CalendarPage() {
       <div className="page-head">
         <div>
           <h1>Calendar</h1>
-          <p>
-            Multi-day stalls show every day (Day 1/3 …). Track weather, inventory, spend &amp; gain
-            {cloudExtras ? ' — synced to the team cloud.' : '.'}
-          </p>
         </div>
         <div className="page-actions">
           <button
@@ -293,17 +285,8 @@ export function CalendarPage() {
         </div>
       )}
 
-      {wxError && (
-        <div className="hint-inline" style={{ marginBottom: '0.65rem' }}>
-          {wxError}
-        </div>
-      )}
-
       <MotionCard interactive={false} className="cal-card">
-        <div className="card-head" style={{ marginBottom: '0.45rem' }}>
-          <p className="hint-inline" style={{ margin: 0 }}>
-            Live weather icons from Open-Meteo (by stall location). Manual tags still editable below.
-          </p>
+        <div className="card-head" style={{ marginBottom: '0.45rem', justifyContent: 'flex-end' }}>
           <button
             type="button"
             className="btn ghost"

@@ -18,7 +18,7 @@ import { useLocale } from '../context/LocaleContext'
 import { exportElementPdf, exportElementPng } from '../lib/exportReport'
 import { loadSplitRules, saveSplitRules, type SplitMode, type SplitRules } from '../lib/extrasStore'
 import { germanyTodayYmd } from '../lib/germanyTime'
-import { applySplitRules, explainExpensesFirst } from '../lib/splitRules'
+import { applySplitRules } from '../lib/splitRules'
 
 type PotSource = 'sales' | 'cash' | 'custom'
 
@@ -78,12 +78,6 @@ export function Partners() {
     rules,
     rules.mode === 'expenses_first' || rules.mode === 'custom_pct' ? potValue : undefined,
   )
-  const waterfall = explainExpensesFirst(metrics.partners, potValue)
-
-  const planLine =
-    plan.length > 0
-      ? plan.map((p) => `pay ${p.name} €${p.suggestedPay.toFixed(2)}`).join(', ')
-      : 'Nothing outstanding'
 
   function updateMode(mode: SplitMode) {
     const next = { ...rules, mode }
@@ -147,9 +141,6 @@ export function Partners() {
         <div style={{ marginBottom: '0.9rem' }}>
           <MotionCard interactive={false}>
             <h2>{tr('settlement')}</h2>
-            <p className="hint-inline" style={{ marginTop: '0.35rem' }}>
-              {tr('payThisWeek')}: <strong>{planLine}</strong>
-            </p>
 
             <div className="split-mode-row">
               {(
@@ -172,24 +163,6 @@ export function Partners() {
 
             {rules.mode === 'expenses_first' && (
               <div className="settle-waterfall">
-                <ol className="settle-steps">
-                  <li>
-                    <strong>Step 1 — Pay back what they put in</strong>
-                    <span>
-                      Reimburse each partner’s still-owed expenses (
-                      <Money value={waterfall.totalOwed} /> total).
-                      {!waterfall.canFullyRepay && ' Pot is short — split pro-rata.'}
-                    </span>
-                  </li>
-                  <li>
-                    <strong>Step 2 — Equal profit share</strong>
-                    <span>
-                      Leftover after reimbursements (
-                      <Money value={waterfall.profit} />) ÷ {people.length} partners.
-                    </span>
-                  </li>
-                </ol>
-
                 <div className="filters" style={{ marginTop: '0.65rem', marginBottom: 0 }}>
                   <span className="hint-inline">Money to distribute (pot)</span>
                   <select

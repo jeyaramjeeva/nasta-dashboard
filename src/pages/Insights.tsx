@@ -109,7 +109,6 @@ export function Insights() {
       <div className="page-head">
         <div>
           <h1>{tr('insights')}</h1>
-          <p>P&L, locations, forecast, and partner-ready export.</p>
         </div>
         <div className="page-actions">
           <button className="btn ghost" type="button" onClick={() => void doExport('png')}>
