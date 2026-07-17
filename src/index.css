@@ -2024,6 +2024,11 @@ tbody tr:last-child td {
   font-weight: 650;
   font-size: 0.9rem;
 }
+.order-menu-tile__contents {
+  font-size: 0.72rem;
+  color: var(--text-soft);
+  line-height: 1.3;
+}
 .order-menu-tile__price {
   font-size: 0.85rem;
   color: var(--text-soft);
@@ -2147,6 +2152,30 @@ tbody tr:last-child td {
 .stall-banner {
   background: color-mix(in srgb, #4a90a4 18%, var(--elevated, transparent)) !important;
   border-color: color-mix(in srgb, #4a90a4 40%, var(--border)) !important;
+}
+
+.mt-card {
+  margin-top: 0.85rem;
+}
+
+.prep-list {
+  list-style: none;
+  margin: 0.65rem 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+.prep-list__row {
+  display: grid;
+  grid-template-columns: auto 1fr minmax(7rem, 8.5rem);
+  gap: 0.55rem;
+  align-items: center;
+  font-size: 0.9rem;
+}
+.prep-list li.is-done span {
+  text-decoration: line-through;
+  opacity: 0.65;
 }
 
 .pos-cash-banner {

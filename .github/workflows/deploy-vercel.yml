@@ -1,0 +1,56 @@
+# Auto-deploy main → Vercel production.
+#
+# One-time: GitHub → Settings → Secrets and variables → Actions, add:
+#   VERCEL_TOKEN         (https://vercel.com/account/tokens)
+#   VERCEL_ORG_ID        = team_9I3KDmXK84NzNMrh5UKu6hjr
+#   VERCEL_PROJECT_ID    = prj_xp6mYZSTJUsNyggl84GlMV7VQH8o
+#
+# Or connect the repo in Vercel Dashboard → nasta-dashboard → Settings → Git
+# and disable this workflow.
+
+name: Deploy to Vercel
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - name: Check secrets
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+        run: |
+          if [ -z "$VERCEL_TOKEN" ]; then
+            echo "Add VERCEL_TOKEN, VERCEL_ORG_ID, VERCEL_PROJECT_ID as GitHub Actions secrets to enable auto-deploy."
+            echo "Meanwhile deploys still work via: npx vercel --prod"
+            exit 0
+          fi
+          echo "SECRETS_OK=1" >> "$GITHUB_ENV"
+      - name: Install
+        if: env.SECRETS_OK == '1'
+        run: npm ci
+      - name: Pull Vercel env
+        if: env.SECRETS_OK == '1'
+        run: npx vercel pull --yes --environment=production --token=${{ secrets.VERCEL_TOKEN }}
+        env:
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+      - name: Build
+        if: env.SECRETS_OK == '1'
+        run: npx vercel build --prod --token=${{ secrets.VERCEL_TOKEN }}
+        env:
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+      - name: Deploy
+        if: env.SECRETS_OK == '1'
+        run: npx vercel deploy --prebuilt --prod --token=${{ secrets.VERCEL_TOKEN }}
+        env:
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}

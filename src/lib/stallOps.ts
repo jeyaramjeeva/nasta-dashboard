@@ -26,6 +26,23 @@ export interface MenuItem {
   priceWithChai?: number
   /** Default combo price with mango lassi. */
   priceWithLassi?: number
+  /** What’s included (combos). */
+  contents?: string
+  /** Estimated food cost € (excl. drink for combos). */
+  foodCost?: number
+  /** Extra cost when drink is masala chai. */
+  drinkCostChai?: number
+  /** Extra cost when drink is mango lassi. */
+  drinkCostLassi?: number
+}
+
+export type PrepAssignee = 'Jeeva' | 'Sriram' | 'Sneha' | ''
+
+export interface PrepTask {
+  id: string
+  text: string
+  done: boolean
+  assignee: PrepAssignee
 }
 
 /** Per-event overrides for one menu item. */
@@ -59,6 +76,10 @@ export interface StallOrder {
   paid?: number
   /** Change to return (€) = paid − total. */
   change?: number
+  /** Voided / refunded after completion. */
+  voided?: boolean
+  voidReason?: string
+  voidedAt?: string
 }
 
 export interface StallOpsState {
@@ -69,6 +90,8 @@ export interface StallOpsState {
   activeEventId?: string
   /** eventId → menuItemId → price overrides for that stall. */
   eventPrices?: Record<string, Record<string, EventPriceOverride>>
+  /** Prep checklist per event. */
+  prepChecklists?: Record<string, PrepTask[]>
 }
 
 const KEY = 'nasta-stall-ops-v1'
@@ -96,6 +119,10 @@ export const DEFAULT_MENU: MenuItem[] = [
     price: 10,
     priceWithChai: 10,
     priceWithLassi: 11,
+    contents: 'Masala dosa + chutney + sambar',
+    foodCost: 3.5,
+    drinkCostChai: 0.6,
+    drinkCostLassi: 1.2,
   },
   {
     id: 'combo-2',
@@ -104,6 +131,10 @@ export const DEFAULT_MENU: MenuItem[] = [
     price: 12,
     priceWithChai: 12,
     priceWithLassi: 13,
+    contents: 'Cheese masala dosa + chutney + sambar',
+    foodCost: 4.2,
+    drinkCostChai: 0.6,
+    drinkCostLassi: 1.2,
   },
   {
     id: 'combo-3',
@@ -112,14 +143,32 @@ export const DEFAULT_MENU: MenuItem[] = [
     price: 14,
     priceWithChai: 14,
     priceWithLassi: 15,
+    contents: '2× Sambar idli + Gobi 65 + chutney',
+    foodCost: 5.0,
+    drinkCostChai: 0.6,
+    drinkCostLassi: 1.2,
   },
-  { id: 'masala-dosa', name: 'Masala dosa', kind: 'single', price: 8 },
-  { id: 'cheese-masala-dosa', name: 'Cheese masala dosa', kind: 'single', price: 9 },
-  { id: 'plain-dosa', name: 'Plain dosa', kind: 'single', price: 7 },
-  { id: 'sambar-idli', name: 'Sambar idli', kind: 'single', price: 6 },
-  { id: 'gobi-65', name: 'Gobi 65', kind: 'single', price: 7 },
-  { id: 'masala-chai', name: 'Masala chai', kind: 'single', price: 3 },
-  { id: 'mango-lassi', name: 'Mango lassi', kind: 'single', price: 4 },
+  { id: 'masala-dosa', name: 'Masala dosa', kind: 'single', price: 8, foodCost: 2.8 },
+  {
+    id: 'cheese-masala-dosa',
+    name: 'Cheese masala dosa',
+    kind: 'single',
+    price: 9,
+    foodCost: 3.4,
+  },
+  { id: 'plain-dosa', name: 'Plain dosa', kind: 'single', price: 7, foodCost: 2.2 },
+  { id: 'sambar-idli', name: 'Sambar idli', kind: 'single', price: 6, foodCost: 2.0 },
+  { id: 'gobi-65', name: 'Gobi 65', kind: 'single', price: 7, foodCost: 2.5 },
+  { id: 'masala-chai', name: 'Masala chai', kind: 'single', price: 3, foodCost: 0.6 },
+  { id: 'mango-lassi', name: 'Mango lassi', kind: 'single', price: 4, foodCost: 1.2 },
+]
+
+export const DEFAULT_PREP_TASKS: Omit<PrepTask, 'id'>[] = [
+  { text: 'Batter ready (dosa / idli)', done: false, assignee: 'Jeeva' },
+  { text: 'Chutney + sambar', done: false, assignee: 'Sneha' },
+  { text: 'Gazebo / tables / float', done: false, assignee: 'Sriram' },
+  { text: 'Cups, plates, napkins', done: false, assignee: '' },
+  { text: 'Chai + lassi stocked', done: false, assignee: '' },
 ]
 
 export function drinkLabel(drink: DrinkChoice): string {
@@ -171,6 +220,35 @@ export function makeOrderLine(
   }
 }
 
+/** Estimated cost for one unit (combo includes drink cost). */
+export function unitFoodCost(item: MenuItem, drink?: DrinkChoice): number {
+  const base = Math.max(0, Number(item.foodCost) || 0)
+  if (item.kind !== 'combo') return base
+  const d = drink || 'chai'
+  const drinkCost =
+    d === 'chai'
+      ? Math.max(0, Number(item.drinkCostChai) || 0)
+      : Math.max(0, Number(item.drinkCostLassi) || 0)
+  return Math.round((base + drinkCost) * 100) / 100
+}
+
+export function comboMarginEuro(
+  item: MenuItem,
+  eventId: string | undefined,
+  eventPrices: Record<string, Record<string, EventPriceOverride>> | undefined,
+  drink: DrinkChoice,
+): { price: number; cost: number; margin: number; marginPct: number } {
+  const price = resolveMenuPrice(item, eventId, eventPrices, drink)
+  const cost = unitFoodCost(item, drink)
+  const margin = Math.round((price - cost) * 100) / 100
+  const marginPct = price > 0 ? Math.round((margin / price) * 1000) / 10 : 0
+  return { price, cost, margin, marginPct }
+}
+
+export function activeOrders(orders: StallOrder[]): StallOrder[] {
+  return orders.filter((o) => !o.voided)
+}
+
 export function remainingOf(item: StockItem): number {
   return Math.max(0, (item.bought || 0) - (item.used || 0))
 }
@@ -206,6 +284,10 @@ function normalizeMenuItem(raw: Partial<MenuItem> & { id: string }): MenuItem {
         0,
         Number(raw.priceWithLassi ?? def?.priceWithLassi ?? price) || 0,
       ),
+      contents: (raw.contents ?? def?.contents ?? '').trim() || undefined,
+      foodCost: Math.max(0, Number(raw.foodCost ?? def?.foodCost) || 0),
+      drinkCostChai: Math.max(0, Number(raw.drinkCostChai ?? def?.drinkCostChai) || 0),
+      drinkCostLassi: Math.max(0, Number(raw.drinkCostLassi ?? def?.drinkCostLassi) || 0),
     }
   }
   return {
@@ -213,6 +295,7 @@ function normalizeMenuItem(raw: Partial<MenuItem> & { id: string }): MenuItem {
     name: raw.name || def?.name || raw.id,
     kind: 'single',
     price,
+    foodCost: Math.max(0, Number(raw.foodCost ?? def?.foodCost) || 0) || undefined,
   }
 }
 
@@ -265,10 +348,11 @@ export function emptyStallOps(): StallOpsState {
     orders: [],
     activeEventId: '',
     eventPrices: {},
+    prepChecklists: {},
   }
 }
 
-function normalize(raw: Partial<StallOpsState> | null): StallOpsState {
+export function normalizeStallOps(raw: Partial<StallOpsState> | null): StallOpsState {
   const base = emptyStallOps()
   if (!raw) return base
   const stock =
@@ -300,14 +384,33 @@ function normalize(raw: Partial<StallOpsState> | null): StallOpsState {
         eventId: o.eventId || undefined,
         paid: o.paid != null ? Number(o.paid) : undefined,
         change: o.change != null ? Number(o.change) : undefined,
+        voided: Boolean(o.voided),
+        voidReason: o.voidReason || undefined,
+        voidedAt: o.voidedAt || undefined,
       }))
     : []
+  const prepChecklists: Record<string, PrepTask[]> = {}
+  if (raw.prepChecklists && typeof raw.prepChecklists === 'object') {
+    for (const [eventId, tasks] of Object.entries(raw.prepChecklists)) {
+      if (!Array.isArray(tasks)) continue
+      prepChecklists[eventId] = tasks.map((t) => ({
+        id: t.id || newId('prep'),
+        text: t.text || '',
+        done: Boolean(t.done),
+        assignee:
+          t.assignee === 'Jeeva' || t.assignee === 'Sriram' || t.assignee === 'Sneha'
+            ? t.assignee
+            : '',
+      }))
+    }
+  }
   return {
     stock,
     menu,
     orders,
     activeEventId: typeof raw.activeEventId === 'string' ? raw.activeEventId : '',
     eventPrices: normalizeEventPrices(raw.eventPrices),
+    prepChecklists,
   }
 }
 
@@ -315,7 +418,7 @@ export function loadStallOps(): StallOpsState {
   try {
     const raw = localStorage.getItem(demoStorageKey(KEY))
     if (!raw) return emptyStallOps()
-    return normalize(JSON.parse(raw) as StallOpsState)
+    return normalizeStallOps(JSON.parse(raw) as StallOpsState)
   } catch {
     return emptyStallOps()
   }
@@ -327,7 +430,7 @@ export function saveStallOpsLocal(state: StallOpsState) {
 
 export function soldCounts(orders: StallOrder[]): { name: string; qty: number; revenue: number }[] {
   const map = new Map<string, { name: string; qty: number; revenue: number }>()
-  for (const o of orders.filter((x) => x.status === 'completed')) {
+  for (const o of orders.filter((x) => x.status === 'completed' && !x.voided)) {
     for (const l of o.lines) {
       const key = lineKey(l.menuItemId, l.drink)
       const cur = map.get(key) || { name: l.name, qty: 0, revenue: 0 }
@@ -342,6 +445,10 @@ export function soldCounts(orders: StallOrder[]): { name: string; qty: number; r
 
 export function newId(prefix: string): string {
   return `${prefix}-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}`
+}
+
+export function defaultPrepChecklist(): PrepTask[] {
+  return DEFAULT_PREP_TASKS.map((t) => ({ ...t, id: newId('prep') }))
 }
 
 /** Next Customer N for today (Germany date). Resets to 1 each new day. */

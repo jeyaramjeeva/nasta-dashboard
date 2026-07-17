@@ -40,7 +40,7 @@ export interface SalesReport {
 
 function completedOrders(orders: StallOrder[], filter?: { eventId?: string; day?: string }) {
   return orders.filter((o) => {
-    if (o.status !== 'completed') return false
+    if (o.status !== 'completed' || o.voided) return false
     if (filter?.eventId && (o.eventId || 'unassigned') !== filter.eventId) return false
     if (filter?.day) {
       const day = germanyYmd(new Date(o.completedAt || o.createdAt))

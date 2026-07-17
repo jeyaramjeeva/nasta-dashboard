@@ -13,12 +13,13 @@ import { Link } from 'react-router-dom'
 import { Money } from '../components/Money'
 import { MotionCard } from '../components/MotionCard'
 import { useData } from '../context/DataContext'
-import { useStallMode } from '../context/StallModeContext'
+import { useOrdersStallIdle, useStallMode } from '../context/StallModeContext'
 import { orderTotal, useStallOps } from '../context/StallOpsContext'
 import { germanyTodayYmd } from '../lib/germanyTime'
 import { summarizePosCashToday } from '../lib/posCash'
 import { buildSalesReport } from '../lib/salesStats'
 import {
+  comboMarginEuro,
   drinkLabel,
   lineKey,
   makeOrderLine,
@@ -59,6 +60,7 @@ function upsertLineQty(
 export function Orders() {
   const { snapshot } = useData()
   const { isStall, enterStall } = useStallMode()
+  useOrdersStallIdle()
   const {
     menu,
     orders,
@@ -70,10 +72,12 @@ export function Orders() {
     completeOrder,
     reopenOrder,
     deleteOrder,
+    voidOrder,
     setMenuPrice,
     setComboDefaultPrices,
     setEventPrice,
     clearEventPrices,
+    copyEventPrices,
     addMenuItem,
     setActiveEventId,
   } = useStallOps()
@@ -89,6 +93,9 @@ export function Orders() {
   const [salesScope, setSalesScope] = useState<SalesScope>('today')
   const [salesEventId, setSalesEventId] = useState('')
   const [priceEventId, setPriceEventId] = useState('')
+  const [copyFromEventId, setCopyFromEventId] = useState('')
+  const [voidTarget, setVoidTarget] = useState<StallOrder | null>(null)
+  const [voidReason, setVoidReason] = useState('')
 
   const events = snapshot?.events || []
   const stallEvents = useMemo(
@@ -119,9 +126,28 @@ export function Orders() {
     [orders],
   )
   const completed = useMemo(
-    () => orders.filter((o) => o.status === 'completed'),
+    () => orders.filter((o) => o.status === 'completed' && !o.voided),
     [orders],
   )
+  const voided = useMemo(
+    () => orders.filter((o) => o.voided),
+    [orders],
+  )
+  const lastTicket = useMemo(() => {
+    const pool = orders.filter((o) => !o.voided && o.lines.length)
+    return pool[0] || null
+  }, [orders])
+
+  function repeatLastTicket() {
+    if (!lastTicket) return
+    const next: Record<string, number> = {}
+    for (const l of lastTicket.lines) {
+      const key = lineKey(l.menuItemId, l.drink)
+      next[key] = (next[key] || 0) + l.qty
+    }
+    setCart(next)
+    setTab('new')
+  }
   const sold = useMemo(() => soldCounts(orders), [orders])
   const soldRevenue = sold.reduce((s, r) => s + r.revenue, 0)
   const posCash = useMemo(() => summarizePosCashToday(orders), [orders])
@@ -276,8 +302,17 @@ export function Orders() {
           </div>
           <div className="chip-row" style={{ marginBottom: '0.35rem' }}>
             <span className="badge ok">Next ticket: Customer {nextCustomer}</span>
+            <button
+              type="button"
+              className="btn ghost"
+              disabled={!lastTicket}
+              onClick={repeatLastTicket}
+              title={lastTicket ? `Copy ${lastTicket.label}` : 'No previous ticket'}
+            >
+              <RotateCcw size={14} /> Repeat last ticket
+            </button>
             <span className="hint-inline">
-              Prices for this event — set under Menu prices. Combos: pick chai or lassi.
+              Stall mode auto-starts after 2 min idle. Combos: pick chai or lassi.
             </span>
           </div>
 
@@ -289,9 +324,20 @@ export function Orders() {
                 const on = qChai + qLassi > 0
                 const pChai = resolveMenuPrice(m, activeEventId, eventPrices, 'chai')
                 const pLassi = resolveMenuPrice(m, activeEventId, eventPrices, 'lassi')
+                const mChai = comboMarginEuro(m, activeEventId, eventPrices, 'chai')
+                const mLassi = comboMarginEuro(m, activeEventId, eventPrices, 'lassi')
                 return (
                   <div key={m.id} className={`order-menu-tile order-menu-tile--combo ${on ? 'is-on' : ''}`}>
                     <div className="order-menu-tile__name">{m.name}</div>
+                    {m.contents && (
+                      <div className="order-menu-tile__contents">{m.contents}</div>
+                    )}
+                    {!isStall && (
+                      <div className="hint-inline" style={{ fontSize: '0.72rem' }}>
+                        Margin chai ~{mChai.marginPct}% · lassi ~{mLassi.marginPct}% (cost €
+                        {mChai.cost.toFixed(2)} / €{mLassi.cost.toFixed(2)})
+                      </div>
+                    )}
                     <div className="order-combo-drink">
                       <div className="order-combo-drink__meta">
                         <span>{drinkLabel('chai')}</span>
@@ -651,14 +697,81 @@ export function Orders() {
                     )}
                     {isStall && <div className="hint-inline">Ticket done</div>}
                   </div>
+                  <div className="page-actions">
+                  {!isStall && (
+                    <button
+                      type="button"
+                      className="btn ghost"
+                      onClick={() => {
+                        setVoidTarget(o)
+                        setVoidReason('')
+                      }}
+                    >
+                      Void / refund
+                    </button>
+                  )}
                   <button type="button" className="btn ghost" onClick={() => reopenOrder(o.id)}>
                     <RotateCcw size={14} /> Back to pending
                   </button>
+                  </div>
                 </div>
               </MotionCard>
             ))}
           </div>
+          {!isStall && voided.length > 0 && (
+            <MotionCard interactive={false} className="mt-card">
+              <h2>Voided ({voided.length})</h2>
+              <ul className="order-lines" style={{ marginTop: '0.5rem' }}>
+                {voided.slice(0, 12).map((o) => (
+                  <li key={o.id}>
+                    {o.label} — {o.voidReason || 'void'}
+                  </li>
+                ))}
+              </ul>
+            </MotionCard>
+          )}
         </>
+      )}
+
+      {voidTarget && (
+        <div
+          className="pay-overlay"
+          role="dialog"
+          aria-modal="true"
+          onClick={() => setVoidTarget(null)}
+        >
+          <div className="pay-panel" onClick={(e) => e.stopPropagation()}>
+            <h2>Void / refund {voidTarget.label}</h2>
+            <p className="hint-inline">Removes this sale from totals. Enter a short reason.</p>
+            <div className="field" style={{ marginTop: '0.75rem' }}>
+              <label htmlFor="void-reason">Reason</label>
+              <input
+                id="void-reason"
+                value={voidReason}
+                onChange={(e) => setVoidReason(e.target.value)}
+                placeholder="e.g. Wrong order / customer cancelled"
+                autoFocus
+              />
+            </div>
+            <div className="page-actions" style={{ marginTop: '0.85rem' }}>
+              <button type="button" className="btn ghost" onClick={() => setVoidTarget(null)}>
+                Cancel
+              </button>
+              <button
+                type="button"
+                className="btn"
+                disabled={!voidReason.trim()}
+                onClick={() => {
+                  voidOrder(voidTarget.id, voidReason)
+                  setVoidTarget(null)
+                  setVoidReason('')
+                }}
+              >
+                Confirm void
+              </button>
+            </div>
+          </div>
+        </div>
       )}
 
       {payOrder && (
@@ -957,13 +1070,45 @@ export function Orders() {
           </div>
 
           {priceEventId && (
-            <div className="page-actions" style={{ marginTop: '0.5rem' }}>
+            <div className="filters" style={{ marginTop: '0.65rem', alignItems: 'flex-end' }}>
+              <div className="field">
+                <label htmlFor="copy-from-event">Copy prices from</label>
+                <select
+                  id="copy-from-event"
+                  value={copyFromEventId}
+                  onChange={(e) => setCopyFromEventId(e.target.value)}
+                >
+                  <option value="">— other event —</option>
+                  {stallEvents
+                    .filter((e) => e.id !== priceEventId)
+                    .map((e) => (
+                      <option key={e.id} value={e.id}>
+                        {e.id} · {e.location || e.name}
+                      </option>
+                    ))}
+                </select>
+              </div>
+              <button
+                type="button"
+                className="btn"
+                disabled={!copyFromEventId}
+                onClick={() => {
+                  const ok = copyEventPrices(copyFromEventId, priceEventId)
+                  if (!ok) {
+                    window.alert(
+                      'No saved overrides on that event — set prices there first, or they already match defaults.',
+                    )
+                  }
+                }}
+              >
+                Copy to this event
+              </button>
               <button
                 type="button"
                 className="btn ghost"
                 onClick={() => clearEventPrices(priceEventId)}
               >
-                Clear event overrides (use defaults)
+                Clear this event overrides
               </button>
             </div>
           )}

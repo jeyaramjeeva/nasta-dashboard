@@ -383,29 +383,33 @@ export function Layout() {
 
       {unlockOpen && (
         <div
-          className="pay-modal-overlay"
+          className="pay-overlay"
           role="dialog"
           aria-modal="true"
           aria-label="Unlock stall mode"
           onClick={() => setUnlockOpen(false)}
         >
-          <div className="pay-modal" onClick={(e) => e.stopPropagation()}>
+          <div className="pay-panel" onClick={(e) => e.stopPropagation()}>
             <h2>
               <Lock size={18} style={{ verticalAlign: -3, marginRight: 6 }} />
               Unlock money pages
             </h2>
             <p className="hint-inline">
-              Enter the publish password to leave Stall mode and see Dashboard / sales again.
+              Enter the 4-digit stall PIN (not the Excel publish password). Idle unlock re-locks
+              after 2 minutes.
             </p>
             <div className="field" style={{ marginTop: '0.75rem' }}>
-              <label htmlFor="stall-unlock-pw">Password</label>
+              <label htmlFor="stall-unlock-pw">Stall PIN</label>
               <input
                 id="stall-unlock-pw"
                 type="password"
+                inputMode="numeric"
+                pattern="[0-9]*"
+                maxLength={4}
                 autoFocus
                 value={unlockPw}
                 onChange={(e) => {
-                  setUnlockPw(e.target.value)
+                  setUnlockPw(e.target.value.replace(/\D/g, '').slice(0, 4))
                   setUnlockErr('')
                 }}
                 onKeyDown={(e) => {
@@ -414,11 +418,11 @@ export function Layout() {
                       setUnlockOpen(false)
                       setUnlockPw('')
                     } else {
-                      setUnlockErr('Wrong password')
+                      setUnlockErr('Wrong PIN')
                     }
                   }
                 }}
-                placeholder="Publish password"
+                placeholder="••••"
               />
             </div>
             {unlockErr && (
@@ -438,7 +442,7 @@ export function Layout() {
                     setUnlockOpen(false)
                     setUnlockPw('')
                   } else {
-                    setUnlockErr('Wrong password')
+                    setUnlockErr('Wrong PIN')
                   }
                 }}
               >

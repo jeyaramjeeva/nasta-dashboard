@@ -3,7 +3,7 @@ import { orderTotal, type StallOrder } from './stallOps'
 
 /** Net cash that stays in the box after a sale (paid − change returned). */
 export function netCashIn(order: StallOrder): number {
-  if (order.status !== 'completed') return 0
+  if (order.status !== 'completed' || order.voided) return 0
   const total = orderTotal(order.lines)
   if (order.paid != null) {
     const change =
@@ -37,7 +37,7 @@ export function summarizePosCashToday(
   let changeReturned = 0
   let orderCount = 0
   for (const o of orders) {
-    if (o.status !== 'completed') continue
+    if (o.status !== 'completed' || o.voided) continue
     const day = germanyYmd(new Date(o.completedAt || o.createdAt))
     if (day !== today) continue
     orderCount += 1

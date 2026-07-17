@@ -1,8 +1,12 @@
 /** Stall focus — hide money screens while a helper runs POS on a shared login. */
 
 export const STALL_MODE_KEY = 'nasta-stall-mode'
-/** Same password as Excel publish — partners already know it. */
-export const STALL_UNLOCK_PASSWORD = 'Nasta998#'
+/** Short 4-digit PIN to unlock money pages (not the Excel publish password). */
+export const STALL_UNLOCK_PIN = '9987'
+/** Idle on Orders → auto Stall mode (ms). */
+export const STALL_IDLE_ENTER_MS = 2 * 60 * 1000
+/** After unlock, idle anywhere → auto re-lock Stall mode (ms). */
+export const STALL_IDLE_RELOCK_MS = 2 * 60 * 1000
 
 const MONEY_PATHS = [
   '/',
@@ -41,8 +45,13 @@ export function exitStallMode() {
   setStallMode(false)
 }
 
+export function checkStallUnlockPin(pin: string): boolean {
+  return pin.trim() === STALL_UNLOCK_PIN
+}
+
+/** @deprecated use checkStallUnlockPin */
 export function checkStallUnlockPassword(password: string): boolean {
-  return password.trim() === STALL_UNLOCK_PASSWORD
+  return checkStallUnlockPin(password)
 }
 
 /** Paths that show sales / P&L / partner money — blocked in stall mode. */

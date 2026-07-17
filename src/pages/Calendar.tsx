@@ -14,6 +14,8 @@ import { EmptyState, SkeletonPage } from '../components/Skeleton'
 import { WeatherIcon } from '../components/WeatherIcon'
 import { useData } from '../context/DataContext'
 import { useExtras } from '../context/ExtrasContext'
+import { useStallOps } from '../context/StallOpsContext'
+import type { PrepAssignee } from '../lib/stallOps'
 import {
   buildCalendarCards,
   formatDaySpan,
@@ -54,6 +56,12 @@ export function CalendarPage() {
     addDish: addDishExtra,
     cloudExtras,
   } = useExtras()
+  const {
+    prepChecklists,
+    ensurePrepChecklist,
+    setPrepTask,
+    addPrepTask,
+  } = useStallOps()
   const berlinNow = germanyParts()
   const [year, setYear] = useState(berlinNow.year)
   const [month, setMonth] = useState(berlinNow.month)
@@ -62,6 +70,8 @@ export function CalendarPage() {
   const [newDish, setNewDish] = useState('')
   const [newUnit, setNewUnit] = useState('portion')
   const [newCost, setNewCost] = useState(0)
+  const [newPrepText, setNewPrepText] = useState('')
+  const [newPrepAssignee, setNewPrepAssignee] = useState<PrepAssignee>('')
   const [liveByDate, setLiveByDate] = useState<LiveWeatherByDate>({})
   const [liveByEventDate, setLiveByEventDate] = useState<Record<string, LiveDayWeather>>({})
   const [wxLoading, setWxLoading] = useState(false)
@@ -147,6 +157,11 @@ export function CalendarPage() {
   const activeInvId = invEvent || cards[0]?.event.id || ''
   const activeCard = cards.find((c) => c.event.id === activeInvId) || null
   const activeLines = eventInv[activeInvId] || []
+  const prepTasks = activeInvId ? prepChecklists[activeInvId] || [] : []
+
+  useEffect(() => {
+    if (activeInvId) ensurePrepChecklist(activeInvId)
+  }, [activeInvId, ensurePrepChecklist])
 
   function changeWeather(eventId: string, tag: WeatherTag) {
     setEventWeather(eventId, tag)
@@ -471,6 +486,83 @@ export function CalendarPage() {
                 )}
               </tbody>
             </table>
+          </div>
+        </MotionCard>
+      </div>
+
+      <div style={{ marginTop: '0.9rem' }}>
+        <MotionCard interactive={false}>
+          <div className="card-head">
+            <h2>Prep checklist</h2>
+            <select value={activeInvId} onChange={(e) => setInvEvent(e.target.value)}>
+              {cards.map((c) => (
+                <option key={c.event.id} value={c.event.id}>
+                  {c.event.id} · {c.event.location.slice(0, 18)}
+                </option>
+              ))}
+            </select>
+          </div>
+          <p className="hint-inline">Assign Jeeva / Sriram / Sneha before the stall.</p>
+          <ul className="prep-list">
+            {prepTasks.map((t) => (
+              <li key={t.id} className={t.done ? 'is-done' : ''}>
+                <label className="prep-list__row">
+                  <input
+                    type="checkbox"
+                    checked={t.done}
+                    onChange={(e) =>
+                      setPrepTask(activeInvId, t.id, { done: e.target.checked })
+                    }
+                  />
+                  <span>{t.text}</span>
+                  <select
+                    value={t.assignee}
+                    onChange={(e) =>
+                      setPrepTask(activeInvId, t.id, {
+                        assignee: e.target.value as PrepAssignee,
+                      })
+                    }
+                  >
+                    <option value="">Unassigned</option>
+                    <option value="Jeeva">Jeeva</option>
+                    <option value="Sriram">Sriram</option>
+                    <option value="Sneha">Sneha</option>
+                  </select>
+                </label>
+              </li>
+            ))}
+          </ul>
+          <div className="filters" style={{ marginTop: '0.65rem' }}>
+            <div className="field">
+              <label>Add task</label>
+              <input
+                value={newPrepText}
+                onChange={(e) => setNewPrepText(e.target.value)}
+                placeholder="e.g. Load cool box"
+              />
+            </div>
+            <div className="field">
+              <label>Assignee</label>
+              <select
+                value={newPrepAssignee}
+                onChange={(e) => setNewPrepAssignee(e.target.value as PrepAssignee)}
+              >
+                <option value="">Unassigned</option>
+                <option value="Jeeva">Jeeva</option>
+                <option value="Sriram">Sriram</option>
+                <option value="Sneha">Sneha</option>
+              </select>
+            </div>
+            <button
+              type="button"
+              className="btn"
+              onClick={() => {
+                addPrepTask(activeInvId, newPrepText, newPrepAssignee)
+                setNewPrepText('')
+              }}
+            >
+              <Plus size={14} /> Add
+            </button>
           </div>
         </MotionCard>
       </div>

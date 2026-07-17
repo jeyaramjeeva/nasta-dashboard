@@ -26,9 +26,12 @@ import {
   remainingOf,
   saveStallOpsLocal,
   slugId,
+  defaultPrepChecklist,
   type EventPriceOverride,
   type MenuItem,
   type OrderLine,
+  type PrepAssignee,
+  type PrepTask,
   type StallOpsState,
   type StallOrder,
   type StockItem,
@@ -52,6 +55,7 @@ interface StallOpsContextValue {
   setComboDefaultPrices: (id: string, chai: number, lassi: number) => void
   setEventPrice: (eventId: string, itemId: string, patch: EventPriceOverride) => void
   clearEventPrices: (eventId: string) => void
+  copyEventPrices: (fromEventId: string, toEventId: string) => boolean
   addMenuItem: (name: string, price: number) => void
   setActiveEventId: (eventId: string) => void
   /** Auto Customer 1, 2, … (resets each Germany calendar day). */
@@ -61,6 +65,15 @@ interface StallOpsContextValue {
   completeOrder: (id: string, paid: number) => void
   reopenOrder: (id: string) => void
   deleteOrder: (id: string) => void
+  voidOrder: (id: string, reason: string) => void
+  prepChecklists: Record<string, PrepTask[]>
+  ensurePrepChecklist: (eventId: string) => void
+  setPrepTask: (
+    eventId: string,
+    taskId: string,
+    patch: Partial<Pick<PrepTask, 'done' | 'assignee' | 'text'>>,
+  ) => void
+  addPrepTask: (eventId: string, text: string, assignee?: PrepAssignee) => void
   refreshStallOps: () => Promise<void>
 }
 
@@ -279,6 +292,23 @@ export function StallOpsProvider({ children }: { children: ReactNode }) {
     [persist, state],
   )
 
+  const copyEventPrices = useCallback(
+    (fromEventId: string, toEventId: string) => {
+      if (!fromEventId || !toEventId || fromEventId === toEventId) return false
+      const src = state.eventPrices?.[fromEventId]
+      if (!src || !Object.keys(src).length) return false
+      persist({
+        ...state,
+        eventPrices: {
+          ...(state.eventPrices || {}),
+          [toEventId]: { ...src },
+        },
+      })
+      return true
+    },
+    [persist, state],
+  )
+
   const addMenuItem = useCallback(
     (name: string, price: number) => {
       const trimmed = name.trim()
@@ -391,6 +421,78 @@ export function StallOpsProvider({ children }: { children: ReactNode }) {
     [persist, state],
   )
 
+  const voidOrder = useCallback(
+    (id: string, reason: string) => {
+      const why = reason.trim()
+      if (!why) return
+      persist({
+        ...state,
+        orders: state.orders.map((o) =>
+          o.id === id
+            ? {
+                ...o,
+                voided: true,
+                voidReason: why,
+                voidedAt: new Date().toISOString(),
+              }
+            : o,
+        ),
+      })
+    },
+    [persist, state],
+  )
+
+  const ensurePrepChecklist = useCallback(
+    (eventId: string) => {
+      if (!eventId) return
+      const cur = state.prepChecklists?.[eventId]
+      if (cur?.length) return
+      persist({
+        ...state,
+        prepChecklists: {
+          ...(state.prepChecklists || {}),
+          [eventId]: defaultPrepChecklist(),
+        },
+      })
+    },
+    [persist, state],
+  )
+
+  const setPrepTask = useCallback(
+    (
+      eventId: string,
+      taskId: string,
+      patch: Partial<Pick<PrepTask, 'done' | 'assignee' | 'text'>>,
+    ) => {
+      if (!eventId) return
+      const list = state.prepChecklists?.[eventId] || defaultPrepChecklist()
+      persist({
+        ...state,
+        prepChecklists: {
+          ...(state.prepChecklists || {}),
+          [eventId]: list.map((t) => (t.id === taskId ? { ...t, ...patch } : t)),
+        },
+      })
+    },
+    [persist, state],
+  )
+
+  const addPrepTask = useCallback(
+    (eventId: string, text: string, assignee: PrepAssignee = '') => {
+      const trimmed = text.trim()
+      if (!eventId || !trimmed) return
+      const list = state.prepChecklists?.[eventId] || defaultPrepChecklist()
+      persist({
+        ...state,
+        prepChecklists: {
+          ...(state.prepChecklists || {}),
+          [eventId]: [...list, { id: newId('prep'), text: trimmed, done: false, assignee }],
+        },
+      })
+    },
+    [persist, state],
+  )
+
   const lowStock = useMemo(() => state.stock.filter(isLowStock), [state.stock])
 
   const value = useMemo(
@@ -400,6 +502,7 @@ export function StallOpsProvider({ children }: { children: ReactNode }) {
       orders: state.orders,
       activeEventId: state.activeEventId || '',
       eventPrices: state.eventPrices || {},
+      prepChecklists: state.prepChecklists || {},
       lowStock,
       syncing,
       nextCustomer,
@@ -411,6 +514,7 @@ export function StallOpsProvider({ children }: { children: ReactNode }) {
       setComboDefaultPrices,
       setEventPrice,
       clearEventPrices,
+      copyEventPrices,
       addMenuItem,
       setActiveEventId,
       createOrder,
@@ -418,6 +522,10 @@ export function StallOpsProvider({ children }: { children: ReactNode }) {
       completeOrder,
       reopenOrder,
       deleteOrder,
+      voidOrder,
+      ensurePrepChecklist,
+      setPrepTask,
+      addPrepTask,
       refreshStallOps,
     }),
     [
@@ -433,6 +541,7 @@ export function StallOpsProvider({ children }: { children: ReactNode }) {
       setComboDefaultPrices,
       setEventPrice,
       clearEventPrices,
+      copyEventPrices,
       addMenuItem,
       setActiveEventId,
       createOrder,
@@ -440,6 +549,10 @@ export function StallOpsProvider({ children }: { children: ReactNode }) {
       completeOrder,
       reopenOrder,
       deleteOrder,
+      voidOrder,
+      ensurePrepChecklist,
+      setPrepTask,
+      addPrepTask,
       refreshStallOps,
     ],
   )
