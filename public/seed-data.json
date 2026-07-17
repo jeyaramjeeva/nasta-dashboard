@@ -1,0 +1,4205 @@
+{
+  "uploadedAt": "2026-07-17T09:54:21.348Z",
+  "sourceFile": "Nasta Zentrum Tracker.xlsx",
+  "events": [
+    {
+      "id": "E001",
+      "name": "Flohmarkt",
+      "location": "Wilhelmplatz, Köln",
+      "startDate": "2026-03-22",
+      "endDate": "2026-03-22",
+      "month": "2026-03",
+      "days": 1,
+      "fee": 50,
+      "status": "Completed"
+    },
+    {
+      "id": "E002",
+      "name": "Flohmarkt",
+      "location": "Old town, Köln",
+      "startDate": "2026-04-04",
+      "endDate": "2026-04-06",
+      "month": "2026-04",
+      "days": 3,
+      "fee": 403,
+      "status": "Completed"
+    },
+    {
+      "id": "E003",
+      "name": "Flohmarkt",
+      "location": "Wilhelmplatz, Köln",
+      "startDate": "2026-04-19",
+      "endDate": "2026-04-19",
+      "month": "2026-04",
+      "days": 1,
+      "fee": 105,
+      "status": "Completed"
+    },
+    {
+      "id": "E004",
+      "name": "Street Festival",
+      "location": "Beuel, Bonn",
+      "startDate": "2026-05-08",
+      "endDate": "2026-05-10",
+      "month": "2026-05",
+      "days": 3,
+      "fee": 781.24,
+      "status": "Completed"
+    },
+    {
+      "id": "E005",
+      "name": "Street Festival",
+      "location": "Wesseling",
+      "startDate": "2026-05-23",
+      "endDate": "2026-05-25",
+      "month": "2026-05",
+      "days": 3,
+      "fee": 682,
+      "status": "Completed"
+    },
+    {
+      "id": "E006",
+      "name": "Street Festival",
+      "location": "Bergisch Gladbach",
+      "startDate": "2026-06-04",
+      "endDate": "2026-06-07",
+      "month": "2026-06",
+      "days": 4,
+      "fee": 1185,
+      "status": "Completed"
+    },
+    {
+      "id": "E007",
+      "name": "Street Festival",
+      "location": "Wuppertal",
+      "startDate": "2026-06-10",
+      "endDate": "2026-06-12",
+      "month": "2026-06",
+      "days": 3,
+      "fee": 416.5,
+      "status": "Completed"
+    },
+    {
+      "id": "E008",
+      "name": "Flohmarkt",
+      "location": "Wilhelmplatz, Köln",
+      "startDate": "2026-06-21",
+      "endDate": "2026-06-21",
+      "month": "2026-06",
+      "days": 1,
+      "fee": 105,
+      "status": "Completed"
+    },
+    {
+      "id": "E009",
+      "name": "Gourmet Festival",
+      "location": "Krefeld",
+      "startDate": "2026-07-10",
+      "endDate": "2026-07-12",
+      "month": "2026-07",
+      "days": 3,
+      "fee": 1358.39,
+      "status": "Completed"
+    },
+    {
+      "id": "E010",
+      "name": "Gourmet Festival",
+      "location": "Köln",
+      "startDate": "2026-07-24",
+      "endDate": "2026-07-26",
+      "month": "2026-07",
+      "days": 3,
+      "fee": 0,
+      "status": "Upcoming"
+    },
+    {
+      "id": "E011",
+      "name": "Flohmarkt",
+      "location": "Südbrücke",
+      "startDate": "2026-08-02",
+      "endDate": "2026-08-02",
+      "month": "2026-08",
+      "days": 1,
+      "fee": 0,
+      "status": "Upcoming"
+    }
+  ],
+  "transactions": [
+    {
+      "date": "2026-03-01",
+      "month": "2026-03",
+      "eventId": "Setup",
+      "purchaseDate": "2026-03-04",
+      "type": "Expense",
+      "costType": "Investment",
+      "category": "Operations",
+      "description": "Registeration License",
+      "amount": -340,
+      "person": "Sriram",
+      "status": "Paid"
+    },
+    {
+      "date": "2026-03-21",
+      "month": "2026-03",
+      "eventId": "Setup",
+      "purchaseDate": "2026-03-21",
+      "type": "Expense",
+      "costType": "Investment",
+      "category": "Equipment",
+      "description": "Woolworth",
+      "amount": -8,
+      "person": "Sriram",
+      "status": "Paid"
+    },
+    {
+      "date": "2026-03-21",
+      "month": "2026-03",
+      "eventId": "Setup",
+      "purchaseDate": "2026-03-21",
+      "type": "Expense",
+      "costType": "Investment",
+      "category": "Equipment",
+      "description": "IKEA",
+      "amount": -7.79,
+      "person": "Jeeva",
+      "status": "Paid"
+    },
+    {
+      "date": "2026-03-26",
+      "month": "2026-03",
+      "eventId": "Setup",
+      "purchaseDate": "2026-03-26",
+      "type": "Expense",
+      "costType": "Investment",
+      "category": "Equipment",
+      "description": "IKEA",
+      "amount": -9.55,
+      "person": "Sriram",
+      "status": "Paid"
+    },
+    {
+      "date": "2026-03-04",
+      "month": "2026-03",
+      "eventId": "Setup",
+      "purchaseDate": "2026-03-04",
+      "type": "Expense",
+      "costType": "Investment",
+      "category": "Stall Setup",
+      "description": "Amazon",
+      "amount": -11.99,
+      "person": "Sriram",
+      "status": "Paid"
+    },
+    {
+      "date": "2026-03-06",
+      "month": "2026-03",
+      "eventId": "Setup",
+      "purchaseDate": "2026-03-06",
+      "type": "Expense",
+      "costType": "Investment",
+      "category": "Equipment",
+      "description": "Amazon",
+      "amount": -19.99,
+      "person": "Jeeva",
+      "status": "Paid"
+    },
+    {
+      "date": "2026-03-15",
+      "month": "2026-03",
+      "eventId": "Setup",
+      "purchaseDate": "2026-03-15",
+      "type": "Expense",
+      "costType": "Investment",
+      "category": "Equipment",
+      "description": "Amazon",
+      "amount": -16.9,
+      "person": "Sriram",
+      "status": "Paid"
+    },
+    {
+      "date": "2026-03-15",
+      "month": "2026-03",
+      "eventId": "Setup",
+      "purchaseDate": "2026-03-15",
+      "type": "Expense",
+      "costType": "Investment",
+      "category": "Stall Setup",
+      "description": "Amazon",
+      "amount": -16.99,
+      "person": "Jeeva",
+      "status": "Paid"
+    },
+    {
+      "date": "2026-03-17",
+      "month": "2026-03",
+      "eventId": "Setup",
+      "purchaseDate": "2026-03-17",
+      "type": "Expense",
+      "costType": "Investment",
+      "category": "Operations",
+      "description": "Amazon",
+      "amount": -19.99,
+      "person": "Jeeva",
+      "status": "Paid"
+    },
+    {
+      "date": "2026-03-19",
+      "month": "2026-03",
+      "eventId": "Setup",
+      "purchaseDate": "2026-03-19",
+      "type": "Expense",
+      "costType": "Investment",
+      "category": "Stall Setup",
+      "description": "Amazon",
+      "amount": -29.65,
+      "person": "Jeeva",
+      "status": "Paid"
+    },
+    {
+      "date": "2026-03-26",
+      "month": "2026-03",
+      "eventId": "Setup",
+      "purchaseDate": "2026-03-26",
+      "type": "Expense",
+      "costType": "Investment",
+      "category": "Equipment",
+      "description": "Amazon",
+      "amount": -37.98,
+      "person": "Jeeva",
+      "status": "Paid"
+    },
+    {
+      "date": "2026-03-16",
+      "month": "2026-03",
+      "eventId": "Setup",
+      "purchaseDate": "2026-03-16",
+      "type": "Expense",
+      "costType": "Investment",
+      "category": "Operations",
+      "description": "Greenbox",
+      "amount": -82.28,
+      "person": "Jeeva",
+      "status": "Paid"
+    },
+    {
+      "date": "2026-03-25",
+      "month": "2026-03",
+      "eventId": "Setup",
+      "purchaseDate": "2026-03-25",
+      "type": "Expense",
+      "costType": "Investment",
+      "category": "Operations",
+      "description": "Greenbox",
+      "amount": -174.62,
+      "person": "Jeeva",
+      "status": "Paid"
+    },
+    {
+      "date": "2026-03-25",
+      "month": "2026-03",
+      "eventId": "Setup",
+      "purchaseDate": "2026-03-25",
+      "type": "Expense",
+      "costType": "Investment",
+      "category": "Equipment",
+      "description": "Kaufland",
+      "amount": -183.99,
+      "person": "Jeeva",
+      "status": "Paid"
+    },
+    {
+      "date": "2026-03-25",
+      "month": "2026-03",
+      "eventId": "Setup",
+      "purchaseDate": "2026-03-25",
+      "type": "Expense",
+      "costType": "Investment",
+      "category": "Equipment",
+      "description": "Stove",
+      "amount": -88,
+      "person": "Sriram",
+      "status": "Paid"
+    },
+    {
+      "date": "2026-03-25",
+      "month": "2026-03",
+      "eventId": "Setup",
+      "purchaseDate": "2026-03-25",
+      "type": "Expense",
+      "costType": "Investment",
+      "category": "Equipment",
+      "description": "Gas Cylinder",
+      "amount": -54,
+      "person": "Sriram",
+      "status": "Paid"
+    },
+    {
+      "date": "2026-03-25",
+      "month": "2026-03",
+      "eventId": "Setup",
+      "purchaseDate": "2026-03-25",
+      "type": "Expense",
+      "costType": "Investment",
+      "category": "Stall Setup",
+      "description": "Wind Shield",
+      "amount": -10,
+      "person": "Sriram",
+      "status": "Paid"
+    },
+    {
+      "date": "2026-03-25",
+      "month": "2026-03",
+      "eventId": "Setup",
+      "purchaseDate": "2026-03-25",
+      "type": "Expense",
+      "costType": "Investment",
+      "category": "Stall Setup",
+      "description": "Tent Pavilion",
+      "amount": -200,
+      "person": "Sriram",
+      "status": "Paid"
+    },
+    {
+      "date": "2026-03-25",
+      "month": "2026-03",
+      "eventId": "Setup",
+      "purchaseDate": "2026-03-25",
+      "type": "Expense",
+      "costType": "Investment",
+      "category": "Stall Setup",
+      "description": "Tables",
+      "amount": -90,
+      "person": "Sriram",
+      "status": "Paid"
+    },
+    {
+      "date": "2026-03-25",
+      "month": "2026-03",
+      "eventId": "Setup",
+      "purchaseDate": "2026-03-25",
+      "type": "Expense",
+      "costType": "Investment",
+      "category": "Stall Setup",
+      "description": "Chalk Board",
+      "amount": -11,
+      "person": "Sriram",
+      "status": "Paid"
+    },
+    {
+      "date": "2026-03-25",
+      "month": "2026-03",
+      "eventId": "Setup",
+      "purchaseDate": "2026-03-25",
+      "type": "Expense",
+      "costType": "Investment",
+      "category": "Equipment",
+      "description": "Thermobox",
+      "amount": -29,
+      "person": "Sriram",
+      "status": "Paid"
+    },
+    {
+      "date": "2026-03-14",
+      "month": "2026-03",
+      "eventId": "Setup",
+      "purchaseDate": "2026-03-14",
+      "type": "Expense",
+      "costType": "Investment",
+      "category": "Equipment",
+      "description": "Non Food Metro Items",
+      "amount": -47,
+      "person": "Sriram",
+      "status": "Paid"
+    },
+    {
+      "date": "2026-03-14",
+      "month": "2026-03",
+      "eventId": "Setup",
+      "purchaseDate": "2026-03-14",
+      "type": "Expense",
+      "costType": "Investment",
+      "category": "Equipment",
+      "description": "Water Container",
+      "amount": -5.1,
+      "person": "Sriram",
+      "status": "Paid"
+    },
+    {
+      "date": "2026-03-14",
+      "month": "2026-03",
+      "eventId": "Setup",
+      "purchaseDate": "2026-03-14",
+      "type": "Expense",
+      "costType": "Investment",
+      "category": "Stall Setup",
+      "description": "Fire Extingusher",
+      "amount": -11,
+      "person": "Sriram",
+      "status": "Paid"
+    },
+    {
+      "date": "2026-03-14",
+      "month": "2026-03",
+      "eventId": "Setup",
+      "purchaseDate": "2026-03-14",
+      "type": "Expense",
+      "costType": "Investment",
+      "category": "Stall Setup",
+      "description": "Handwaschbecken",
+      "amount": -400,
+      "person": "Sriram",
+      "status": "Paid"
+    },
+    {
+      "date": "2026-03-14",
+      "month": "2026-03",
+      "eventId": "Setup",
+      "purchaseDate": "2026-03-14",
+      "type": "Expense",
+      "costType": "Investment",
+      "category": "Stall Setup",
+      "description": "Ikea Art Flowers",
+      "amount": -9.55,
+      "person": "Sriram",
+      "status": "Paid"
+    },
+    {
+      "date": "2026-03-14",
+      "month": "2026-03",
+      "eventId": "Setup",
+      "purchaseDate": "2026-03-14",
+      "type": "Expense",
+      "costType": "Investment",
+      "category": "Equipment",
+      "description": "Girmit Vessels",
+      "amount": -10,
+      "person": "Jeeva",
+      "status": "Paid"
+    },
+    {
+      "date": "2026-03-14",
+      "month": "2026-03",
+      "eventId": "Setup",
+      "purchaseDate": "2026-03-14",
+      "type": "Expense",
+      "costType": "Investment",
+      "category": "Stall Setup",
+      "description": "Tedi Decor Items",
+      "amount": -14,
+      "person": "Sriram",
+      "status": "Paid"
+    },
+    {
+      "date": "2026-03-14",
+      "month": "2026-03",
+      "eventId": "Setup",
+      "purchaseDate": "2026-03-14",
+      "type": "Expense",
+      "costType": "Investment",
+      "category": "Stall Setup",
+      "description": "Garden External Setup",
+      "amount": -128,
+      "person": "Sriram",
+      "status": "Paid"
+    },
+    {
+      "date": "2026-03-14",
+      "month": "2026-03",
+      "eventId": "Setup",
+      "purchaseDate": "2026-03-14",
+      "type": "Expense",
+      "costType": "Investment",
+      "category": "Equipment",
+      "description": "Flasche Propangas",
+      "amount": -44,
+      "person": "Sriram",
+      "status": "Paid"
+    },
+    {
+      "date": "2026-03-14",
+      "month": "2026-03",
+      "eventId": "Setup",
+      "purchaseDate": "2026-03-14",
+      "type": "Expense",
+      "costType": "Investment",
+      "category": "Stall Setup",
+      "description": "Extension cable",
+      "amount": -29.82,
+      "person": "Jeeva",
+      "status": "Paid"
+    },
+    {
+      "date": "2026-03-14",
+      "month": "2026-03",
+      "eventId": "Setup",
+      "purchaseDate": "2026-03-14",
+      "type": "Expense",
+      "costType": "Investment",
+      "category": "Stall Setup",
+      "description": "Outdoor cable reel",
+      "amount": -54.77,
+      "person": "Jeeva",
+      "status": "Paid"
+    },
+    {
+      "date": "2026-03-14",
+      "month": "2026-03",
+      "eventId": "Setup",
+      "purchaseDate": "2026-03-14",
+      "type": "Expense",
+      "costType": "Investment",
+      "category": "Stall Setup",
+      "description": "Tablecloth",
+      "amount": -15.29,
+      "person": "Jeeva",
+      "status": "Paid"
+    },
+    {
+      "date": "2026-03-14",
+      "month": "2026-03",
+      "eventId": "Setup",
+      "purchaseDate": "2026-03-14",
+      "type": "Expense",
+      "costType": "Investment",
+      "category": "Equipment",
+      "description": "15L Cooking pot",
+      "amount": -37.08,
+      "person": "Jeeva",
+      "status": "Paid"
+    },
+    {
+      "date": "2026-03-14",
+      "month": "2026-03",
+      "eventId": "Setup",
+      "purchaseDate": "2026-03-14",
+      "type": "Expense",
+      "costType": "Investment",
+      "category": "Equipment",
+      "description": "Thermopot Tea pot Return",
+      "amount": -4.99,
+      "person": "Jeeva",
+      "status": "Paid"
+    },
+    {
+      "date": "2026-03-14",
+      "month": "2026-03",
+      "eventId": "Setup",
+      "purchaseDate": "2026-03-14",
+      "type": "Expense",
+      "costType": "Investment",
+      "category": "Equipment",
+      "description": "30L Storage",
+      "amount": -29.99,
+      "person": "Jeeva",
+      "status": "Paid"
+    },
+    {
+      "date": "2026-03-14",
+      "month": "2026-03",
+      "eventId": "Setup",
+      "purchaseDate": "2026-03-14",
+      "type": "Expense",
+      "costType": "Investment",
+      "category": "Stall Setup",
+      "description": "Banner cost",
+      "amount": -80,
+      "person": "Box",
+      "status": "Paid"
+    },
+    {
+      "date": "2026-03-14",
+      "month": "2026-03",
+      "eventId": "Setup",
+      "purchaseDate": "2026-03-14",
+      "type": "Expense",
+      "costType": "Investment",
+      "category": "Equipment",
+      "description": "Induction Stove",
+      "amount": -10,
+      "person": "Box",
+      "status": "Paid"
+    },
+    {
+      "date": "2026-03-14",
+      "month": "2026-03",
+      "eventId": "Setup",
+      "purchaseDate": "2026-03-14",
+      "type": "Expense",
+      "costType": "Investment",
+      "category": "Equipment",
+      "description": "Induction Stove",
+      "amount": -10,
+      "person": "Sriram",
+      "status": "Paid"
+    },
+    {
+      "date": "2026-03-14",
+      "month": "2026-03",
+      "eventId": "Setup",
+      "purchaseDate": "2026-03-14",
+      "type": "Expense",
+      "costType": "Investment",
+      "category": "Operations",
+      "description": "Metro",
+      "amount": -108.26,
+      "person": "Box",
+      "status": "Paid"
+    },
+    {
+      "date": "2026-03-14",
+      "month": "2026-03",
+      "eventId": "Setup",
+      "purchaseDate": "2026-03-14",
+      "type": "Expense",
+      "costType": "Investment",
+      "category": "Operations",
+      "description": "Woolworth",
+      "amount": -22.9,
+      "person": "Box",
+      "status": "Paid"
+    },
+    {
+      "date": "2026-04-15",
+      "month": "2026-04",
+      "eventId": "Setup",
+      "purchaseDate": "2026-04-15",
+      "type": "Expense",
+      "costType": "Investment",
+      "category": "Equipment",
+      "description": "Tedi",
+      "amount": -17,
+      "person": "Sriram",
+      "status": "Paid"
+    },
+    {
+      "date": "2026-03-16",
+      "month": "2026-03",
+      "eventId": "Setup",
+      "purchaseDate": "2026-03-16",
+      "type": "Expense",
+      "costType": "Investment",
+      "category": "Equipment",
+      "description": "Amazon",
+      "amount": -5.94,
+      "person": "Jeeva",
+      "status": "Paid"
+    },
+    {
+      "date": "2026-03-16",
+      "month": "2026-03",
+      "eventId": "Setup",
+      "purchaseDate": "2026-03-16",
+      "type": "Expense",
+      "costType": "Investment",
+      "category": "Stall Setup",
+      "description": "Amazon",
+      "amount": -7.99,
+      "person": "Jeeva",
+      "status": "Paid"
+    },
+    {
+      "date": "2026-03-16",
+      "month": "2026-03",
+      "eventId": "Setup",
+      "purchaseDate": "2026-03-16",
+      "type": "Expense",
+      "costType": "Investment",
+      "category": "Equipment",
+      "description": "Amazon",
+      "amount": -4.27,
+      "person": "Jeeva",
+      "status": "Paid"
+    },
+    {
+      "date": "2026-03-16",
+      "month": "2026-03",
+      "eventId": "Setup",
+      "purchaseDate": "2026-03-16",
+      "type": "Expense",
+      "costType": "Investment",
+      "category": "Equipment",
+      "description": "Medimarkt",
+      "amount": -11,
+      "person": "Sriram",
+      "status": "Paid"
+    },
+    {
+      "date": "2026-04-22",
+      "month": "2026-04",
+      "eventId": "Setup",
+      "purchaseDate": "2026-04-22",
+      "type": "Expense",
+      "costType": "Investment",
+      "category": "Equipment",
+      "description": "Metro",
+      "amount": -57.37,
+      "person": "Sneha",
+      "status": "Paid"
+    },
+    {
+      "date": "2026-05-06",
+      "month": "2026-05",
+      "eventId": "Setup",
+      "purchaseDate": "2026-05-06",
+      "type": "Expense",
+      "costType": "Investment",
+      "category": "Equipment",
+      "description": "OBI",
+      "amount": -34.87,
+      "person": "Sriram",
+      "status": "Paid"
+    },
+    {
+      "date": "2026-05-06",
+      "month": "2026-05",
+      "eventId": "Setup",
+      "purchaseDate": "2026-05-06",
+      "type": "Expense",
+      "costType": "Investment",
+      "category": "Equipment",
+      "description": "OBI",
+      "amount": -3.25,
+      "person": "Sriram",
+      "status": "Paid"
+    },
+    {
+      "date": "2026-05-06",
+      "month": "2026-05",
+      "eventId": "Setup",
+      "purchaseDate": "2026-05-06",
+      "type": "Expense",
+      "costType": "Investment",
+      "category": "Equipment",
+      "description": "Tedi",
+      "amount": -8,
+      "person": "Sriram",
+      "status": "Paid"
+    },
+    {
+      "date": "2026-05-06",
+      "month": "2026-05",
+      "eventId": "Setup",
+      "purchaseDate": "2026-05-06",
+      "type": "Expense",
+      "costType": "Investment",
+      "category": "Equipment",
+      "description": "Temu",
+      "amount": -26.29,
+      "person": "Jeeva",
+      "status": "Paid"
+    },
+    {
+      "date": "2026-05-13",
+      "month": "2026-05",
+      "eventId": "Setup",
+      "purchaseDate": "2026-05-13",
+      "type": "Expense",
+      "costType": "Investment",
+      "category": "Operations",
+      "description": "Greenbox",
+      "amount": -452.26,
+      "person": "Jeeva",
+      "status": "Paid"
+    },
+    {
+      "date": "2026-05-19",
+      "month": "2026-05",
+      "eventId": "Setup",
+      "purchaseDate": "2026-05-19",
+      "type": "Expense",
+      "costType": "Investment",
+      "category": "Equipment",
+      "description": "Steel Angle Bracket",
+      "amount": -9.3,
+      "person": "Sriram",
+      "status": "Paid"
+    },
+    {
+      "date": "2026-05-19",
+      "month": "2026-05",
+      "eventId": "Setup",
+      "purchaseDate": "2026-05-19",
+      "type": "Expense",
+      "costType": "Investment",
+      "category": "Stall Setup",
+      "description": "Metro",
+      "amount": -58.63,
+      "person": "Sriram",
+      "status": "Paid"
+    },
+    {
+      "date": "2026-05-19",
+      "month": "2026-05",
+      "eventId": "Setup",
+      "purchaseDate": "2026-05-19",
+      "type": "Expense",
+      "costType": "Investment",
+      "category": "Stall Setup",
+      "description": "Metro",
+      "amount": -293.8,
+      "person": "Sriram",
+      "status": "Paid"
+    },
+    {
+      "date": "2026-05-20",
+      "month": "2026-05",
+      "eventId": "Setup",
+      "purchaseDate": "2026-05-20",
+      "type": "Expense",
+      "costType": "Investment",
+      "category": "Operations",
+      "description": "Change Coins Added to Cashbox",
+      "amount": -158,
+      "person": "Sriram",
+      "status": "Paid"
+    },
+    {
+      "date": "2026-05-21",
+      "month": "2026-05",
+      "eventId": "Setup",
+      "purchaseDate": "2026-05-21",
+      "type": "Expense",
+      "costType": "Investment",
+      "category": "Stall Setup",
+      "description": "Colour Print",
+      "amount": -16,
+      "person": "Sriram",
+      "status": "Paid"
+    },
+    {
+      "date": "2026-05-21",
+      "month": "2026-05",
+      "eventId": "Setup",
+      "purchaseDate": "2026-05-21",
+      "type": "Expense",
+      "costType": "Investment",
+      "category": "Operations",
+      "description": "Disposable Latex Gloves DM",
+      "amount": -4.95,
+      "person": "Sriram",
+      "status": "Paid"
+    },
+    {
+      "date": "2026-05-21",
+      "month": "2026-05",
+      "eventId": "Setup",
+      "purchaseDate": "2026-05-21",
+      "type": "Expense",
+      "costType": "Investment",
+      "category": "Operations",
+      "description": "Tedi",
+      "amount": -7.55,
+      "person": "Sneha",
+      "status": "Paid"
+    },
+    {
+      "date": "2026-04-01",
+      "month": "2026-04",
+      "eventId": "Setup",
+      "purchaseDate": "2026-04-01",
+      "type": "Expense",
+      "costType": "Running",
+      "category": "Subscription",
+      "description": "Canva Subscription April 2026",
+      "amount": -12,
+      "person": "Jeeva",
+      "status": "Paid"
+    },
+    {
+      "date": "2026-05-01",
+      "month": "2026-05",
+      "eventId": "Setup",
+      "purchaseDate": "2026-05-01",
+      "type": "Expense",
+      "costType": "Running",
+      "category": "Subscription",
+      "description": "Canva Subscription May 2026",
+      "amount": -4.49,
+      "person": "Jeeva",
+      "status": "Paid"
+    },
+    {
+      "date": "2026-05-14",
+      "month": "2026-05",
+      "eventId": "Setup",
+      "purchaseDate": "2026-05-14",
+      "type": "Expense",
+      "costType": "Investment",
+      "category": "Stall Setup",
+      "description": "Amazon",
+      "amount": -34.89,
+      "person": "Jeeva",
+      "status": "Paid"
+    },
+    {
+      "date": "2026-05-14",
+      "month": "2026-05",
+      "eventId": "Setup",
+      "purchaseDate": "2026-05-14",
+      "type": "Expense",
+      "costType": "Investment",
+      "category": "Stall Setup",
+      "description": "Amazon",
+      "amount": -48.9,
+      "person": "Jeeva",
+      "status": "Paid"
+    },
+    {
+      "date": "2026-04-26",
+      "month": "2026-04",
+      "eventId": "Setup",
+      "purchaseDate": "2026-04-26",
+      "type": "Expense",
+      "costType": "Investment",
+      "category": "Stall Setup",
+      "description": "Amazon",
+      "amount": -16.98,
+      "person": "Jeeva",
+      "status": "Paid"
+    },
+    {
+      "date": "2026-04-26",
+      "month": "2026-04",
+      "eventId": "Setup",
+      "purchaseDate": "2026-04-26",
+      "type": "Expense",
+      "costType": "Investment",
+      "category": "Stall Setup",
+      "description": "Amazon",
+      "amount": -15.99,
+      "person": "Jeeva",
+      "status": "Paid"
+    },
+    {
+      "date": "2026-05-29",
+      "month": "2026-05",
+      "eventId": "Setup",
+      "purchaseDate": "2026-05-29",
+      "type": "Expense",
+      "costType": "Investment",
+      "category": "Operations",
+      "description": "Change Coins Added to Coin Reserve",
+      "amount": -400,
+      "person": "Sneha",
+      "status": "Paid"
+    },
+    {
+      "date": "2026-05-29",
+      "month": "2026-05",
+      "eventId": "Setup",
+      "purchaseDate": "2026-05-29",
+      "type": "Expense",
+      "costType": "Investment",
+      "category": "Equipment",
+      "description": "Bauhaus",
+      "amount": -16.9,
+      "person": "Sriram",
+      "status": "Paid"
+    },
+    {
+      "date": "2026-05-29",
+      "month": "2026-05",
+      "eventId": "Setup",
+      "purchaseDate": "2026-05-29",
+      "type": "Expense",
+      "costType": "Investment",
+      "category": "Equipment",
+      "description": "IKEA",
+      "amount": -13.98,
+      "person": "Sriram",
+      "status": "Paid"
+    },
+    {
+      "date": "2026-05-29",
+      "month": "2026-05",
+      "eventId": "Setup",
+      "purchaseDate": "2026-05-29",
+      "type": "Expense",
+      "costType": "Investment",
+      "category": "Equipment",
+      "description": "Metro",
+      "amount": -55.49,
+      "person": "Sriram",
+      "status": "Paid"
+    },
+    {
+      "date": "2026-06-05",
+      "month": "2026-06",
+      "eventId": "Setup",
+      "purchaseDate": "2026-06-05",
+      "type": "Expense",
+      "costType": "Investment",
+      "category": "Stall Setup",
+      "description": "Active Print Köln",
+      "amount": -25,
+      "person": "Sriram",
+      "status": "Paid"
+    },
+    {
+      "date": "2026-06-05",
+      "month": "2026-06",
+      "eventId": "Setup",
+      "purchaseDate": "2026-06-05",
+      "type": "Expense",
+      "costType": "Investment",
+      "category": "Stall Setup",
+      "description": "Tedi",
+      "amount": -2,
+      "person": "Sriram",
+      "status": "Paid"
+    },
+    {
+      "date": "2026-06-08",
+      "month": "2026-06",
+      "eventId": "Setup",
+      "purchaseDate": "2026-06-08",
+      "type": "Expense",
+      "costType": "Investment",
+      "category": "Stall Setup",
+      "description": "OBI",
+      "amount": -13.35,
+      "person": "Sriram",
+      "status": "Paid"
+    },
+    {
+      "date": "2026-06-09",
+      "month": "2026-06",
+      "eventId": "Setup",
+      "purchaseDate": "2026-06-09",
+      "type": "Expense",
+      "costType": "Investment",
+      "category": "Equipment",
+      "description": "Amazon",
+      "amount": -7.16,
+      "person": "Jeeva",
+      "status": "Paid"
+    },
+    {
+      "date": "2026-06-02",
+      "month": "2026-06",
+      "eventId": "Setup",
+      "purchaseDate": "2026-06-02",
+      "type": "Expense",
+      "costType": "Investment",
+      "category": "Equipment",
+      "description": "Amazon",
+      "amount": -9.99,
+      "person": "Jeeva",
+      "status": "Paid"
+    },
+    {
+      "date": "2026-06-02",
+      "month": "2026-06",
+      "eventId": "Setup",
+      "purchaseDate": "2026-06-02",
+      "type": "Expense",
+      "costType": "Investment",
+      "category": "Equipment",
+      "description": "Amazon",
+      "amount": -5.99,
+      "person": "Jeeva",
+      "status": "Paid"
+    },
+    {
+      "date": "2026-07-02",
+      "month": "2026-07",
+      "eventId": "Setup",
+      "purchaseDate": "2026-07-02",
+      "type": "Expense",
+      "costType": "Investment",
+      "category": "Equipment",
+      "description": "Royal Catering",
+      "amount": -59.49,
+      "person": "Sriram",
+      "status": "Paid"
+    },
+    {
+      "date": "2026-03-22",
+      "month": "2026-03",
+      "eventId": "E001",
+      "purchaseDate": "2026-03-20",
+      "type": "Expense",
+      "costType": "Running",
+      "category": "Stall Fee",
+      "description": "Stall Fee",
+      "amount": -50,
+      "person": "Sriram",
+      "status": "Paid"
+    },
+    {
+      "date": "2026-03-20",
+      "month": "2026-03",
+      "eventId": "E001",
+      "purchaseDate": "2026-03-20",
+      "type": "Expense",
+      "costType": "Running",
+      "category": "Grocery",
+      "description": "Tropical Foods",
+      "amount": -20.55,
+      "person": "Sneha",
+      "status": "Paid"
+    },
+    {
+      "date": "2026-03-20",
+      "month": "2026-03",
+      "eventId": "E001",
+      "purchaseDate": "2026-03-20",
+      "type": "Expense",
+      "costType": "Running",
+      "category": "Grocery",
+      "description": "Singh’s Mart",
+      "amount": -8.35,
+      "person": "Sneha",
+      "status": "Paid"
+    },
+    {
+      "date": "2026-03-20",
+      "month": "2026-03",
+      "eventId": "E001",
+      "purchaseDate": "2026-03-20",
+      "type": "Expense",
+      "costType": "Running",
+      "category": "Grocery",
+      "description": "Soft Drinks",
+      "amount": -26,
+      "person": "Sriram",
+      "status": "Paid"
+    },
+    {
+      "date": "2026-03-21",
+      "month": "2026-03",
+      "eventId": "E001",
+      "purchaseDate": "2026-03-21",
+      "type": "Expense",
+      "costType": "Running",
+      "category": "Grocery",
+      "description": "Kaufland",
+      "amount": -47.37,
+      "person": "Sriram",
+      "status": "Paid"
+    },
+    {
+      "date": "2026-03-22",
+      "month": "2026-03",
+      "eventId": "E001",
+      "purchaseDate": "2026-03-22",
+      "type": "Income",
+      "costType": "Income",
+      "category": "Income",
+      "description": "Box",
+      "amount": 607.5,
+      "person": "",
+      "status": ""
+    },
+    {
+      "date": "2026-04-01",
+      "month": "2026-04",
+      "eventId": "E002",
+      "purchaseDate": "2026-04-01",
+      "type": "Expense",
+      "costType": "Running",
+      "category": "Stall Fee",
+      "description": "Stall Fee",
+      "amount": -403,
+      "person": "Sriram",
+      "status": "Paid"
+    },
+    {
+      "date": "2026-04-01",
+      "month": "2026-04",
+      "eventId": "E002",
+      "purchaseDate": "2026-04-01",
+      "type": "Expense",
+      "costType": "Running",
+      "category": "Grocery",
+      "description": "Tropical Foods",
+      "amount": -111.36,
+      "person": "Box",
+      "status": "Paid"
+    },
+    {
+      "date": "2026-04-01",
+      "month": "2026-04",
+      "eventId": "E002",
+      "purchaseDate": "2026-04-01",
+      "type": "Expense",
+      "costType": "Running",
+      "category": "Grocery",
+      "description": "Metro",
+      "amount": -61.6,
+      "person": "Sriram",
+      "status": "Paid"
+    },
+    {
+      "date": "2026-04-01",
+      "month": "2026-04",
+      "eventId": "E002",
+      "purchaseDate": "2026-04-01",
+      "type": "Expense",
+      "costType": "Running",
+      "category": "Grocery",
+      "description": "Metro",
+      "amount": -31.75,
+      "person": "Box",
+      "status": "Paid"
+    },
+    {
+      "date": "2026-04-01",
+      "month": "2026-04",
+      "eventId": "E002",
+      "purchaseDate": "2026-04-01",
+      "type": "Expense",
+      "costType": "Running",
+      "category": "Grocery",
+      "description": "Singh’s Mart",
+      "amount": -7,
+      "person": "Sriram",
+      "status": "Paid"
+    },
+    {
+      "date": "2026-04-01",
+      "month": "2026-04",
+      "eventId": "E002",
+      "purchaseDate": "2026-04-01",
+      "type": "Expense",
+      "costType": "Running",
+      "category": "Grocery",
+      "description": "Lidl",
+      "amount": -28.43,
+      "person": "Sneha",
+      "status": "Paid"
+    },
+    {
+      "date": "2026-04-01",
+      "month": "2026-04",
+      "eventId": "E002",
+      "purchaseDate": "2026-04-01",
+      "type": "Expense",
+      "costType": "Running",
+      "category": "Grocery",
+      "description": "Kaufland",
+      "amount": -30.5,
+      "person": "Sriram",
+      "status": "Paid"
+    },
+    {
+      "date": "2026-04-06",
+      "month": "2026-04",
+      "eventId": "E002",
+      "purchaseDate": "2026-04-06",
+      "type": "Income",
+      "costType": "Income",
+      "category": "Income",
+      "description": "Box",
+      "amount": 566.07,
+      "person": "",
+      "status": ""
+    },
+    {
+      "date": "2026-04-19",
+      "month": "2026-04",
+      "eventId": "E003",
+      "purchaseDate": "2026-04-01",
+      "type": "Expense",
+      "costType": "Running",
+      "category": "Stall Fee",
+      "description": "Stall Fee",
+      "amount": -55,
+      "person": "Sriram",
+      "status": "Paid"
+    },
+    {
+      "date": "2026-04-19",
+      "month": "2026-04",
+      "eventId": "E003",
+      "purchaseDate": "2026-04-19",
+      "type": "Expense",
+      "costType": "Running",
+      "category": "Stall Fee",
+      "description": "Stall Fee",
+      "amount": -50,
+      "person": "Box",
+      "status": "Paid"
+    },
+    {
+      "date": "2026-04-11",
+      "month": "2026-04",
+      "eventId": "E003",
+      "purchaseDate": "2026-04-11",
+      "type": "Expense",
+      "costType": "Running",
+      "category": "Grocery",
+      "description": "Tropical Foods",
+      "amount": -11.48,
+      "person": "Box",
+      "status": "Paid"
+    },
+    {
+      "date": "2026-04-11",
+      "month": "2026-04",
+      "eventId": "E003",
+      "purchaseDate": "2026-04-11",
+      "type": "Expense",
+      "costType": "Running",
+      "category": "Grocery",
+      "description": "Singh’s Mart",
+      "amount": -9.48,
+      "person": "Box",
+      "status": "Paid"
+    },
+    {
+      "date": "2026-04-11",
+      "month": "2026-04",
+      "eventId": "E003",
+      "purchaseDate": "2026-04-11",
+      "type": "Settlement",
+      "costType": "Settlement",
+      "category": "Settlement",
+      "description": "Reimbursed",
+      "amount": -79.04,
+      "person": "Sneha",
+      "status": "Reimbursed"
+    },
+    {
+      "date": "2026-04-11",
+      "month": "2026-04",
+      "eventId": "E003",
+      "purchaseDate": "2026-04-11",
+      "type": "Settlement",
+      "costType": "Settlement",
+      "category": "Settlement",
+      "description": "Reimbursed",
+      "amount": -50,
+      "person": "Sriram",
+      "status": "Reimbursed"
+    },
+    {
+      "date": "2026-04-14",
+      "month": "2026-04",
+      "eventId": "E003",
+      "purchaseDate": "2026-04-14",
+      "type": "Settlement",
+      "costType": "Settlement",
+      "category": "Settlement",
+      "description": "Reimbursed",
+      "amount": -50,
+      "person": "Sriram",
+      "status": "Reimbursed"
+    },
+    {
+      "date": "2026-04-15",
+      "month": "2026-04",
+      "eventId": "E003",
+      "purchaseDate": "2026-04-15",
+      "type": "Expense",
+      "costType": "Running",
+      "category": "Operations",
+      "description": "OBI Propane Gas",
+      "amount": -14.84,
+      "person": "Sriram",
+      "status": "Paid"
+    },
+    {
+      "date": "2026-04-16",
+      "month": "2026-04",
+      "eventId": "E003",
+      "purchaseDate": "2026-04-16",
+      "type": "Expense",
+      "costType": "Running",
+      "category": "Grocery",
+      "description": "Kaufland",
+      "amount": -13.94,
+      "person": "Sneha",
+      "status": "Paid"
+    },
+    {
+      "date": "2026-04-18",
+      "month": "2026-04",
+      "eventId": "E003",
+      "purchaseDate": "2026-04-18",
+      "type": "Expense",
+      "costType": "Running",
+      "category": "Grocery",
+      "description": "Singh’s Mart",
+      "amount": -10,
+      "person": "Sriram",
+      "status": "Paid"
+    },
+    {
+      "date": "2026-04-18",
+      "month": "2026-04",
+      "eventId": "E003",
+      "purchaseDate": "2026-04-18",
+      "type": "Expense",
+      "costType": "Running",
+      "category": "Grocery",
+      "description": "Kaufland",
+      "amount": -49.86,
+      "person": "Box",
+      "status": "Paid"
+    },
+    {
+      "date": "2026-04-19",
+      "month": "2026-04",
+      "eventId": "E003",
+      "purchaseDate": "2026-04-19",
+      "type": "Settlement",
+      "costType": "Settlement",
+      "category": "Settlement",
+      "description": "Reimbursed",
+      "amount": -7,
+      "person": "Jeeva",
+      "status": "Reimbursed"
+    },
+    {
+      "date": "2026-04-19",
+      "month": "2026-04",
+      "eventId": "E003",
+      "purchaseDate": "2026-04-19",
+      "type": "Income",
+      "costType": "Income",
+      "category": "Income",
+      "description": "Box",
+      "amount": 608,
+      "person": "",
+      "status": ""
+    },
+    {
+      "date": "2026-05-08",
+      "month": "2026-04",
+      "eventId": "E004",
+      "purchaseDate": "2026-04-06",
+      "type": "Expense",
+      "costType": "Running",
+      "category": "Stall Fee",
+      "description": "Stall Fee",
+      "amount": -781.24,
+      "person": "Jeeva",
+      "status": "Paid"
+    },
+    {
+      "date": "2026-04-14",
+      "month": "2026-04",
+      "eventId": "E004",
+      "purchaseDate": "2026-04-14",
+      "type": "Settlement",
+      "costType": "Settlement",
+      "category": "Settlement",
+      "description": "Reimbursed",
+      "amount": -400,
+      "person": "Sriram",
+      "status": "Reimbursed"
+    },
+    {
+      "date": "2026-04-22",
+      "month": "2026-04",
+      "eventId": "E004",
+      "purchaseDate": "2026-04-22",
+      "type": "Expense",
+      "costType": "Running",
+      "category": "Grocery",
+      "description": "Metro",
+      "amount": -46.94,
+      "person": "Sneha",
+      "status": "Paid"
+    },
+    {
+      "date": "2026-04-24",
+      "month": "2026-04",
+      "eventId": "E004",
+      "purchaseDate": "2026-04-24",
+      "type": "Expense",
+      "costType": "Running",
+      "category": "Grocery",
+      "description": "Tropical Foods",
+      "amount": -18.43,
+      "person": "Sneha",
+      "status": "Paid"
+    },
+    {
+      "date": "2026-05-01",
+      "month": "2026-05",
+      "eventId": "E004",
+      "purchaseDate": "2026-05-01",
+      "type": "Settlement",
+      "costType": "Settlement",
+      "category": "Settlement",
+      "description": "Reimbursed",
+      "amount": -100,
+      "person": "Sriram",
+      "status": "Reimbursed"
+    },
+    {
+      "date": "2026-05-01",
+      "month": "2026-05",
+      "eventId": "E004",
+      "purchaseDate": "2026-05-01",
+      "type": "Settlement",
+      "costType": "Settlement",
+      "category": "Settlement",
+      "description": "Reimbursed",
+      "amount": -50,
+      "person": "Sriram",
+      "status": "Reimbursed"
+    },
+    {
+      "date": "2026-05-01",
+      "month": "2026-05",
+      "eventId": "E004",
+      "purchaseDate": "2026-05-01",
+      "type": "Settlement",
+      "costType": "Settlement",
+      "category": "Settlement",
+      "description": "Reimbursed",
+      "amount": -22.646,
+      "person": "Sriram",
+      "status": "Reimbursed"
+    },
+    {
+      "date": "2026-05-01",
+      "month": "2026-05",
+      "eventId": "E004",
+      "purchaseDate": "2026-05-01",
+      "type": "Settlement",
+      "costType": "Settlement",
+      "category": "Settlement",
+      "description": "Reimbursed",
+      "amount": -22.646,
+      "person": "Sneha",
+      "status": "Reimbursed"
+    },
+    {
+      "date": "2026-05-01",
+      "month": "2026-05",
+      "eventId": "E004",
+      "purchaseDate": "2026-05-01",
+      "type": "Settlement",
+      "costType": "Settlement",
+      "category": "Settlement",
+      "description": "Reimbursed",
+      "amount": -22.646,
+      "person": "Jeeva",
+      "status": "Reimbursed"
+    },
+    {
+      "date": "2026-05-05",
+      "month": "2026-05",
+      "eventId": "E004",
+      "purchaseDate": "2026-05-05",
+      "type": "Expense",
+      "costType": "Running",
+      "category": "Grocery",
+      "description": "Kaufland",
+      "amount": -68.45,
+      "person": "Sneha",
+      "status": "Paid"
+    },
+    {
+      "date": "2026-05-06",
+      "month": "2026-05",
+      "eventId": "E004",
+      "purchaseDate": "2026-05-06",
+      "type": "Expense",
+      "costType": "Running",
+      "category": "Grocery",
+      "description": "Kaufland",
+      "amount": -16.02,
+      "person": "Jeeva",
+      "status": "Paid"
+    },
+    {
+      "date": "2026-05-06",
+      "month": "2026-05",
+      "eventId": "E004",
+      "purchaseDate": "2026-05-06",
+      "type": "Expense",
+      "costType": "Running",
+      "category": "Grocery",
+      "description": "Tropical Foods",
+      "amount": -20.98,
+      "person": "Sriram",
+      "status": "Paid"
+    },
+    {
+      "date": "2026-05-06",
+      "month": "2026-05",
+      "eventId": "E004",
+      "purchaseDate": "2026-05-06",
+      "type": "Expense",
+      "costType": "Running",
+      "category": "Grocery",
+      "description": "Kaufland",
+      "amount": -35.8,
+      "person": "Sriram",
+      "status": "Paid"
+    },
+    {
+      "date": "2026-05-06",
+      "month": "2026-05",
+      "eventId": "E004",
+      "purchaseDate": "2026-05-06",
+      "type": "Expense",
+      "costType": "Running",
+      "category": "Grocery",
+      "description": "Aldi",
+      "amount": -28.27,
+      "person": "Jeeva",
+      "status": "Paid"
+    },
+    {
+      "date": "2026-05-06",
+      "month": "2026-05",
+      "eventId": "E004",
+      "purchaseDate": "2026-05-06",
+      "type": "Expense",
+      "costType": "Running",
+      "category": "Grocery",
+      "description": "Aldi",
+      "amount": -4.78,
+      "person": "Jeeva",
+      "status": "Paid"
+    },
+    {
+      "date": "2026-05-06",
+      "month": "2026-05",
+      "eventId": "E004",
+      "purchaseDate": "2026-05-06",
+      "type": "Expense",
+      "costType": "Running",
+      "category": "Grocery",
+      "description": "Aldi",
+      "amount": -7.62,
+      "person": "Sriram",
+      "status": "Paid"
+    },
+    {
+      "date": "2026-05-06",
+      "month": "2026-05",
+      "eventId": "E004",
+      "purchaseDate": "2026-05-06",
+      "type": "Expense",
+      "costType": "Running",
+      "category": "Grocery",
+      "description": "Aldi",
+      "amount": -43.2,
+      "person": "Sriram",
+      "status": "Paid"
+    },
+    {
+      "date": "2026-05-06",
+      "month": "2026-05",
+      "eventId": "E004",
+      "purchaseDate": "2026-05-06",
+      "type": "Expense",
+      "costType": "Running",
+      "category": "Grocery",
+      "description": "Lidl",
+      "amount": -42.62,
+      "person": "Sriram",
+      "status": "Paid"
+    },
+    {
+      "date": "2026-05-06",
+      "month": "2026-05",
+      "eventId": "E004",
+      "purchaseDate": "2026-05-06",
+      "type": "Expense",
+      "costType": "Running",
+      "category": "Grocery",
+      "description": "Kaufland",
+      "amount": -0.79,
+      "person": "Sriram",
+      "status": "Paid"
+    },
+    {
+      "date": "2026-05-06",
+      "month": "2026-05",
+      "eventId": "E004",
+      "purchaseDate": "2026-05-06",
+      "type": "Expense",
+      "costType": "Running",
+      "category": "Grocery",
+      "description": "Edeka",
+      "amount": -4.93,
+      "person": "Sriram",
+      "status": "Paid"
+    },
+    {
+      "date": "2026-05-06",
+      "month": "2026-05",
+      "eventId": "E004",
+      "purchaseDate": "2026-05-06",
+      "type": "Expense",
+      "costType": "Running",
+      "category": "Grocery",
+      "description": "Aldi",
+      "amount": -7.17,
+      "person": "Sriram",
+      "status": "Paid"
+    },
+    {
+      "date": "2026-05-06",
+      "month": "2026-05",
+      "eventId": "E004",
+      "purchaseDate": "2026-05-06",
+      "type": "Expense",
+      "costType": "Running",
+      "category": "Grocery",
+      "description": "Aldi",
+      "amount": -7.62,
+      "person": "Sriram",
+      "status": "Paid"
+    },
+    {
+      "date": "2026-05-06",
+      "month": "2026-05",
+      "eventId": "E004",
+      "purchaseDate": "2026-05-06",
+      "type": "Expense",
+      "costType": "Running",
+      "category": "Grocery",
+      "description": "Aldi",
+      "amount": -27.32,
+      "person": "Sriram",
+      "status": "Paid"
+    },
+    {
+      "date": "2026-05-06",
+      "month": "2026-05",
+      "eventId": "E004",
+      "purchaseDate": "2026-05-06",
+      "type": "Expense",
+      "costType": "Running",
+      "category": "Grocery",
+      "description": "Lidl",
+      "amount": -1.25,
+      "person": "Sriram",
+      "status": "Paid"
+    },
+    {
+      "date": "2026-05-09",
+      "month": "2026-05",
+      "eventId": "E004",
+      "purchaseDate": "2026-05-09",
+      "type": "Expense",
+      "costType": "Running",
+      "category": "Grocery",
+      "description": "DM",
+      "amount": -12,
+      "person": "Sriram",
+      "status": "Paid"
+    },
+    {
+      "date": "2026-05-09",
+      "month": "2026-05",
+      "eventId": "E004",
+      "purchaseDate": "2026-05-09",
+      "type": "Expense",
+      "costType": "Running",
+      "category": "Grocery",
+      "description": "Aldi",
+      "amount": -90.07,
+      "person": "Sriram",
+      "status": "Paid"
+    },
+    {
+      "date": "2026-05-09",
+      "month": "2026-05",
+      "eventId": "E004",
+      "purchaseDate": "2026-05-09",
+      "type": "Expense",
+      "costType": "Running",
+      "category": "Grocery",
+      "description": "Indian Store",
+      "amount": -92.99,
+      "person": "Sriram",
+      "status": "Paid"
+    },
+    {
+      "date": "2026-05-09",
+      "month": "2026-05",
+      "eventId": "E004",
+      "purchaseDate": "2026-05-09",
+      "type": "Expense",
+      "costType": "Running",
+      "category": "Grocery",
+      "description": "Penny",
+      "amount": -48.73,
+      "person": "Sriram",
+      "status": "Paid"
+    },
+    {
+      "date": "2026-05-09",
+      "month": "2026-05",
+      "eventId": "E004",
+      "purchaseDate": "2026-05-09",
+      "type": "Expense",
+      "costType": "Running",
+      "category": "Grocery",
+      "description": "Lidl",
+      "amount": -6.46,
+      "person": "Sriram",
+      "status": "Paid"
+    },
+    {
+      "date": "2026-05-11",
+      "month": "2026-05",
+      "eventId": "E004",
+      "purchaseDate": "2026-05-11",
+      "type": "Settlement",
+      "costType": "Settlement",
+      "category": "Settlement",
+      "description": "Reimbursed",
+      "amount": -190.5,
+      "person": "Sriram",
+      "status": "Reimbursed"
+    },
+    {
+      "date": "2026-05-11",
+      "month": "2026-05",
+      "eventId": "E004",
+      "purchaseDate": "2026-05-11",
+      "type": "Settlement",
+      "costType": "Settlement",
+      "category": "Settlement",
+      "description": "Reimbursed",
+      "amount": -60,
+      "person": "Sriram",
+      "status": "Reimbursed"
+    },
+    {
+      "date": "2026-05-08",
+      "month": "2026-05",
+      "eventId": "E004",
+      "purchaseDate": "2026-05-08",
+      "type": "Income",
+      "costType": "Income",
+      "category": "Income",
+      "description": "Box",
+      "amount": 3713.9799999999996,
+      "person": "",
+      "status": ""
+    },
+    {
+      "date": "2026-05-13",
+      "month": "2026-05",
+      "eventId": "E005",
+      "purchaseDate": "2026-05-22",
+      "type": "Expense",
+      "costType": "Running",
+      "category": "Stall Fee",
+      "description": "Stall Fee",
+      "amount": -682,
+      "person": "Sneha",
+      "status": "Paid"
+    },
+    {
+      "date": "2026-05-13",
+      "month": "2026-05",
+      "eventId": "E005",
+      "purchaseDate": "2026-05-13",
+      "type": "Expense",
+      "costType": "Running",
+      "category": "Grocery",
+      "description": "Tropical Foods",
+      "amount": -189.89,
+      "person": "Sriram",
+      "status": "Paid"
+    },
+    {
+      "date": "2026-05-13",
+      "month": "2026-05",
+      "eventId": "E005",
+      "purchaseDate": "2026-05-13",
+      "type": "Expense",
+      "costType": "Running",
+      "category": "Grocery",
+      "description": "Kaufland",
+      "amount": -15.69,
+      "person": "Sneha",
+      "status": "Paid"
+    },
+    {
+      "date": "2026-05-16",
+      "month": "2026-05",
+      "eventId": "E005",
+      "purchaseDate": "2026-05-16",
+      "type": "Expense",
+      "costType": "Running",
+      "category": "Grocery",
+      "description": "Metro",
+      "amount": -3.2,
+      "person": "Sriram",
+      "status": "Paid"
+    },
+    {
+      "date": "2026-05-16",
+      "month": "2026-05",
+      "eventId": "E005",
+      "purchaseDate": "2026-05-16",
+      "type": "Settlement",
+      "costType": "Settlement",
+      "category": "Settlement",
+      "description": "Reimbursed",
+      "amount": -505,
+      "person": "Sriram",
+      "status": "Reimbursed"
+    },
+    {
+      "date": "2026-05-17",
+      "month": "2026-05",
+      "eventId": "E005",
+      "purchaseDate": "2026-05-17",
+      "type": "Settlement",
+      "costType": "Settlement",
+      "category": "Settlement",
+      "description": "Reimbursed",
+      "amount": -250,
+      "person": "Sriram",
+      "status": "Reimbursed"
+    },
+    {
+      "date": "2026-05-17",
+      "month": "2026-05",
+      "eventId": "E005",
+      "purchaseDate": "2026-05-17",
+      "type": "Settlement",
+      "costType": "Settlement",
+      "category": "Settlement",
+      "description": "Reimbursed",
+      "amount": -300,
+      "person": "Sriram",
+      "status": "Reimbursed"
+    },
+    {
+      "date": "2026-05-19",
+      "month": "2026-05",
+      "eventId": "E005",
+      "purchaseDate": "2026-05-19",
+      "type": "Expense",
+      "costType": "Running",
+      "category": "Grocery",
+      "description": "Tropical Foods",
+      "amount": -75.59,
+      "person": "Sriram",
+      "status": "Paid"
+    },
+    {
+      "date": "2026-05-19",
+      "month": "2026-05",
+      "eventId": "E005",
+      "purchaseDate": "2026-05-19",
+      "type": "Expense",
+      "costType": "Running",
+      "category": "Grocery",
+      "description": "Metro",
+      "amount": -115.66,
+      "person": "Sriram",
+      "status": "Paid"
+    },
+    {
+      "date": "2026-05-20",
+      "month": "2026-05",
+      "eventId": "E005",
+      "purchaseDate": "2026-05-20",
+      "type": "Settlement",
+      "costType": "Settlement",
+      "category": "Settlement",
+      "description": "Reimbursed",
+      "amount": -400,
+      "person": "Sriram",
+      "status": "Reimbursed"
+    },
+    {
+      "date": "2026-05-20",
+      "month": "2026-05",
+      "eventId": "E005",
+      "purchaseDate": "2026-05-20",
+      "type": "Settlement",
+      "costType": "Settlement",
+      "category": "Settlement",
+      "description": "Reimbursed",
+      "amount": -400,
+      "person": "Sneha",
+      "status": "Reimbursed"
+    },
+    {
+      "date": "2026-05-21",
+      "month": "2026-05",
+      "eventId": "E005",
+      "purchaseDate": "2026-05-21",
+      "type": "Expense",
+      "costType": "Running",
+      "category": "Grocery",
+      "description": "Tropical Foods",
+      "amount": -69.26,
+      "person": "Sriram",
+      "status": "Paid"
+    },
+    {
+      "date": "2026-05-21",
+      "month": "2026-05",
+      "eventId": "E005",
+      "purchaseDate": "2026-05-21",
+      "type": "Expense",
+      "costType": "Running",
+      "category": "Transport",
+      "description": "Fuel - Super E10",
+      "amount": -71.24,
+      "person": "Sriram",
+      "status": "Paid"
+    },
+    {
+      "date": "2026-05-23",
+      "month": "2026-05",
+      "eventId": "E005",
+      "purchaseDate": "2026-05-23",
+      "type": "Expense",
+      "costType": "Running",
+      "category": "Grocery",
+      "description": "REWE",
+      "amount": -11.24,
+      "person": "Jeeva",
+      "status": "Paid"
+    },
+    {
+      "date": "2026-05-23",
+      "month": "2026-05",
+      "eventId": "E005",
+      "purchaseDate": "2026-05-23",
+      "type": "Expense",
+      "costType": "Running",
+      "category": "Grocery",
+      "description": "REWE",
+      "amount": -2.79,
+      "person": "Jeeva",
+      "status": "Paid"
+    },
+    {
+      "date": "2026-05-25",
+      "month": "2026-05",
+      "eventId": "E005",
+      "purchaseDate": "2026-05-25",
+      "type": "Income",
+      "costType": "Income",
+      "category": "Income",
+      "description": "Box",
+      "amount": 1663.67,
+      "person": "",
+      "status": ""
+    },
+    {
+      "date": "2026-06-01",
+      "month": "2026-06",
+      "eventId": "E006",
+      "purchaseDate": "2026-06-04",
+      "type": "Expense",
+      "costType": "Running",
+      "category": "Stall Fee",
+      "description": "Stall Fee",
+      "amount": -1185,
+      "person": "Box",
+      "status": "Paid"
+    },
+    {
+      "date": "2026-05-26",
+      "month": "2026-05",
+      "eventId": "E006",
+      "purchaseDate": "2026-05-26",
+      "type": "Settlement",
+      "costType": "Settlement",
+      "category": "Settlement",
+      "description": "Reimbursed",
+      "amount": -500,
+      "person": "Jeeva",
+      "status": "Reimbursed"
+    },
+    {
+      "date": "2026-05-27",
+      "month": "2026-05",
+      "eventId": "E006",
+      "purchaseDate": "2026-05-27",
+      "type": "Settlement",
+      "costType": "Settlement",
+      "category": "Settlement",
+      "description": "Reimbursed",
+      "amount": -50,
+      "person": "Sneha",
+      "status": "Reimbursed"
+    },
+    {
+      "date": "2026-05-28",
+      "month": "2026-05",
+      "eventId": "E006",
+      "purchaseDate": "2026-05-28",
+      "type": "Expense",
+      "costType": "Running",
+      "category": "Grocery",
+      "description": "Tropical Foods",
+      "amount": -52,
+      "person": "Sriram",
+      "status": "Paid"
+    },
+    {
+      "date": "2026-05-27",
+      "month": "2026-05",
+      "eventId": "E006",
+      "purchaseDate": "2026-05-27",
+      "type": "Settlement",
+      "costType": "Settlement",
+      "category": "Settlement",
+      "description": "Reimbursed",
+      "amount": -250,
+      "person": "Sriram",
+      "status": "Reimbursed"
+    },
+    {
+      "date": "2026-05-29",
+      "month": "2026-05",
+      "eventId": "E006",
+      "purchaseDate": "2026-05-29",
+      "type": "Settlement",
+      "costType": "Settlement",
+      "category": "Settlement",
+      "description": "Reimbursed",
+      "amount": -50,
+      "person": "Sriram",
+      "status": "Reimbursed"
+    },
+    {
+      "date": "2026-05-29",
+      "month": "2026-05",
+      "eventId": "E006",
+      "purchaseDate": "2026-05-29",
+      "type": "Expense",
+      "costType": "Running",
+      "category": "Grocery",
+      "description": "Metro",
+      "amount": -119.04,
+      "person": "Sriram",
+      "status": "Paid"
+    },
+    {
+      "date": "2026-06-01",
+      "month": "2026-06",
+      "eventId": "E006",
+      "purchaseDate": "2026-06-01",
+      "type": "Settlement",
+      "costType": "Settlement",
+      "category": "Settlement",
+      "description": "Reimbursed",
+      "amount": -300,
+      "person": "Sriram",
+      "status": "Reimbursed"
+    },
+    {
+      "date": "2026-06-01",
+      "month": "2026-06",
+      "eventId": "E006",
+      "purchaseDate": "2026-06-01",
+      "type": "Expense",
+      "costType": "Running",
+      "category": "Grocery",
+      "description": "Tropical Foods",
+      "amount": -124.15,
+      "person": "Sriram",
+      "status": "Paid"
+    },
+    {
+      "date": "2026-06-01",
+      "month": "2026-06",
+      "eventId": "E006",
+      "purchaseDate": "2026-06-01",
+      "type": "Expense",
+      "costType": "Running",
+      "category": "Grocery",
+      "description": "Kaufland",
+      "amount": -45.09,
+      "person": "Sriram",
+      "status": "Paid"
+    },
+    {
+      "date": "2026-06-02",
+      "month": "2026-06",
+      "eventId": "E006",
+      "purchaseDate": "2026-06-02",
+      "type": "Expense",
+      "costType": "Running",
+      "category": "Grocery",
+      "description": "Aldi",
+      "amount": -8,
+      "person": "Sriram",
+      "status": "Paid"
+    },
+    {
+      "date": "2026-06-02",
+      "month": "2026-06",
+      "eventId": "E006",
+      "purchaseDate": "2026-06-02",
+      "type": "Expense",
+      "costType": "Running",
+      "category": "Grocery",
+      "description": "Aldi",
+      "amount": -2,
+      "person": "Sriram",
+      "status": "Paid"
+    },
+    {
+      "date": "2026-06-06",
+      "month": "2026-06",
+      "eventId": "E006",
+      "purchaseDate": "2026-06-06",
+      "type": "Expense",
+      "costType": "Running",
+      "category": "Grocery",
+      "description": "Lidl",
+      "amount": -2,
+      "person": "Sriram",
+      "status": "Paid"
+    },
+    {
+      "date": "2026-06-07",
+      "month": "2026-06",
+      "eventId": "E006",
+      "purchaseDate": "2026-06-07",
+      "type": "Income",
+      "costType": "Income",
+      "category": "Income",
+      "description": "Box",
+      "amount": 1000.5,
+      "person": "",
+      "status": ""
+    },
+    {
+      "date": "2026-06-12",
+      "month": "2026-04",
+      "eventId": "E007",
+      "purchaseDate": "2026-04-27",
+      "type": "Expense",
+      "costType": "Running",
+      "category": "Stall Fee",
+      "description": "Stall Fee",
+      "amount": -416.5,
+      "person": "Sneha",
+      "status": "Paid"
+    },
+    {
+      "date": "2026-06-09",
+      "month": "2026-06",
+      "eventId": "E007",
+      "purchaseDate": "2026-06-09",
+      "type": "Expense",
+      "costType": "Running",
+      "category": "Grocery",
+      "description": "Lidl",
+      "amount": -5.99,
+      "person": "Sriram",
+      "status": "Paid"
+    },
+    {
+      "date": "2026-06-09",
+      "month": "2026-06",
+      "eventId": "E007",
+      "purchaseDate": "2026-06-09",
+      "type": "Expense",
+      "costType": "Running",
+      "category": "Transport",
+      "description": "Fuel - Super E10",
+      "amount": -80,
+      "person": "Sriram",
+      "status": "Paid"
+    },
+    {
+      "date": "2026-06-10",
+      "month": "2026-06",
+      "eventId": "E007",
+      "purchaseDate": "2026-06-10",
+      "type": "Expense",
+      "costType": "Running",
+      "category": "Grocery",
+      "description": "Lidl",
+      "amount": -19.29,
+      "person": "Sneha",
+      "status": "Paid"
+    },
+    {
+      "date": "2026-06-10",
+      "month": "2026-06",
+      "eventId": "E007",
+      "purchaseDate": "2026-06-10",
+      "type": "Expense",
+      "costType": "Running",
+      "category": "Grocery",
+      "description": "Adhaya Markt",
+      "amount": -24.75,
+      "person": "Sneha",
+      "status": "Paid"
+    },
+    {
+      "date": "2026-05-26",
+      "month": "2026-05",
+      "eventId": "E007",
+      "purchaseDate": "2026-05-26",
+      "type": "Settlement",
+      "costType": "Settlement",
+      "category": "Settlement",
+      "description": "Reimbursed",
+      "amount": -500,
+      "person": "Jeeva",
+      "status": "Reimbursed"
+    },
+    {
+      "date": "2026-05-15",
+      "month": "2026-05",
+      "eventId": "E008",
+      "purchaseDate": "2026-05-15",
+      "type": "Settlement",
+      "costType": "Settlement",
+      "category": "Settlement",
+      "description": "Reimbursed",
+      "amount": -200,
+      "person": "Sriram",
+      "status": "Reimbursed"
+    },
+    {
+      "date": "2026-06-12",
+      "month": "2026-06",
+      "eventId": "E007",
+      "purchaseDate": "2026-06-12",
+      "type": "Income",
+      "costType": "Income",
+      "category": "Income",
+      "description": "Box",
+      "amount": 1715.6900000000005,
+      "person": "",
+      "status": ""
+    },
+    {
+      "date": "2026-06-21",
+      "month": "2026-06",
+      "eventId": "E008",
+      "purchaseDate": "2026-06-19",
+      "type": "Expense",
+      "costType": "Running",
+      "category": "Stall Fee",
+      "description": "Stall Fee",
+      "amount": -105,
+      "person": "Box",
+      "status": "Paid"
+    },
+    {
+      "date": "2026-06-19",
+      "month": "2026-06",
+      "eventId": "E008",
+      "purchaseDate": "2026-06-19",
+      "type": "Settlement",
+      "costType": "Settlement",
+      "category": "Settlement",
+      "description": "Reimbursed",
+      "amount": -200,
+      "person": "Sriram",
+      "status": "Reimbursed"
+    },
+    {
+      "date": "2026-06-19",
+      "month": "2026-06",
+      "eventId": "E008",
+      "purchaseDate": "2026-06-19",
+      "type": "Expense",
+      "costType": "Running",
+      "category": "Grocery",
+      "description": "Aldi",
+      "amount": -25.16,
+      "person": "Sriram",
+      "status": "Paid"
+    },
+    {
+      "date": "2026-06-19",
+      "month": "2026-06",
+      "eventId": "E008",
+      "purchaseDate": "2026-06-19",
+      "type": "Expense",
+      "costType": "Running",
+      "category": "Grocery",
+      "description": "Metro",
+      "amount": -96.18,
+      "person": "Sriram",
+      "status": "Paid"
+    },
+    {
+      "date": "2026-06-21",
+      "month": "2026-06",
+      "eventId": "E008",
+      "purchaseDate": "2026-06-21",
+      "type": "Income",
+      "costType": "Income",
+      "category": "Income",
+      "description": "Box",
+      "amount": 350.2,
+      "person": "",
+      "status": ""
+    },
+    {
+      "date": "2026-07-10",
+      "month": "2026-06",
+      "eventId": "E009",
+      "purchaseDate": "2026-06-26",
+      "type": "Expense",
+      "costType": "Running",
+      "category": "Stall Fee",
+      "description": "Stall Fee",
+      "amount": -1079.93,
+      "person": "Paypal",
+      "status": "Paid"
+    },
+    {
+      "date": "2026-03-30",
+      "month": "2026-03",
+      "eventId": "E009",
+      "purchaseDate": "2026-03-30",
+      "type": "Expense",
+      "costType": "Running",
+      "category": "Stall Fee",
+      "description": "Stall Fee",
+      "amount": -278.46,
+      "person": "Sriram",
+      "status": "Paid"
+    },
+    {
+      "date": "2026-06-26",
+      "month": "2026-06",
+      "eventId": "E009",
+      "purchaseDate": "2026-06-26",
+      "type": "Settlement",
+      "costType": "Settlement",
+      "category": "Settlement",
+      "description": "Reimbursed",
+      "amount": -150,
+      "person": "Sriram",
+      "status": "Reimbursed"
+    },
+    {
+      "date": "2026-06-26",
+      "month": "2026-06",
+      "eventId": "E009",
+      "purchaseDate": "2026-06-26",
+      "type": "Settlement",
+      "costType": "Settlement",
+      "category": "Settlement",
+      "description": "Reimbursed",
+      "amount": -100,
+      "person": "Sneha",
+      "status": "Reimbursed"
+    },
+    {
+      "date": "2026-06-28",
+      "month": "2026-06",
+      "eventId": "E009",
+      "purchaseDate": "2026-06-28",
+      "type": "Settlement",
+      "costType": "Settlement",
+      "category": "Settlement",
+      "description": "Reimbursed",
+      "amount": -150,
+      "person": "Sneha",
+      "status": "Reimbursed"
+    },
+    {
+      "date": "2026-07-07",
+      "month": "2026-07",
+      "eventId": "E009",
+      "purchaseDate": "2026-07-07",
+      "type": "Settlement",
+      "costType": "Settlement",
+      "category": "Settlement",
+      "description": "Reimbursed",
+      "amount": -150,
+      "person": "Sriram",
+      "status": "Reimbursed"
+    },
+    {
+      "date": "2026-07-07",
+      "month": "2026-07",
+      "eventId": "E009",
+      "purchaseDate": "2026-07-07",
+      "type": "Expense",
+      "costType": "Running",
+      "category": "Transport",
+      "description": "Fuel - Super E10",
+      "amount": -50,
+      "person": "Sriram",
+      "status": "Paid"
+    },
+    {
+      "date": "2026-06-28",
+      "month": "2026-06",
+      "eventId": "E009",
+      "purchaseDate": "2026-06-28",
+      "type": "Settlement",
+      "costType": "Settlement",
+      "category": "Settlement",
+      "description": "Reimbursed",
+      "amount": -50,
+      "person": "Sneha",
+      "status": "Reimbursed"
+    },
+    {
+      "date": "2026-07-01",
+      "month": "2026-07",
+      "eventId": "E009",
+      "purchaseDate": "2026-07-01",
+      "type": "Expense",
+      "costType": "Running",
+      "category": "Grocery",
+      "description": "Tropical Foods",
+      "amount": -8.98,
+      "person": "Sriram",
+      "status": "Paid"
+    },
+    {
+      "date": "2026-07-07",
+      "month": "2026-07",
+      "eventId": "E009",
+      "purchaseDate": "2026-07-07",
+      "type": "Expense",
+      "costType": "Running",
+      "category": "Grocery",
+      "description": "Tropical Foods",
+      "amount": -18.34,
+      "person": "Sriram",
+      "status": "Paid"
+    },
+    {
+      "date": "2026-07-10",
+      "month": "2026-07",
+      "eventId": "E009",
+      "purchaseDate": "2026-07-10",
+      "type": "Expense",
+      "costType": "Running",
+      "category": "Grocery",
+      "description": "Lidl",
+      "amount": -12.38,
+      "person": "Sriram",
+      "status": "Paid"
+    },
+    {
+      "date": "2026-07-11",
+      "month": "2026-07",
+      "eventId": "E009",
+      "purchaseDate": "2026-07-11",
+      "type": "Expense",
+      "costType": "Running",
+      "category": "Grocery",
+      "description": "Aldi",
+      "amount": -66,
+      "person": "Sriram",
+      "status": "Paid"
+    },
+    {
+      "date": "2026-07-12",
+      "month": "2026-07",
+      "eventId": "E009",
+      "purchaseDate": "2026-07-12",
+      "type": "Expense",
+      "costType": "Running",
+      "category": "Transport",
+      "description": "Miles",
+      "amount": -104.82,
+      "person": "Sriram",
+      "status": "Paid"
+    },
+    {
+      "date": "2026-07-12",
+      "month": "2026-07",
+      "eventId": "E009",
+      "purchaseDate": "2026-07-12",
+      "type": "Expense",
+      "costType": "Running",
+      "category": "Transport",
+      "description": "Parking",
+      "amount": -25,
+      "person": "Sriram",
+      "status": "Paid"
+    },
+    {
+      "date": "2026-07-07",
+      "month": "2026-07",
+      "eventId": "E009",
+      "purchaseDate": "2026-07-07",
+      "type": "Expense",
+      "costType": "Running",
+      "category": "Grocery",
+      "description": "Kaufland",
+      "amount": -96.84,
+      "person": "Sriram",
+      "status": "Paid"
+    },
+    {
+      "date": "2026-06-21",
+      "month": "2026-06",
+      "eventId": "E009",
+      "purchaseDate": "2026-06-21",
+      "type": "Income",
+      "costType": "Income",
+      "category": "Income",
+      "description": "Box",
+      "amount": 1492.23,
+      "person": "",
+      "status": ""
+    },
+    {
+      "date": "2026-07-24",
+      "month": "2026-07",
+      "eventId": "E010",
+      "purchaseDate": "2026-07-07",
+      "type": "Expense",
+      "costType": "Running",
+      "category": "Stall Fee",
+      "description": "Stall Fee",
+      "amount": -1008.53,
+      "person": "Sneha",
+      "status": "Paid"
+    },
+    {
+      "date": "2026-07-11",
+      "month": "2026-07",
+      "eventId": "E010",
+      "purchaseDate": "2026-07-11",
+      "type": "Settlement",
+      "costType": "Settlement",
+      "category": "Settlement",
+      "description": "Reimbursed",
+      "amount": -100,
+      "person": "Sriram",
+      "status": "Reimbursed"
+    }
+  ],
+  "cashBox": [
+    {
+      "eventId": "Setup",
+      "date": null,
+      "transactionType": "Cash Added to Box",
+      "description": "Initial Float (Personal Money)",
+      "inAmount": 200,
+      "outAmount": 0,
+      "balance": 200
+    },
+    {
+      "eventId": "Setup",
+      "date": "2026-03-14",
+      "transactionType": "Box Purchase",
+      "description": "Banner cost",
+      "inAmount": 0,
+      "outAmount": 80,
+      "balance": 120
+    },
+    {
+      "eventId": "Setup",
+      "date": "2026-03-14",
+      "transactionType": "Box Purchase",
+      "description": "Induction Stove",
+      "inAmount": 0,
+      "outAmount": 10,
+      "balance": 110
+    },
+    {
+      "eventId": "Setup",
+      "date": "2026-03-14",
+      "transactionType": "Box Purchase",
+      "description": "Metro",
+      "inAmount": 0,
+      "outAmount": 108.26,
+      "balance": 1.7399999999999949
+    },
+    {
+      "eventId": "Setup",
+      "date": "2026-03-14",
+      "transactionType": "Box Purchase",
+      "description": "Woolworth",
+      "inAmount": 0,
+      "outAmount": 22.9,
+      "balance": -21.160000000000004
+    },
+    {
+      "eventId": "E001",
+      "date": "2026-03-22",
+      "transactionType": "Sales Income",
+      "description": "E001 Income",
+      "inAmount": 607.5,
+      "outAmount": 0,
+      "balance": 586.34
+    },
+    {
+      "eventId": "E001",
+      "date": null,
+      "transactionType": "Starting Float Returned",
+      "description": "Float Returned to Owner",
+      "inAmount": 0,
+      "outAmount": 200,
+      "balance": 386.34000000000003
+    },
+    {
+      "eventId": "E002",
+      "date": "2026-04-01",
+      "transactionType": "Box Purchase",
+      "description": "Tropical Foods",
+      "inAmount": 0,
+      "outAmount": 111.36,
+      "balance": 274.98
+    },
+    {
+      "eventId": "E002",
+      "date": "2026-04-01",
+      "transactionType": "Box Purchase",
+      "description": "Metro",
+      "inAmount": 0,
+      "outAmount": 31.75,
+      "balance": 243.23000000000002
+    },
+    {
+      "eventId": "E002",
+      "date": "2026-04-06",
+      "transactionType": "Sales Income",
+      "description": "E002 Income",
+      "inAmount": 566.07,
+      "outAmount": 0,
+      "balance": 809.3000000000001
+    },
+    {
+      "eventId": "E003",
+      "date": "2026-04-11",
+      "transactionType": "Box Purchase",
+      "description": "Tropical Foods",
+      "inAmount": 0,
+      "outAmount": 11.48,
+      "balance": 797.82
+    },
+    {
+      "eventId": "E003",
+      "date": "2026-04-11",
+      "transactionType": "Box Purchase",
+      "description": "Singh’s Mart",
+      "inAmount": 0,
+      "outAmount": 9.48,
+      "balance": 788.34
+    },
+    {
+      "eventId": "E003",
+      "date": "2026-04-19",
+      "transactionType": "Box Purchase",
+      "description": "Stall Fee",
+      "inAmount": 0,
+      "outAmount": 50,
+      "balance": 738.34
+    },
+    {
+      "eventId": "E003",
+      "date": "2026-04-11",
+      "transactionType": "Settlement",
+      "description": "Settled to Sneha",
+      "inAmount": 0,
+      "outAmount": 79.04,
+      "balance": 659.3000000000001
+    },
+    {
+      "eventId": "E003",
+      "date": "2026-04-11",
+      "transactionType": "Settlement",
+      "description": "Settled to Sriram",
+      "inAmount": 0,
+      "outAmount": 50,
+      "balance": 609.3000000000001
+    },
+    {
+      "eventId": "E003",
+      "date": "2026-04-14",
+      "transactionType": "Settlement",
+      "description": "Settled to Sriram",
+      "inAmount": 0,
+      "outAmount": 50,
+      "balance": 559.3000000000001
+    },
+    {
+      "eventId": "E003",
+      "date": "2026-04-18",
+      "transactionType": "Box Purchase",
+      "description": "Kaufland",
+      "inAmount": 0,
+      "outAmount": 49.86,
+      "balance": 509.44000000000005
+    },
+    {
+      "eventId": "E003",
+      "date": "2026-04-19",
+      "transactionType": "Settlement",
+      "description": "Settled to Jeeva",
+      "inAmount": 0,
+      "outAmount": 7,
+      "balance": 502.44000000000005
+    },
+    {
+      "eventId": "E003",
+      "date": "2026-04-19",
+      "transactionType": "Sales Income",
+      "description": "E003 Income",
+      "inAmount": 608,
+      "outAmount": 0,
+      "balance": 1110.44
+    },
+    {
+      "eventId": "E004",
+      "date": "2026-04-14",
+      "transactionType": "Settlement",
+      "description": "Settled to Sriram",
+      "inAmount": 0,
+      "outAmount": 400,
+      "balance": 710.44
+    },
+    {
+      "eventId": "E004",
+      "date": "2026-04-14",
+      "transactionType": "Settlement",
+      "description": "Settled to Sriram",
+      "inAmount": 0,
+      "outAmount": 100,
+      "balance": 610.44
+    },
+    {
+      "eventId": "E004",
+      "date": "2026-04-14",
+      "transactionType": "Settlement",
+      "description": "Settled to Sriram",
+      "inAmount": 0,
+      "outAmount": 50,
+      "balance": 560.44
+    },
+    {
+      "eventId": "E004",
+      "date": "2026-04-14",
+      "transactionType": "Settlement",
+      "description": "Settled to Sriram",
+      "inAmount": 0,
+      "outAmount": 22.646,
+      "balance": 537.7940000000001
+    },
+    {
+      "eventId": "E004",
+      "date": "2026-04-14",
+      "transactionType": "Settlement",
+      "description": "Settled to Sneha",
+      "inAmount": 0,
+      "outAmount": 22.646,
+      "balance": 515.1480000000001
+    },
+    {
+      "eventId": "E004",
+      "date": "2026-04-14",
+      "transactionType": "Settlement",
+      "description": "Settled to Jeeva",
+      "inAmount": 0,
+      "outAmount": 22.646,
+      "balance": 492.5020000000001
+    },
+    {
+      "eventId": "E004",
+      "date": "2026-05-10",
+      "transactionType": "Sales Income",
+      "description": "E004 Income",
+      "inAmount": 3713.98,
+      "outAmount": 0,
+      "balance": 4206.482
+    },
+    {
+      "eventId": "E004",
+      "date": "2026-11-05",
+      "transactionType": "Settlement",
+      "description": "Settled to Sriram",
+      "inAmount": 0,
+      "outAmount": 190.5,
+      "balance": 4015.982
+    },
+    {
+      "eventId": "E004",
+      "date": "2026-11-05",
+      "transactionType": "Settlement",
+      "description": "Settled to Sriram",
+      "inAmount": 0,
+      "outAmount": 60,
+      "balance": 3955.982
+    },
+    {
+      "eventId": "E005",
+      "date": "2026-05-16",
+      "transactionType": "Settlement",
+      "description": "Settled to Sriram",
+      "inAmount": 0,
+      "outAmount": 505,
+      "balance": 3450.982
+    },
+    {
+      "eventId": "E005",
+      "date": "2026-05-17",
+      "transactionType": "Settlement",
+      "description": "Settled to Sriram",
+      "inAmount": 0,
+      "outAmount": 250,
+      "balance": 3200.982
+    },
+    {
+      "eventId": "E005",
+      "date": "2026-05-17",
+      "transactionType": "Settlement",
+      "description": "Settled to Sriram",
+      "inAmount": 0,
+      "outAmount": 300,
+      "balance": 2900.982
+    },
+    {
+      "eventId": "E005",
+      "date": "2026-05-20",
+      "transactionType": "Settlement",
+      "description": "Settled to Sriram",
+      "inAmount": 0,
+      "outAmount": 400,
+      "balance": 2500.982
+    },
+    {
+      "eventId": "E005",
+      "date": "2026-05-20",
+      "transactionType": "Settlement",
+      "description": "Settled to Sneha",
+      "inAmount": 0,
+      "outAmount": 400,
+      "balance": 2100.982
+    },
+    {
+      "eventId": "E005",
+      "date": "2026-05-22",
+      "transactionType": "Cash Added to Box",
+      "description": "Change Coins Added",
+      "inAmount": 158,
+      "outAmount": 0,
+      "balance": 2258.982
+    },
+    {
+      "eventId": "E005",
+      "date": "2026-05-25",
+      "transactionType": "Sales Income",
+      "description": "E005 Income",
+      "inAmount": 1663.67,
+      "outAmount": 0,
+      "balance": 3922.652
+    },
+    {
+      "eventId": "E006",
+      "date": "2026-05-26",
+      "transactionType": "Settlement",
+      "description": "Settled to Jeeva",
+      "inAmount": 0,
+      "outAmount": 500,
+      "balance": 3422.652
+    },
+    {
+      "eventId": "E006",
+      "date": "2026-05-27",
+      "transactionType": "Settlement",
+      "description": "Settled to Sneha",
+      "inAmount": 0,
+      "outAmount": 50,
+      "balance": 3372.652
+    },
+    {
+      "eventId": "E006",
+      "date": "2026-05-27",
+      "transactionType": "Settlement",
+      "description": "Settled to Sriram",
+      "inAmount": 0,
+      "outAmount": 250,
+      "balance": 3122.652
+    },
+    {
+      "eventId": "E006",
+      "date": "2026-05-29",
+      "transactionType": "Settlement",
+      "description": "Settled to Sriram",
+      "inAmount": 0,
+      "outAmount": 50,
+      "balance": 3072.652
+    },
+    {
+      "eventId": "E006",
+      "date": "2026-06-06",
+      "transactionType": "Settlement",
+      "description": "Settled to Sriram",
+      "inAmount": 0,
+      "outAmount": 300,
+      "balance": 2772.652
+    },
+    {
+      "eventId": "E006",
+      "date": "2026-06-06",
+      "transactionType": "Settlement",
+      "description": "Settled to Sriram",
+      "inAmount": 0,
+      "outAmount": 140,
+      "balance": 2632.652
+    },
+    {
+      "eventId": "E006",
+      "date": "2026-06-06",
+      "transactionType": "Box Purchase",
+      "description": "Stall Fee",
+      "inAmount": 0,
+      "outAmount": 1185,
+      "balance": 1447.652
+    },
+    {
+      "eventId": "E006",
+      "date": "2026-06-07",
+      "transactionType": "Sales Income",
+      "description": "E006 Income",
+      "inAmount": 1000.5,
+      "outAmount": 0,
+      "balance": 2448.152
+    },
+    {
+      "eventId": "E007",
+      "date": "2026-05-26",
+      "transactionType": "Settlement",
+      "description": "Settled to Jeeva",
+      "inAmount": 0,
+      "outAmount": 500,
+      "balance": 1948.152
+    },
+    {
+      "eventId": "E007",
+      "date": "2026-06-12",
+      "transactionType": "Sales Income",
+      "description": "E007 Income",
+      "inAmount": 1715.69,
+      "outAmount": 0,
+      "balance": 3663.842
+    },
+    {
+      "eventId": "E007",
+      "date": "2026-06-15",
+      "transactionType": "Withdrawal",
+      "description": "Team Celebration",
+      "inAmount": 0,
+      "outAmount": 80,
+      "balance": 3583.842
+    },
+    {
+      "eventId": "E007",
+      "date": "2026-06-15",
+      "transactionType": "Cash Added to Box",
+      "description": "Transfer from Coin Reserve (25×€2)",
+      "inAmount": 50,
+      "outAmount": 0,
+      "balance": 3633.842
+    },
+    {
+      "eventId": "E008",
+      "date": "2026-06-21",
+      "transactionType": "Box Purchase",
+      "description": "Stall Fee",
+      "inAmount": 0,
+      "outAmount": 105,
+      "balance": 3528.842
+    },
+    {
+      "eventId": "E008",
+      "date": "2026-06-21",
+      "transactionType": "Settlement",
+      "description": "Settled to Sriram",
+      "inAmount": 0,
+      "outAmount": 400,
+      "balance": 3128.842
+    },
+    {
+      "eventId": "E008",
+      "date": "2026-06-21",
+      "transactionType": "Sales Income",
+      "description": "E008 Income",
+      "inAmount": 350.2,
+      "outAmount": 0,
+      "balance": 3479.042
+    },
+    {
+      "eventId": "E009",
+      "date": "2026-07-15",
+      "transactionType": "Cash Added to Box",
+      "description": "Transfer from Coin Reserve (25×€2)(25×€1)",
+      "inAmount": 75,
+      "outAmount": 0,
+      "balance": 3554.042
+    },
+    {
+      "eventId": "E009",
+      "date": "2026-07-07",
+      "transactionType": "Box Purchase",
+      "description": "PayPal paid - Stall Fee",
+      "inAmount": 0,
+      "outAmount": 1079.93,
+      "balance": 2474.112
+    },
+    {
+      "eventId": "E009",
+      "date": "2026-06-26",
+      "transactionType": "Settlement",
+      "description": "Settled to Sriram",
+      "inAmount": 0,
+      "outAmount": 150,
+      "balance": 2324.112
+    },
+    {
+      "eventId": "E009",
+      "date": "2026-06-26",
+      "transactionType": "Settlement",
+      "description": "Settled to Sneha",
+      "inAmount": 0,
+      "outAmount": 100,
+      "balance": 2224.112
+    },
+    {
+      "eventId": "E009",
+      "date": "2026-06-28",
+      "transactionType": "Settlement",
+      "description": "Settled to Sneha",
+      "inAmount": 0,
+      "outAmount": 150,
+      "balance": 2074.112
+    },
+    {
+      "eventId": "E009",
+      "date": "2026-07-07",
+      "transactionType": "Settlement",
+      "description": "Settled to Sriram",
+      "inAmount": 0,
+      "outAmount": 150,
+      "balance": 1924.112
+    },
+    {
+      "eventId": "E009",
+      "date": "2026-06-28",
+      "transactionType": "Settlement",
+      "description": "Settled to Sneha",
+      "inAmount": 0,
+      "outAmount": 50,
+      "balance": 1874.112
+    },
+    {
+      "eventId": "E009",
+      "date": "2026-07-15",
+      "transactionType": "Sales Income",
+      "description": "E009 Income",
+      "inAmount": 1492.23,
+      "outAmount": 0,
+      "balance": 3366.342
+    },
+    {
+      "eventId": "E010",
+      "date": "2026-07-11",
+      "transactionType": "Settlement",
+      "description": "Settled to Sriram",
+      "inAmount": 0,
+      "outAmount": 100,
+      "balance": 3266.342
+    }
+  ],
+  "denominations": [
+    {
+      "label": "200 Euro",
+      "count": 0
+    },
+    {
+      "label": "100 Euro",
+      "count": 1
+    },
+    {
+      "label": "50 Euro",
+      "count": 23
+    },
+    {
+      "label": "20 Euro",
+      "count": 33
+    },
+    {
+      "label": "10 Euro",
+      "count": 58
+    },
+    {
+      "label": "5 Euro",
+      "count": 81
+    },
+    {
+      "label": "2 Euro",
+      "count": 36
+    },
+    {
+      "label": "1 Euro",
+      "count": 18
+    },
+    {
+      "label": "50 Cents",
+      "count": 3
+    },
+    {
+      "label": "20 Cents",
+      "count": 5
+    },
+    {
+      "label": "10 Cents",
+      "count": 16
+    },
+    {
+      "label": "5 Cents",
+      "count": 0
+    }
+  ],
+  "paypalBalance": 277.24,
+  "partners": [
+    {
+      "name": "Sriram",
+      "paid": 5238.229999999998,
+      "returned": 3778.1459999999997,
+      "balance": 1460.083999999998
+    },
+    {
+      "name": "Sneha",
+      "paid": 2836.7700000000004,
+      "returned": 851.686,
+      "balance": 1985.0840000000003
+    },
+    {
+      "name": "Jeeva",
+      "paid": 2252.7000000000003,
+      "returned": 1029.646,
+      "balance": 1223.0540000000003
+    }
+  ],
+  "eventCashCounts": [
+    {
+      "eventId": "E004",
+      "before": [
+        {
+          "label": "200 Euro",
+          "count": 0
+        },
+        {
+          "label": "100 Euro",
+          "count": 0
+        },
+        {
+          "label": "50 Euro",
+          "count": 14
+        },
+        {
+          "label": "20 Euro",
+          "count": 20
+        },
+        {
+          "label": "10 Euro",
+          "count": 39
+        },
+        {
+          "label": "5 Euro",
+          "count": 36
+        },
+        {
+          "label": "2 Euro",
+          "count": 50
+        },
+        {
+          "label": "1 Euro",
+          "count": 47
+        },
+        {
+          "label": "50 Cents",
+          "count": 38
+        },
+        {
+          "label": "20 Cents",
+          "count": 28
+        },
+        {
+          "label": "10 Cents",
+          "count": 16
+        },
+        {
+          "label": "5 Cents",
+          "count": 0
+        }
+      ],
+      "after": [
+        {
+          "label": "200 Euro",
+          "count": 0
+        },
+        {
+          "label": "100 Euro",
+          "count": 0
+        },
+        {
+          "label": "50 Euro",
+          "count": 33
+        },
+        {
+          "label": "20 Euro",
+          "count": 72
+        },
+        {
+          "label": "10 Euro",
+          "count": 50
+        },
+        {
+          "label": "5 Euro",
+          "count": 37
+        },
+        {
+          "label": "2 Euro",
+          "count": 0
+        },
+        {
+          "label": "1 Euro",
+          "count": 7
+        },
+        {
+          "label": "50 Cents",
+          "count": 9
+        },
+        {
+          "label": "20 Cents",
+          "count": 13
+        },
+        {
+          "label": "10 Cents",
+          "count": 16
+        },
+        {
+          "label": "5 Cents",
+          "count": 0
+        }
+      ],
+      "startOfDay": [],
+      "beforePaypal": 415.78,
+      "afterPaypal": 415.78,
+      "beforeCash": 1843.1999999999998,
+      "afterCash": 3790.7
+    },
+    {
+      "eventId": "E005",
+      "before": [
+        {
+          "label": "200 Euro",
+          "count": 0
+        },
+        {
+          "label": "100 Euro",
+          "count": 0
+        },
+        {
+          "label": "50 Euro",
+          "count": 15
+        },
+        {
+          "label": "20 Euro",
+          "count": 24
+        },
+        {
+          "label": "10 Euro",
+          "count": 51
+        },
+        {
+          "label": "5 Euro",
+          "count": 57
+        },
+        {
+          "label": "2 Euro",
+          "count": 49
+        },
+        {
+          "label": "1 Euro",
+          "count": 35
+        },
+        {
+          "label": "50 Cents",
+          "count": 30
+        },
+        {
+          "label": "20 Cents",
+          "count": 32
+        },
+        {
+          "label": "10 Cents",
+          "count": 17
+        },
+        {
+          "label": "5 Cents",
+          "count": 0
+        }
+      ],
+      "after": [
+        {
+          "label": "200 Euro",
+          "count": 0
+        },
+        {
+          "label": "100 Euro",
+          "count": 1
+        },
+        {
+          "label": "50 Euro",
+          "count": 25
+        },
+        {
+          "label": "20 Euro",
+          "count": 29
+        },
+        {
+          "label": "10 Euro",
+          "count": 80
+        },
+        {
+          "label": "5 Euro",
+          "count": 78
+        },
+        {
+          "label": "2 Euro",
+          "count": 38
+        },
+        {
+          "label": "1 Euro",
+          "count": 32
+        },
+        {
+          "label": "50 Cents",
+          "count": 15
+        },
+        {
+          "label": "20 Cents",
+          "count": 38
+        },
+        {
+          "label": "10 Cents",
+          "count": 20
+        },
+        {
+          "label": "5 Cents",
+          "count": 0
+        }
+      ],
+      "startOfDay": [
+        {
+          "label": "200 Euro",
+          "count": 0
+        },
+        {
+          "label": "100 Euro",
+          "count": 0
+        },
+        {
+          "label": "50 Euro",
+          "count": 15
+        },
+        {
+          "label": "20 Euro",
+          "count": 24
+        },
+        {
+          "label": "10 Euro",
+          "count": 51
+        },
+        {
+          "label": "5 Euro",
+          "count": 57
+        },
+        {
+          "label": "2 Euro",
+          "count": 49
+        },
+        {
+          "label": "1 Euro",
+          "count": 35
+        },
+        {
+          "label": "50 Cents",
+          "count": 30
+        },
+        {
+          "label": "20 Cents",
+          "count": 32
+        },
+        {
+          "label": "10 Cents",
+          "count": 17
+        },
+        {
+          "label": "5 Cents",
+          "count": 0
+        }
+      ],
+      "beforePaypal": 467.73,
+      "afterPaypal": 677.55,
+      "beforeCash": 2181.1,
+      "afterCash": 3245.1
+    },
+    {
+      "eventId": "E006",
+      "before": [
+        {
+          "label": "200 Euro",
+          "count": 0
+        },
+        {
+          "label": "100 Euro",
+          "count": 0
+        },
+        {
+          "label": "50 Euro",
+          "count": 17
+        },
+        {
+          "label": "20 Euro",
+          "count": 19
+        },
+        {
+          "label": "10 Euro",
+          "count": 40
+        },
+        {
+          "label": "5 Euro",
+          "count": 38
+        },
+        {
+          "label": "2 Euro",
+          "count": 38
+        },
+        {
+          "label": "1 Euro",
+          "count": 32
+        },
+        {
+          "label": "50 Cents",
+          "count": 15
+        },
+        {
+          "label": "20 Cents",
+          "count": 38
+        },
+        {
+          "label": "10 Cents",
+          "count": 20
+        },
+        {
+          "label": "5 Cents",
+          "count": 0
+        }
+      ],
+      "after": [
+        {
+          "label": "200 Euro",
+          "count": 0
+        },
+        {
+          "label": "100 Euro",
+          "count": 1
+        },
+        {
+          "label": "50 Euro",
+          "count": 24
+        },
+        {
+          "label": "20 Euro",
+          "count": 23
+        },
+        {
+          "label": "10 Euro",
+          "count": 59
+        },
+        {
+          "label": "5 Euro",
+          "count": 59
+        },
+        {
+          "label": "2 Euro",
+          "count": 44
+        },
+        {
+          "label": "1 Euro",
+          "count": 24
+        },
+        {
+          "label": "50 Cents",
+          "count": 20
+        },
+        {
+          "label": "20 Cents",
+          "count": 38
+        },
+        {
+          "label": "10 Cents",
+          "count": 20
+        },
+        {
+          "label": "5 Cents",
+          "count": 0
+        }
+      ],
+      "startOfDay": [
+        {
+          "label": "200 Euro",
+          "count": 0
+        },
+        {
+          "label": "100 Euro",
+          "count": 0
+        },
+        {
+          "label": "50 Euro",
+          "count": 17
+        },
+        {
+          "label": "20 Euro",
+          "count": 19
+        },
+        {
+          "label": "10 Euro",
+          "count": 40
+        },
+        {
+          "label": "5 Euro",
+          "count": 38
+        },
+        {
+          "label": "2 Euro",
+          "count": 38
+        },
+        {
+          "label": "1 Euro",
+          "count": 32
+        },
+        {
+          "label": "50 Cents",
+          "count": 15
+        },
+        {
+          "label": "20 Cents",
+          "count": 38
+        },
+        {
+          "label": "10 Cents",
+          "count": 20
+        },
+        {
+          "label": "5 Cents",
+          "count": 0
+        }
+      ],
+      "beforePaypal": 677.55,
+      "afterPaypal": 846.55,
+      "beforeCash": 1945.1,
+      "afterCash": 2776.6
+    },
+    {
+      "eventId": "E007",
+      "before": [
+        {
+          "label": "200 Euro",
+          "count": 0
+        },
+        {
+          "label": "100 Euro",
+          "count": 0
+        },
+        {
+          "label": "50 Euro",
+          "count": 2
+        },
+        {
+          "label": "20 Euro",
+          "count": 23
+        },
+        {
+          "label": "10 Euro",
+          "count": 59
+        },
+        {
+          "label": "5 Euro",
+          "count": 42
+        },
+        {
+          "label": "2 Euro",
+          "count": 69
+        },
+        {
+          "label": "1 Euro",
+          "count": 24
+        },
+        {
+          "label": "50 Cents",
+          "count": 20
+        },
+        {
+          "label": "20 Cents",
+          "count": 38
+        },
+        {
+          "label": "10 Cents",
+          "count": 20
+        },
+        {
+          "label": "5 Cents",
+          "count": 0
+        }
+      ],
+      "after": [
+        {
+          "label": "200 Euro",
+          "count": 0
+        },
+        {
+          "label": "100 Euro",
+          "count": 1
+        },
+        {
+          "label": "50 Euro",
+          "count": 15
+        },
+        {
+          "label": "20 Euro",
+          "count": 34
+        },
+        {
+          "label": "10 Euro",
+          "count": 100
+        },
+        {
+          "label": "5 Euro",
+          "count": 53
+        },
+        {
+          "label": "2 Euro",
+          "count": 32
+        },
+        {
+          "label": "1 Euro",
+          "count": 9
+        },
+        {
+          "label": "50 Cents",
+          "count": 16
+        },
+        {
+          "label": "20 Cents",
+          "count": 20
+        },
+        {
+          "label": "10 Cents",
+          "count": 20
+        },
+        {
+          "label": "5 Cents",
+          "count": 0
+        }
+      ],
+      "startOfDay": [
+        {
+          "label": "200 Euro",
+          "count": 0
+        },
+        {
+          "label": "100 Euro",
+          "count": 0
+        },
+        {
+          "label": "50 Euro",
+          "count": 2
+        },
+        {
+          "label": "20 Euro",
+          "count": 23
+        },
+        {
+          "label": "10 Euro",
+          "count": 59
+        },
+        {
+          "label": "5 Euro",
+          "count": 42
+        },
+        {
+          "label": "2 Euro",
+          "count": 69
+        },
+        {
+          "label": "1 Euro",
+          "count": 24
+        },
+        {
+          "label": "50 Cents",
+          "count": 20
+        },
+        {
+          "label": "20 Cents",
+          "count": 38
+        },
+        {
+          "label": "10 Cents",
+          "count": 20
+        },
+        {
+          "label": "5 Cents",
+          "count": 0
+        }
+      ],
+      "beforePaypal": 846.55,
+      "afterPaypal": 1221.84,
+      "beforeCash": 1541.6,
+      "afterCash": 2882
+    },
+    {
+      "eventId": "E008",
+      "before": [
+        {
+          "label": "200 Euro",
+          "count": 0
+        },
+        {
+          "label": "100 Euro",
+          "count": 1
+        },
+        {
+          "label": "50 Euro",
+          "count": 11
+        },
+        {
+          "label": "20 Euro",
+          "count": 20
+        },
+        {
+          "label": "10 Euro",
+          "count": 39
+        },
+        {
+          "label": "5 Euro",
+          "count": 54
+        },
+        {
+          "label": "2 Euro",
+          "count": 32
+        },
+        {
+          "label": "1 Euro",
+          "count": 9
+        },
+        {
+          "label": "50 Cents",
+          "count": 16
+        },
+        {
+          "label": "20 Cents",
+          "count": 20
+        },
+        {
+          "label": "10 Cents",
+          "count": 20
+        },
+        {
+          "label": "5 Cents",
+          "count": 0
+        }
+      ],
+      "after": [
+        {
+          "label": "200 Euro",
+          "count": 0
+        },
+        {
+          "label": "100 Euro",
+          "count": 1
+        },
+        {
+          "label": "50 Euro",
+          "count": 18
+        },
+        {
+          "label": "20 Euro",
+          "count": 19
+        },
+        {
+          "label": "10 Euro",
+          "count": 47
+        },
+        {
+          "label": "5 Euro",
+          "count": 68
+        },
+        {
+          "label": "2 Euro",
+          "count": 3
+        },
+        {
+          "label": "1 Euro",
+          "count": 9
+        },
+        {
+          "label": "50 Cents",
+          "count": 19
+        },
+        {
+          "label": "20 Cents",
+          "count": 34
+        },
+        {
+          "label": "10 Cents",
+          "count": 29
+        },
+        {
+          "label": "5 Cents",
+          "count": 0
+        }
+      ],
+      "startOfDay": [
+        {
+          "label": "200 Euro",
+          "count": 0
+        },
+        {
+          "label": "100 Euro",
+          "count": 1
+        },
+        {
+          "label": "50 Euro",
+          "count": 11
+        },
+        {
+          "label": "20 Euro",
+          "count": 20
+        },
+        {
+          "label": "10 Euro",
+          "count": 39
+        },
+        {
+          "label": "5 Euro",
+          "count": 54
+        },
+        {
+          "label": "2 Euro",
+          "count": 32
+        },
+        {
+          "label": "1 Euro",
+          "count": 9
+        },
+        {
+          "label": "50 Cents",
+          "count": 16
+        },
+        {
+          "label": "20 Cents",
+          "count": 20
+        },
+        {
+          "label": "10 Cents",
+          "count": 20
+        },
+        {
+          "label": "5 Cents",
+          "count": 0
+        }
+      ],
+      "beforePaypal": 1221.84,
+      "afterPaypal": 1254.84,
+      "beforeCash": 1797,
+      "afterCash": 2224.2000000000003
+    },
+    {
+      "eventId": "E009",
+      "before": [
+        {
+          "label": "200 Euro",
+          "count": 0
+        },
+        {
+          "label": "100 Euro",
+          "count": 1
+        },
+        {
+          "label": "50 Euro",
+          "count": 10
+        },
+        {
+          "label": "20 Euro",
+          "count": 14
+        },
+        {
+          "label": "10 Euro",
+          "count": 37
+        },
+        {
+          "label": "5 Euro",
+          "count": 58
+        },
+        {
+          "label": "2 Euro",
+          "count": 28
+        },
+        {
+          "label": "1 Euro",
+          "count": 34
+        },
+        {
+          "label": "50 Cents",
+          "count": 19
+        },
+        {
+          "label": "20 Cents",
+          "count": 34
+        },
+        {
+          "label": "10 Cents",
+          "count": 29
+        },
+        {
+          "label": "5 Cents",
+          "count": 0
+        }
+      ],
+      "after": [
+        {
+          "label": "200 Euro",
+          "count": 0
+        },
+        {
+          "label": "100 Euro",
+          "count": 1
+        },
+        {
+          "label": "50 Euro",
+          "count": 25
+        },
+        {
+          "label": "20 Euro",
+          "count": 33
+        },
+        {
+          "label": "10 Euro",
+          "count": 58
+        },
+        {
+          "label": "5 Euro",
+          "count": 81
+        },
+        {
+          "label": "2 Euro",
+          "count": 36
+        },
+        {
+          "label": "1 Euro",
+          "count": 18
+        },
+        {
+          "label": "50 Cents",
+          "count": 3
+        },
+        {
+          "label": "20 Cents",
+          "count": 5
+        },
+        {
+          "label": "10 Cents",
+          "count": 16
+        },
+        {
+          "label": "5 Cents",
+          "count": 0
+        }
+      ],
+      "startOfDay": [
+        {
+          "label": "200 Euro",
+          "count": 0
+        },
+        {
+          "label": "100 Euro",
+          "count": 1
+        },
+        {
+          "label": "50 Euro",
+          "count": 10
+        },
+        {
+          "label": "20 Euro",
+          "count": 14
+        },
+        {
+          "label": "10 Euro",
+          "count": 37
+        },
+        {
+          "label": "5 Euro",
+          "count": 58
+        },
+        {
+          "label": "2 Euro",
+          "count": 28
+        },
+        {
+          "label": "1 Euro",
+          "count": 34
+        },
+        {
+          "label": "50 Cents",
+          "count": 19
+        },
+        {
+          "label": "20 Cents",
+          "count": 34
+        },
+        {
+          "label": "10 Cents",
+          "count": 29
+        },
+        {
+          "label": "5 Cents",
+          "count": 0
+        }
+      ],
+      "beforePaypal": 174.91,
+      "afterPaypal": 277.24,
+      "beforeCash": 1649.2,
+      "afterCash": 3089.1
+    }
+  ],
+  "coinReserve": [
+    {
+      "label": "2 Euro",
+      "count": 0
+    },
+    {
+      "label": "1 Euro",
+      "count": 75
+    },
+    {
+      "label": "50 Cents",
+      "count": 400
+    },
+    {
+      "label": "20 Cents",
+      "count": 0
+    },
+    {
+      "label": "10 Cents",
+      "count": 0
+    },
+    {
+      "label": "5 Cents",
+      "count": 0
+    }
+  ],
+  "coinReserveTotal": 275,
+  "mainBoxTotal": 3266.3419999999996,
+  "allBoxesTotal": 3541.3419999999996
+}
