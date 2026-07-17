@@ -175,6 +175,19 @@ export function drinkLabel(drink: DrinkChoice): string {
   return drink === 'chai' ? 'Masala chai' : 'Mango lassi'
 }
 
+/** Split combo contents string into editable item lines. */
+export function parseComboContents(contents?: string): string[] {
+  if (!contents?.trim()) return []
+  return contents
+    .split(/\s*[+·,|]\s*|\n+/)
+    .map((s) => s.trim())
+    .filter(Boolean)
+}
+
+export function joinComboContents(items: string[]): string {
+  return items.map((s) => s.trim()).filter(Boolean).join(' + ')
+}
+
 export function lineKey(menuItemId: string, drink?: DrinkChoice): string {
   return drink ? `${menuItemId}:${drink}` : menuItemId
 }

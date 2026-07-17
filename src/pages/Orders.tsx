@@ -21,8 +21,10 @@ import { buildSalesReport } from '../lib/salesStats'
 import {
   comboMarginEuro,
   drinkLabel,
+  joinComboContents,
   lineKey,
   makeOrderLine,
+  parseComboContents,
   resolveMenuPrice,
   soldCounts,
   type DrinkChoice,
@@ -75,6 +77,7 @@ export function Orders() {
     voidOrder,
     setMenuPrice,
     setComboDefaultPrices,
+    updateMenuItem,
     setEventPrice,
     clearEventPrices,
     copyEventPrices,
@@ -88,6 +91,8 @@ export function Orders() {
   const [editLines, setEditLines] = useState<OrderLine[]>([])
   const [newMenuName, setNewMenuName] = useState('')
   const [newMenuPrice, setNewMenuPrice] = useState(5)
+  const [comboAddPick, setComboAddPick] = useState<Record<string, string>>({})
+  const [comboAddCustom, setComboAddCustom] = useState<Record<string, string>>({})
   const [payOrder, setPayOrder] = useState<StallOrder | null>(null)
   const [paidInput, setPaidInput] = useState('')
   const [salesScope, setSalesScope] = useState<SalesScope>('today')
@@ -1113,7 +1118,175 @@ export function Orders() {
             </div>
           )}
 
-          <div className="table-wrap" style={{ marginTop: '0.75rem' }}>
+          <div className="combo-editor-list" style={{ marginTop: '1rem' }}>
+            <h3 style={{ margin: '0 0 0.5rem', fontSize: '1rem' }}>Edit combo packs</h3>
+            <p className="hint-inline" style={{ marginBottom: '0.75rem' }}>
+              Change the name, what’s included, and food costs. Updates show on New order tiles.
+            </p>
+            {menu
+              .filter((m) => m.kind === 'combo')
+              .map((m) => {
+                const items = parseComboContents(m.contents)
+                const singles = menu.filter((x) => x.kind === 'single')
+                return (
+                  <div key={m.id} className="combo-editor">
+                    <div className="combo-editor__head">
+                      <div className="field" style={{ flex: 1 }}>
+                        <label>Combo name</label>
+                        <input
+                          value={m.name}
+                          onChange={(e) => updateMenuItem(m.id, { name: e.target.value })}
+                        />
+                      </div>
+                      <div className="field">
+                        <label>Food cost €</label>
+                        <input
+                          type="number"
+                          min={0}
+                          step={0.1}
+                          value={m.foodCost ?? 0}
+                          onChange={(e) =>
+                            updateMenuItem(m.id, { foodCost: Number(e.target.value) || 0 })
+                          }
+                        />
+                      </div>
+                      <div className="field">
+                        <label>Drink cost chai €</label>
+                        <input
+                          type="number"
+                          min={0}
+                          step={0.1}
+                          value={m.drinkCostChai ?? 0}
+                          onChange={(e) =>
+                            updateMenuItem(m.id, {
+                              drinkCostChai: Number(e.target.value) || 0,
+                            })
+                          }
+                        />
+                      </div>
+                      <div className="field">
+                        <label>Drink cost lassi €</label>
+                        <input
+                          type="number"
+                          min={0}
+                          step={0.1}
+                          value={m.drinkCostLassi ?? 0}
+                          onChange={(e) =>
+                            updateMenuItem(m.id, {
+                              drinkCostLassi: Number(e.target.value) || 0,
+                            })
+                          }
+                        />
+                      </div>
+                    </div>
+                    <div className="kpi-label" style={{ marginBottom: 6 }}>
+                      Included items
+                    </div>
+                    <ul className="combo-items">
+                      {items.map((item, idx) => (
+                        <li key={`${m.id}-${idx}`}>
+                          <input
+                            value={item}
+                            onChange={(e) => {
+                              const next = [...items]
+                              next[idx] = e.target.value
+                              updateMenuItem(m.id, {
+                                contents: joinComboContents(next),
+                              })
+                            }}
+                          />
+                          <button
+                            type="button"
+                            className="btn ghost"
+                            title="Remove"
+                            onClick={() => {
+                              const next = items.filter((_, i) => i !== idx)
+                              updateMenuItem(m.id, {
+                                contents: joinComboContents(next),
+                              })
+                            }}
+                          >
+                            <Trash2 size={14} />
+                          </button>
+                        </li>
+                      ))}
+                      {items.length === 0 && (
+                        <li className="hint-inline">No items yet — add from the menu or type custom.</li>
+                      )}
+                    </ul>
+                    <div className="filters" style={{ marginTop: '0.55rem' }}>
+                      <div className="field">
+                        <label>Add from menu</label>
+                        <select
+                          value={comboAddPick[m.id] || ''}
+                          onChange={(e) =>
+                            setComboAddPick((p) => ({ ...p, [m.id]: e.target.value }))
+                          }
+                        >
+                          <option value="">— pick item —</option>
+                          {singles.map((s) => (
+                            <option key={s.id} value={s.name}>
+                              {s.name}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                      <button
+                        type="button"
+                        className="btn ghost"
+                        disabled={!comboAddPick[m.id]}
+                        onClick={() => {
+                          const name = comboAddPick[m.id]
+                          if (!name) return
+                          updateMenuItem(m.id, {
+                            contents: joinComboContents([...items, name]),
+                          })
+                          setComboAddPick((p) => ({ ...p, [m.id]: '' }))
+                        }}
+                      >
+                        <Plus size={14} /> Add
+                      </button>
+                      <div className="field">
+                        <label>Or custom</label>
+                        <input
+                          value={comboAddCustom[m.id] || ''}
+                          onChange={(e) =>
+                            setComboAddCustom((p) => ({ ...p, [m.id]: e.target.value }))
+                          }
+                          placeholder="e.g. Extra chutney"
+                          onKeyDown={(e) => {
+                            if (e.key !== 'Enter') return
+                            const custom = (comboAddCustom[m.id] || '').trim()
+                            if (!custom) return
+                            updateMenuItem(m.id, {
+                              contents: joinComboContents([...items, custom]),
+                            })
+                            setComboAddCustom((p) => ({ ...p, [m.id]: '' }))
+                          }}
+                        />
+                      </div>
+                      <button
+                        type="button"
+                        className="btn ghost"
+                        disabled={!(comboAddCustom[m.id] || '').trim()}
+                        onClick={() => {
+                          const custom = (comboAddCustom[m.id] || '').trim()
+                          if (!custom) return
+                          updateMenuItem(m.id, {
+                            contents: joinComboContents([...items, custom]),
+                          })
+                          setComboAddCustom((p) => ({ ...p, [m.id]: '' }))
+                        }}
+                      >
+                        <Plus size={14} /> Add custom
+                      </button>
+                    </div>
+                  </div>
+                )
+              })}
+          </div>
+
+          <div className="table-wrap" style={{ marginTop: '1rem' }}>
             <table>
               <thead>
                 <tr>
@@ -1130,7 +1303,9 @@ export function Orders() {
                       <tr key={m.id}>
                         <td>
                           {m.name}
-                          <div className="hint-inline">Combo · chai / lassi</div>
+                          <div className="hint-inline">
+                            {m.contents || 'Combo · chai / lassi'}
+                          </div>
                         </td>
                         <td>
                           <div className="price-pair">

@@ -53,6 +53,8 @@ interface StallOpsContextValue {
   addStockItem: (name: string, unit?: string, lowAt?: number) => void
   setMenuPrice: (id: string, price: number) => void
   setComboDefaultPrices: (id: string, chai: number, lassi: number) => void
+  /** Patch combo/single fields (contents, costs, name, …). */
+  updateMenuItem: (id: string, patch: Partial<MenuItem>) => void
   setEventPrice: (eventId: string, itemId: string, patch: EventPriceOverride) => void
   clearEventPrices: (eventId: string) => void
   copyEventPrices: (fromEventId: string, toEventId: string) => boolean
@@ -253,6 +255,38 @@ export function StallOpsProvider({ children }: { children: ReactNode }) {
             ? { ...m, price: c, priceWithChai: c, priceWithLassi: l }
             : m,
         ),
+      })
+    },
+    [persist, state],
+  )
+
+  const updateMenuItem = useCallback(
+    (id: string, patch: Partial<MenuItem>) => {
+      persist({
+        ...state,
+        menu: state.menu.map((m) => {
+          if (m.id !== id) return m
+          const next = { ...m, ...patch, id: m.id, kind: m.kind }
+          if (patch.contents != null) {
+            next.contents = String(patch.contents).trim() || undefined
+          }
+          if (patch.foodCost != null) next.foodCost = Math.max(0, Number(patch.foodCost) || 0)
+          if (patch.drinkCostChai != null) {
+            next.drinkCostChai = Math.max(0, Number(patch.drinkCostChai) || 0)
+          }
+          if (patch.drinkCostLassi != null) {
+            next.drinkCostLassi = Math.max(0, Number(patch.drinkCostLassi) || 0)
+          }
+          if (patch.name != null) next.name = String(patch.name).trim() || m.name
+          if (patch.price != null) next.price = Math.max(0, Number(patch.price) || 0)
+          if (patch.priceWithChai != null) {
+            next.priceWithChai = Math.max(0, Number(patch.priceWithChai) || 0)
+          }
+          if (patch.priceWithLassi != null) {
+            next.priceWithLassi = Math.max(0, Number(patch.priceWithLassi) || 0)
+          }
+          return next
+        }),
       })
     },
     [persist, state],
@@ -512,6 +546,7 @@ export function StallOpsProvider({ children }: { children: ReactNode }) {
       addStockItem,
       setMenuPrice,
       setComboDefaultPrices,
+      updateMenuItem,
       setEventPrice,
       clearEventPrices,
       copyEventPrices,
@@ -539,6 +574,7 @@ export function StallOpsProvider({ children }: { children: ReactNode }) {
       addStockItem,
       setMenuPrice,
       setComboDefaultPrices,
+      updateMenuItem,
       setEventPrice,
       clearEventPrices,
       copyEventPrices,
