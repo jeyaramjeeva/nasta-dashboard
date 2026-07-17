@@ -9,6 +9,7 @@ import {
   type ReactNode,
 } from 'react'
 import { useLocation } from 'react-router-dom'
+import { isGuestUser } from '../lib/guestAuth'
 import {
   checkStallUnlockPin,
   enterStallMode,
@@ -17,11 +18,14 @@ import {
   STALL_IDLE_ENTER_MS,
   STALL_IDLE_RELOCK_MS,
 } from '../lib/stallMode'
+import { useAuth } from './AuthContext'
 
 interface StallModeContextValue {
   isStall: boolean
+  /** Guest accounts are locked to stall view permanently. */
+  isGuestLocked: boolean
   enterStall: () => void
-  /** Returns true if unlocked with PIN. */
+  /** Returns true if unlocked with PIN. Guests cannot unlock. */
   unlockStall: (pin: string) => boolean
   /** Call on Orders page activity so idle auto-enter resets. */
   bumpOrdersActivity: () => void
@@ -30,13 +34,24 @@ interface StallModeContextValue {
 const StallModeContext = createContext<StallModeContextValue | null>(null)
 
 export function StallModeProvider({ children }: { children: ReactNode }) {
-  const [isStall, setIsStall] = useState(() => isStallMode())
+  const { user } = useAuth()
+  const isGuestLocked = isGuestUser(user)
+
+  const [stallFlag, setStallFlag] = useState(() => isStallMode())
   /** After a successful unlock, idle will re-lock. Fresh sessions stay unlocked. */
   const [relockArmed, setRelockArmed] = useState(false)
   const ordersIdleRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const relockIdleRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  const isStall = isGuestLocked || stallFlag
   const isStallRef = useRef(isStall)
   isStallRef.current = isStall
+
+  useEffect(() => {
+    if (!isGuestLocked) return
+    enterStallMode()
+    setStallFlag(true)
+  }, [isGuestLocked])
 
   const clearOrdersIdle = useCallback(() => {
     if (ordersIdleRef.current) {
@@ -54,24 +69,28 @@ export function StallModeProvider({ children }: { children: ReactNode }) {
 
   const enterStall = useCallback(() => {
     enterStallMode()
-    setIsStall(true)
+    setStallFlag(true)
     clearRelockIdle()
   }, [clearRelockIdle])
 
-  const unlockStall = useCallback((pin: string) => {
-    if (!checkStallUnlockPin(pin)) return false
-    exitStallMode()
-    setIsStall(false)
-    setRelockArmed(true)
-    return true
-  }, [])
+  const unlockStall = useCallback(
+    (pin: string) => {
+      if (isGuestLocked) return false
+      if (!checkStallUnlockPin(pin)) return false
+      exitStallMode()
+      setStallFlag(false)
+      setRelockArmed(true)
+      return true
+    },
+    [isGuestLocked],
+  )
 
   const scheduleRelock = useCallback(() => {
     clearRelockIdle()
     if (isStallRef.current) return
     relockIdleRef.current = setTimeout(() => {
       enterStallMode()
-      setIsStall(true)
+      setStallFlag(true)
     }, STALL_IDLE_RELOCK_MS)
   }, [clearRelockIdle])
 
@@ -80,13 +99,13 @@ export function StallModeProvider({ children }: { children: ReactNode }) {
     if (isStallRef.current) return
     ordersIdleRef.current = setTimeout(() => {
       enterStallMode()
-      setIsStall(true)
+      setStallFlag(true)
     }, STALL_IDLE_ENTER_MS)
   }, [clearOrdersIdle])
 
   // After unlock: idle → re-lock Stall mode
   useEffect(() => {
-    if (isStall || !relockArmed) {
+    if (isGuestLocked || isStall || !relockArmed) {
       clearRelockIdle()
       return
     }
@@ -98,7 +117,7 @@ export function StallModeProvider({ children }: { children: ReactNode }) {
       for (const e of evs) window.removeEventListener(e, onActivity)
       clearRelockIdle()
     }
-  }, [isStall, relockArmed, scheduleRelock, clearRelockIdle])
+  }, [isGuestLocked, isStall, relockArmed, scheduleRelock, clearRelockIdle])
 
   useEffect(
     () => () => {
@@ -109,8 +128,8 @@ export function StallModeProvider({ children }: { children: ReactNode }) {
   )
 
   const value = useMemo(
-    () => ({ isStall, enterStall, unlockStall, bumpOrdersActivity }),
-    [isStall, enterStall, unlockStall, bumpOrdersActivity],
+    () => ({ isStall, isGuestLocked, enterStall, unlockStall, bumpOrdersActivity }),
+    [isStall, isGuestLocked, enterStall, unlockStall, bumpOrdersActivity],
   )
 
   return <StallModeContext.Provider value={value}>{children}</StallModeContext.Provider>

@@ -3,6 +3,7 @@ import { useState, type FormEvent } from 'react'
 import { AmbientBackground } from '../components/AmbientBackground'
 import { useAuth } from '../context/AuthContext'
 import { getAllowedUsers } from '../lib/authAllowlist'
+import { GUEST_EMAIL, isGuestEmail, isGuestName } from '../lib/guestAuth'
 import { PASSWORD_HELP_EMAIL } from '../lib/passwordHelp'
 
 export function Login() {
@@ -17,6 +18,8 @@ export function Login() {
   const [forgotBusy, setForgotBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [info, setInfo] = useState<string | null>(null)
+
+  const pickingGuest = cloudAuth ? isGuestEmail(email) : isGuestName(name)
 
   async function onSubmit(e: FormEvent) {
     e.preventDefault()
@@ -36,6 +39,10 @@ export function Login() {
   async function onForgotPassword() {
     setError(null)
     setInfo(null)
+    if (pickingGuest) {
+      setInfo(`Ask Jeeva to reset the Guest password (email ${PASSWORD_HELP_EMAIL}).`)
+      return
+    }
     setForgotBusy(true)
     try {
       const accountName = cloudAuth
@@ -67,8 +74,7 @@ export function Login() {
           />
           <h1>Nasta Zentrum</h1>
           <p className="hint-inline">
-            Team login only — Jeeva, Sriram &amp; Sneha.
-            {cloudAuth ? ' Sign in with your email.' : ' Local gate (Supabase not configured yet).'}
+            Team login — Jeeva, Sriram, Sneha, or <strong>Guest</strong> (orders only, no money).
           </p>
 
           {cloudAuth ? (
@@ -77,7 +83,9 @@ export function Login() {
               <select value={email} onChange={(e) => setEmail(e.target.value)} required>
                 {allowed.map((u) => (
                   <option key={u.email} value={u.email}>
-                    {u.name} — {u.email}
+                    {u.name === 'Guest'
+                      ? `Guest — helper (no money) · ${u.email}`
+                      : `${u.name} — ${u.email}`}
                   </option>
                 ))}
               </select>
@@ -89,12 +97,15 @@ export function Login() {
                 <option value="Jeeva">Jeeva</option>
                 <option value="Sriram">Sriram</option>
                 <option value="Sneha">Sneha</option>
+                <option value="Guest">Guest — helper (no money)</option>
               </select>
             </label>
           )}
 
           <label className="login-field">
-            <span>{cloudAuth ? 'Password' : 'Team password'}</span>
+            <span>
+              {pickingGuest ? 'Guest password' : cloudAuth ? 'Password' : 'Team password'}
+            </span>
             <div className="pw-input">
               <input
                 type={showPassword ? 'text' : 'password'}
@@ -102,7 +113,13 @@ export function Login() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
-                placeholder={cloudAuth ? 'Your account password' : 'Team password'}
+                placeholder={
+                  pickingGuest
+                    ? 'Guest password'
+                    : cloudAuth
+                      ? 'Your account password'
+                      : 'Team password'
+                }
               />
               <button
                 type="button"
@@ -114,6 +131,13 @@ export function Login() {
               </button>
             </div>
           </label>
+
+          {pickingGuest && (
+            <p className="hint-inline" style={{ textAlign: 'left', margin: 0 }}>
+              Guest sees Calendar, Stock &amp; Orders only — same as Stall mode.
+              {cloudAuth ? ` Login: ${GUEST_EMAIL}` : ''}
+            </p>
+          )}
 
           <div className="login-forgot-row">
             <button

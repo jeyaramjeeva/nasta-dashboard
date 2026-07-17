@@ -2,8 +2,10 @@
 --
 -- AUTH SETUP (do this first):
 -- 1. Authentication → Providers → Email: ON
--- 2. Authentication → Users → Add user (×3):
---      jeeva@… / sriram@… / sneha@…  (set passwords, Auto Confirm User)
+-- 2. Authentication → Users → Add user (×4):
+--      jeeva@… / sriram@… / sneha@… / guest@nastazentrum.de
+--      Guest password suggestion: Guest9987 (Auto Confirm User)
+--      Guest login only shows Calendar / Stock / Orders (no money pages)
 -- 3. Put those emails in VITE_ALLOWED_EMAILS on Vercel
 -- 4. Authentication → Users shows last sign-in for each person
 

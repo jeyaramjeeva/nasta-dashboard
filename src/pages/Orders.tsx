@@ -66,7 +66,7 @@ function upsertLineQty(
 
 export function Orders() {
   const { snapshot } = useData()
-  const { isStall, enterStall } = useStallMode()
+  const { isStall, isGuestLocked, enterStall } = useStallMode()
   useOrdersStallIdle()
   const {
     menu,
@@ -281,9 +281,11 @@ export function Orders() {
               <Link className="btn ghost" to="/cash">
                 Cash box →
               </Link>
-              <button type="button" className="btn ghost" onClick={enterStall}>
-                Stall mode
-              </button>
+              {!isGuestLocked && (
+                <button type="button" className="btn ghost" onClick={enterStall}>
+                  Stall mode
+                </button>
+              )}
             </>
           )}
           <Link className="btn ghost" to="/stock">

@@ -14,11 +14,18 @@ import {
   isEmailAllowed,
   type AllowedUser,
 } from '../lib/authAllowlist'
+import {
+  checkGuestPassword,
+  GUEST_EMAIL,
+  GUEST_NAME,
+  isGuestEmail,
+  isGuestName,
+} from '../lib/guestAuth'
 import { sendForgotPasswordRequest } from '../lib/passwordHelp'
 import { checkUploadPassword, getSupabase, isCloudConfigured } from '../lib/supabase'
 
 const LOCAL_AUTH_KEY = 'nasta-local-auth-v1'
-const TEAM = ['Jeeva', 'Sriram', 'Sneha'] as const
+const TEAM = ['Jeeva', 'Sriram', 'Sneha', GUEST_NAME] as const
 
 export interface AuthUser {
   email: string
@@ -131,7 +138,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const signInWithPassword = useCallback(async (email: string, password: string) => {
     const trimmed = email.trim().toLowerCase()
     if (!isEmailAllowed(trimmed)) {
-      throw new Error('This email is not on the team allowlist (Jeeva / Sriram / Sneha only).')
+      throw new Error('This email is not on the team allowlist.')
     }
     const sb = getSupabase()
     if (!sb) throw new Error('Supabase is not configured')
@@ -140,7 +147,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       email: trimmed,
       password,
     })
-    if (error) throw new Error(error.message)
+    if (error) {
+      if (isGuestEmail(trimmed)) {
+        throw new Error(
+          `Guest login failed. In Supabase → Authentication → Users, create ${GUEST_EMAIL} with password Guest9987 (Auto Confirm), then try again.`,
+        )
+      }
+      throw new Error(error.message)
+    }
 
     const mapped = toAuthUser(data.user?.email)
     if (!mapped) {
@@ -152,18 +166,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const signInLocal = useCallback(async (name: string, password: string) => {
     if (!TEAM.includes(name as (typeof TEAM)[number])) {
-      throw new Error('Pick Jeeva, Sriram, or Sneha.')
+      throw new Error('Pick Jeeva, Sriram, Sneha, or Guest.')
     }
-    if (!checkUploadPassword(password)) {
+    if (isGuestName(name)) {
+      if (!checkGuestPassword(password)) {
+        throw new Error('Wrong guest password.')
+      }
+    } else if (!checkUploadPassword(password)) {
       throw new Error('Wrong team password.')
     }
     const allowed: AllowedUser = findAllowedUser(emailForTeamName(name)) ?? {
-      email: emailForTeamName(name),
+      email: isGuestName(name) ? GUEST_EMAIL : emailForTeamName(name),
       name,
     }
     const next: AuthUser = {
       email: allowed.email,
-      name,
+      name: allowed.name,
       source: 'local',
     }
     saveLocalAuth(next)

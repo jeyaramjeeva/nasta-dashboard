@@ -1,6 +1,7 @@
 /** Only these people may use the app. Configure via VITE_ALLOWED_EMAILS. */
 
 import { isDemoMode } from './demoMode'
+import { GUEST_EMAIL, GUEST_NAME } from './guestAuth'
 
 export interface AllowedUser {
   email: string
@@ -15,7 +16,17 @@ const DEFAULT_ALLOWED: AllowedUser[] = [
   { email: 'jeeva@nastazentrum.de', name: 'Jeeva' },
   { email: 'sriram@nastazentrum.de', name: 'Sriram' },
   { email: 'sneha@nastazentrum.de', name: 'Sneha' },
+  { email: GUEST_EMAIL, name: GUEST_NAME },
 ]
+
+const GUEST_USER: AllowedUser = { email: GUEST_EMAIL, name: GUEST_NAME }
+
+function withGuest(users: AllowedUser[]): AllowedUser[] {
+  if (users.some((u) => u.email === GUEST_EMAIL || u.name.toLowerCase() === 'guest')) {
+    return users
+  }
+  return [...users, GUEST_USER]
+}
 
 function parseEnvAllowlist(): AllowedUser[] | null {
   const raw = (import.meta.env.VITE_ALLOWED_EMAILS as string | undefined)?.trim()
@@ -37,7 +48,7 @@ function parseEnvAllowlist(): AllowedUser[] | null {
 }
 
 export function getAllowedUsers(): AllowedUser[] {
-  return parseEnvAllowlist() ?? DEFAULT_ALLOWED
+  return withGuest(parseEnvAllowlist() ?? DEFAULT_ALLOWED)
 }
 
 export function findAllowedUser(email: string | undefined | null): AllowedUser | null {

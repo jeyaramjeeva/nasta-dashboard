@@ -71,7 +71,7 @@ export function Layout() {
   const { pendingOps, flushOfflineQueue: flushExtras } = useExtras()
   const { user, signOut, needsNewPassword } = useAuth()
   const { isDemo, exitDemo, resetDemo } = useDemoMode()
-  const { isStall, enterStall, unlockStall } = useStallMode()
+  const { isStall, isGuestLocked, enterStall, unlockStall } = useStallMode()
   const { resolved, cycleMode } = useTheme()
   const { locale, toggleLocale, tr } = useLocale()
   const location = useLocation()
@@ -169,36 +169,37 @@ export function Layout() {
           </nav>
 
           <div className="sidebar-tools">
-            {!isStall ? (
-              <button
-                type="button"
-                className="btn ghost"
-                style={{ width: '100%', justifyContent: 'flex-start' }}
-                onClick={() => {
-                  enterStall()
-                  navigate('/orders')
-                }}
-                title="Hide sales & money pages while a helper takes orders"
-              >
-                <EyeOff size={16} />
-                <span className="collapsed-hide">Stall mode</span>
-              </button>
-            ) : (
-              <button
-                type="button"
-                className="btn ghost"
-                style={{ width: '100%', justifyContent: 'flex-start' }}
-                onClick={() => {
-                  setUnlockOpen(true)
-                  setUnlockPw('')
-                  setUnlockErr('')
-                }}
-                title="Unlock money pages"
-              >
-                <Lock size={16} />
-                <span className="collapsed-hide">Unlock</span>
-              </button>
-            )}
+            {!isGuestLocked &&
+              (!isStall ? (
+                <button
+                  type="button"
+                  className="btn ghost"
+                  style={{ width: '100%', justifyContent: 'flex-start' }}
+                  onClick={() => {
+                    enterStall()
+                    navigate('/orders')
+                  }}
+                  title="Hide sales & money pages while a helper takes orders"
+                >
+                  <EyeOff size={16} />
+                  <span className="collapsed-hide">Stall mode</span>
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  className="btn ghost"
+                  style={{ width: '100%', justifyContent: 'flex-start' }}
+                  onClick={() => {
+                    setUnlockOpen(true)
+                    setUnlockPw('')
+                    setUnlockErr('')
+                  }}
+                  title="Unlock money pages"
+                >
+                  <Lock size={16} />
+                  <span className="collapsed-hide">Unlock</span>
+                </button>
+              ))}
             <button
               type="button"
               className="icon-btn"
@@ -264,20 +265,29 @@ export function Layout() {
           {isStall && (
             <div className="alert-item stall-banner" style={{ marginBottom: '0.75rem' }}>
               <EyeOff size={14} style={{ verticalAlign: -2, marginRight: 6 }} />
-              <strong>Stall mode</strong> — sales & money pages hidden. Helpers can take orders
-              only.{' '}
-              <button
-                type="button"
-                className="btn ghost"
-                style={{ display: 'inline', padding: '0.15rem 0.5rem' }}
-                onClick={() => {
-                  setUnlockOpen(true)
-                  setUnlockPw('')
-                  setUnlockErr('')
-                }}
-              >
-                Unlock…
-              </button>
+              {isGuestLocked ? (
+                <>
+                  <strong>Guest view</strong> — Calendar, Stock &amp; Orders only. Money pages stay
+                  hidden.
+                </>
+              ) : (
+                <>
+                  <strong>Stall mode</strong> — sales & money pages hidden. Helpers can take orders
+                  only.{' '}
+                  <button
+                    type="button"
+                    className="btn ghost"
+                    style={{ display: 'inline', padding: '0.15rem 0.5rem' }}
+                    onClick={() => {
+                      setUnlockOpen(true)
+                      setUnlockPw('')
+                      setUnlockErr('')
+                    }}
+                  >
+                    Unlock…
+                  </button>
+                </>
+              )}
             </div>
           )}
           {!isDemo && !online && (
