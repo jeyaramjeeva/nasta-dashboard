@@ -214,15 +214,6 @@ export function Layout() {
               <div className="auth-user">
                 <div className="auth-user__name">{user.name}</div>
                 <div className="auth-user__email">{user.email}</div>
-                {!isStall && (
-                  <Link
-                    to="/account"
-                    className="btn ghost auth-user__out"
-                    style={{ textDecoration: 'none' }}
-                  >
-                    <Settings size={14} /> Account
-                  </Link>
-                )}
                 <button
                   type="button"
                   className="btn ghost auth-user__out"

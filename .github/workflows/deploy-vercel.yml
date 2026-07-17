@@ -5,7 +5,7 @@
 #   VERCEL_ORG_ID        = team_9I3KDmXK84NzNMrh5UKu6hjr
 #   VERCEL_PROJECT_ID    = prj_xp6mYZSTJUsNyggl84GlMV7VQH8o
 #
-# Or connect the repo in Vercel Dashboard → nasta-dashboard → Settings → Git
+# Or connect the repo in Vercel Dashboard → nastazentrum → Settings → Git
 # and disable this workflow.
 
 name: Deploy to Vercel

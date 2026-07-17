@@ -100,6 +100,10 @@ export function Account() {
           </p>
         ) : (
           <form className="account-pw-form" onSubmit={(e) => void onSubmit(e)}>
+            <p className="hint-inline">
+              This updates only <strong>your</strong> login ({user?.email}). Sriram and Sneha keep
+              their own passwords.
+            </p>
             {recoveryOnly && (
               <p className="hint-inline">
                 Choose a new password for your account, then continue using the app.
