@@ -1,6 +1,7 @@
 import {
   Check,
   ClipboardList,
+  Minus,
   Pencil,
   Plus,
   RotateCcw,
@@ -19,8 +20,6 @@ import { germanyTodayYmd } from '../lib/germanyTime'
 import { summarizePosCashToday } from '../lib/posCash'
 import { buildSalesReport } from '../lib/salesStats'
 import {
-  comboMarginEuro,
-  drinkLabel,
   joinComboContents,
   lineKey,
   makeOrderLine,
@@ -33,6 +32,12 @@ import {
   type OrderLine,
   type StallOrder,
 } from '../lib/stallOps'
+
+const DRINK_IDS = new Set(['masala-chai', 'mango-lassi'])
+
+function shortDrink(drink: DrinkChoice): string {
+  return drink === 'chai' ? 'Chai' : 'Lassi'
+}
 
 type Tab = 'new' | 'pending' | 'completed' | 'sales' | 'menu'
 type SalesScope = 'today' | 'event' | 'all'
@@ -185,6 +190,17 @@ export function Orders() {
   }, [menu, cart, activeEventId, eventPrices])
 
   const cartTotal = orderTotal(cartLines)
+  const cartCount = cartLines.reduce((s, l) => s + l.qty, 0)
+
+  const menuCombos = useMemo(() => menu.filter((m) => m.kind === 'combo'), [menu])
+  const menuFood = useMemo(
+    () => menu.filter((m) => m.kind === 'single' && !DRINK_IDS.has(m.id)),
+    [menu],
+  )
+  const menuDrinks = useMemo(
+    () => menu.filter((m) => m.kind === 'single' && DRINK_IDS.has(m.id)),
+    [menu],
+  )
 
   function setQty(item: MenuItem, qty: number, drink?: DrinkChoice) {
     const key = lineKey(item.id, item.kind === 'combo' ? drink : undefined)
@@ -196,8 +212,25 @@ export function Orders() {
     })
   }
 
+  function bumpQty(item: MenuItem, delta: number, drink?: DrinkChoice) {
+    setQty(item, Math.max(0, cartQty(item, drink) + delta), drink)
+  }
+
   function cartQty(item: MenuItem, drink?: DrinkChoice): number {
     return cart[lineKey(item.id, item.kind === 'combo' ? drink : undefined)] || 0
+  }
+
+  function clearCartLine(line: OrderLine) {
+    const item = menu.find((m) => m.id === line.menuItemId)
+    if (!item) return
+    setQty(item, 0, line.drink)
+  }
+
+  function submitCart() {
+    if (!cartLines.length) return
+    createOrder(cartLines)
+    setCart({})
+    setTab('pending')
   }
 
   function startEdit(o: StallOrder) {
@@ -238,9 +271,9 @@ export function Orders() {
             <ClipboardList size={22} style={{ verticalAlign: -3, marginRight: 8 }} />
             Orders
           </h1>
-          <p>
-            Tickets auto-number Customer 1, 2, 3… and reset each day. Add items → Pending → Delivered.
-          </p>
+          {!isStall && (
+            <p>Tap items → Add ticket → Mark paid when handed over.</p>
+          )}
         </div>
         <div className="page-actions">
           {!isStall && (
@@ -286,159 +319,270 @@ export function Orders() {
       </div>
 
       {tab === 'new' && (
-        <MotionCard interactive={false} className="upload-panel">
-          <div className="field" style={{ marginBottom: '0.65rem' }}>
-            <label htmlFor="active-event">Selling for event</label>
-            <select
-              id="active-event"
-              value={activeEventId}
-              onChange={(e) => setActiveEventId(e.target.value)}
-            >
-              <option value="">— pick stall —</option>
-              {stallEvents.map((e) => (
-                <option key={e.id} value={e.id}>
-                  {e.id} · {e.location || e.name} · {e.status}
-                </option>
-              ))}
-            </select>
-            <div className="hint-inline" style={{ marginTop: 4 }}>
-              New tickets are counted under this event for sales totals.
+        <div className="pos-shell">
+          <div className="pos-toolbar">
+            <label className="pos-toolbar__event" htmlFor="active-event">
+              <span>Event</span>
+              <select
+                id="active-event"
+                value={activeEventId}
+                onChange={(e) => setActiveEventId(e.target.value)}
+              >
+                <option value="">— pick stall —</option>
+                {stallEvents.map((e) => (
+                  <option key={e.id} value={e.id}>
+                    {e.id} · {e.location || e.name}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <div className="pos-toolbar__actions">
+              <span className="badge ok">Customer {nextCustomer}</span>
+              <button
+                type="button"
+                className="btn ghost"
+                disabled={!lastTicket}
+                onClick={repeatLastTicket}
+                title={lastTicket ? `Copy ${lastTicket.label}` : 'No previous ticket'}
+              >
+                <RotateCcw size={14} /> Repeat
+              </button>
             </div>
           </div>
-          <div className="chip-row" style={{ marginBottom: '0.35rem' }}>
-            <span className="badge ok">Next ticket: Customer {nextCustomer}</span>
-            <button
-              type="button"
-              className="btn ghost"
-              disabled={!lastTicket}
-              onClick={repeatLastTicket}
-              title={lastTicket ? `Copy ${lastTicket.label}` : 'No previous ticket'}
-            >
-              <RotateCcw size={14} /> Repeat last ticket
-            </button>
-            <span className="hint-inline">
-              Stall mode auto-starts after 2 min idle. Combos: pick chai or lassi.
-            </span>
-          </div>
 
-          <div className="order-menu-grid">
-            {menu.map((m) => {
-              if (m.kind === 'combo') {
-                const qChai = cartQty(m, 'chai')
-                const qLassi = cartQty(m, 'lassi')
-                const on = qChai + qLassi > 0
-                const pChai = resolveMenuPrice(m, activeEventId, eventPrices, 'chai')
-                const pLassi = resolveMenuPrice(m, activeEventId, eventPrices, 'lassi')
-                const mChai = comboMarginEuro(m, activeEventId, eventPrices, 'chai')
-                const mLassi = comboMarginEuro(m, activeEventId, eventPrices, 'lassi')
-                return (
-                  <div key={m.id} className={`order-menu-tile order-menu-tile--combo ${on ? 'is-on' : ''}`}>
-                    <div className="order-menu-tile__name">{m.name}</div>
-                    {m.contents && (
-                      <div className="order-menu-tile__contents">{m.contents}</div>
-                    )}
-                    {!isStall && (
-                      <div className="hint-inline" style={{ fontSize: '0.72rem' }}>
-                        Margin chai ~{mChai.marginPct}% · lassi ~{mLassi.marginPct}% (cost €
-                        {mChai.cost.toFixed(2)} / €{mLassi.cost.toFixed(2)})
-                      </div>
-                    )}
-                    <div className="order-combo-drink">
-                      <div className="order-combo-drink__meta">
-                        <span>{drinkLabel('chai')}</span>
+          <div className="pos-layout">
+            <div className="pos-menu">
+              {menuCombos.length > 0 && (
+                <section className="pos-section">
+                  <h2 className="pos-section__title">Combos</h2>
+                  <div className="pos-combo-grid">
+                    {menuCombos.map((m) => {
+                      const qChai = cartQty(m, 'chai')
+                      const qLassi = cartQty(m, 'lassi')
+                      const on = qChai + qLassi > 0
+                      const pChai = resolveMenuPrice(m, activeEventId, eventPrices, 'chai')
+                      const pLassi = resolveMenuPrice(m, activeEventId, eventPrices, 'lassi')
+                      return (
+                        <div
+                          key={m.id}
+                          className={`pos-combo ${on ? 'is-on' : ''}`}
+                        >
+                          <div className="pos-combo__head">
+                            <div className="pos-combo__name">{m.name}</div>
+                            {m.contents && (
+                              <div className="pos-combo__contents">{m.contents}</div>
+                            )}
+                          </div>
+                          <div className="pos-combo__drinks">
+                            {(['chai', 'lassi'] as DrinkChoice[]).map((drink) => {
+                              const q = drink === 'chai' ? qChai : qLassi
+                              const price = drink === 'chai' ? pChai : pLassi
+                              return (
+                                <div
+                                  key={drink}
+                                  className={`pos-drink ${q ? 'is-on' : ''}`}
+                                >
+                                  <button
+                                    type="button"
+                                    className="pos-drink__add"
+                                    onClick={() => bumpQty(m, 1, drink)}
+                                  >
+                                    <span className="pos-drink__label">{shortDrink(drink)}</span>
+                                    <span className="pos-drink__price">
+                                      <Money value={price} />
+                                    </span>
+                                    {q > 0 ? (
+                                      <span className="pos-drink__qty">{q}</span>
+                                    ) : (
+                                      <span className="pos-drink__plus">
+                                        <Plus size={18} />
+                                      </span>
+                                    )}
+                                  </button>
+                                  {q > 0 && (
+                                    <button
+                                      type="button"
+                                      className="pos-drink__minus"
+                                      aria-label={`Remove ${shortDrink(drink)}`}
+                                      onClick={() => bumpQty(m, -1, drink)}
+                                    >
+                                      <Minus size={16} />
+                                    </button>
+                                  )}
+                                </div>
+                              )
+                            })}
+                          </div>
+                        </div>
+                      )
+                    })}
+                  </div>
+                </section>
+              )}
+
+              {menuFood.length > 0 && (
+                <section className="pos-section">
+                  <h2 className="pos-section__title">Dishes</h2>
+                  <div className="pos-item-grid">
+                    {menuFood.map((m) => {
+                      const q = cartQty(m)
+                      const price = resolveMenuPrice(m, activeEventId, eventPrices)
+                      return (
+                        <div key={m.id} className={`pos-item ${q ? 'is-on' : ''}`}>
+                          {q > 0 && (
+                            <button
+                              type="button"
+                              className="pos-item__minus"
+                              aria-label={`Remove ${m.name}`}
+                              onClick={() => bumpQty(m, -1)}
+                            >
+                              <Minus size={16} />
+                            </button>
+                          )}
+                          <button
+                            type="button"
+                            className="pos-item__add"
+                            onClick={() => bumpQty(m, 1)}
+                          >
+                            <span className="pos-item__name">{m.name}</span>
+                            <span className="pos-item__price">
+                              <Money value={price} />
+                            </span>
+                            {q > 0 ? (
+                              <span className="pos-item__qty">{q}</span>
+                            ) : (
+                              <span className="pos-item__hint">Tap to add</span>
+                            )}
+                          </button>
+                        </div>
+                      )
+                    })}
+                  </div>
+                </section>
+              )}
+
+              {menuDrinks.length > 0 && (
+                <section className="pos-section">
+                  <h2 className="pos-section__title">Drinks</h2>
+                  <div className="pos-item-grid pos-item-grid--drinks">
+                    {menuDrinks.map((m) => {
+                      const q = cartQty(m)
+                      const price = resolveMenuPrice(m, activeEventId, eventPrices)
+                      return (
+                        <div key={m.id} className={`pos-item ${q ? 'is-on' : ''}`}>
+                          {q > 0 && (
+                            <button
+                              type="button"
+                              className="pos-item__minus"
+                              aria-label={`Remove ${m.name}`}
+                              onClick={() => bumpQty(m, -1)}
+                            >
+                              <Minus size={16} />
+                            </button>
+                          )}
+                          <button
+                            type="button"
+                            className="pos-item__add"
+                            onClick={() => bumpQty(m, 1)}
+                          >
+                            <span className="pos-item__name">{m.name}</span>
+                            <span className="pos-item__price">
+                              <Money value={price} />
+                            </span>
+                            {q > 0 ? (
+                              <span className="pos-item__qty">{q}</span>
+                            ) : (
+                              <span className="pos-item__hint">Tap to add</span>
+                            )}
+                          </button>
+                        </div>
+                      )
+                    })}
+                  </div>
+                </section>
+              )}
+            </div>
+
+            <aside className="pos-cart">
+              <div className="pos-cart__head">
+                <h2>Ticket</h2>
+                <span className="badge ok">Customer {nextCustomer}</span>
+              </div>
+              {cartLines.length === 0 ? (
+                <p className="pos-cart__empty">Tap dishes or combo drinks to build the order.</p>
+              ) : (
+                <ul className="pos-cart__lines">
+                  {cartLines.map((line) => (
+                    <li key={lineKey(line.menuItemId, line.drink)}>
+                      <div className="pos-cart__line-main">
                         <strong>
-                          <Money value={pChai} />
+                          {line.qty}× {line.name}
                         </strong>
+                        <span>
+                          <Money value={line.price * line.qty} />
+                        </span>
                       </div>
-                      <div className="order-menu-tile__qty">
-                        <button
-                          type="button"
-                          className="btn ghost"
-                          onClick={() => setQty(m, qChai - 1, 'chai')}
-                        >
-                          −
-                        </button>
-                        <strong>{qChai}</strong>
-                        <button
-                          type="button"
-                          className="btn ghost"
-                          onClick={() => setQty(m, qChai + 1, 'chai')}
-                        >
-                          <Plus size={14} />
-                        </button>
-                      </div>
-                    </div>
-                    <div className="order-combo-drink">
-                      <div className="order-combo-drink__meta">
-                        <span>{drinkLabel('lassi')}</span>
-                        <strong>
-                          <Money value={pLassi} />
-                        </strong>
-                      </div>
-                      <div className="order-menu-tile__qty">
-                        <button
-                          type="button"
-                          className="btn ghost"
-                          onClick={() => setQty(m, qLassi - 1, 'lassi')}
-                        >
-                          −
-                        </button>
-                        <strong>{qLassi}</strong>
-                        <button
-                          type="button"
-                          className="btn ghost"
-                          onClick={() => setQty(m, qLassi + 1, 'lassi')}
-                        >
-                          <Plus size={14} />
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                )
-              }
-              const q = cartQty(m)
-              const price = resolveMenuPrice(m, activeEventId, eventPrices)
-              return (
-                <div key={m.id} className={`order-menu-tile ${q ? 'is-on' : ''}`}>
-                  <div className="order-menu-tile__name">{m.name}</div>
-                  <div className="order-menu-tile__price">
-                    <Money value={price} />
-                  </div>
-                  <div className="order-menu-tile__qty">
-                    <button type="button" className="btn ghost" onClick={() => setQty(m, q - 1)}>
-                      −
-                    </button>
-                    <strong>{q}</strong>
-                    <button type="button" className="btn ghost" onClick={() => setQty(m, q + 1)}>
-                      <Plus size={14} />
-                    </button>
-                  </div>
+                      <button
+                        type="button"
+                        className="pos-cart__remove"
+                        aria-label="Remove line"
+                        onClick={() => clearCartLine(line)}
+                      >
+                        <X size={14} />
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              )}
+              <div className="pos-cart__footer">
+                <div className="pos-cart__total">
+                  <span>
+                    {cartCount} item{cartCount === 1 ? '' : 's'}
+                  </span>
+                  <strong>
+                    <Money value={cartTotal} />
+                  </strong>
                 </div>
-              )
-            })}
+                <button
+                  type="button"
+                  className="btn pos-cart__submit"
+                  disabled={!cartLines.length}
+                  onClick={submitCart}
+                >
+                  Add Customer {nextCustomer}
+                </button>
+                {cartLines.length > 0 && (
+                  <button
+                    type="button"
+                    className="btn ghost pos-cart__clear"
+                    onClick={() => setCart({})}
+                  >
+                    Clear
+                  </button>
+                )}
+              </div>
+            </aside>
           </div>
 
-          <div className="order-total-bar">
-            <div>
-              <div className="kpi-label">Total</div>
-              <strong style={{ fontSize: '1.4rem' }}>
+          <div className="pos-dock">
+            <div className="pos-dock__total">
+              <span>
+                {cartCount ? `${cartCount} items` : 'Empty'}
+              </span>
+              <strong>
                 <Money value={cartTotal} />
               </strong>
             </div>
             <button
               type="button"
-              className="btn"
+              className="btn pos-dock__submit"
               disabled={!cartLines.length}
-              onClick={() => {
-                createOrder(cartLines)
-                setCart({})
-                setTab('pending')
-              }}
+              onClick={submitCart}
             >
               Add Customer {nextCustomer}
             </button>
           </div>
-        </MotionCard>
+        </div>
       )}
 
       {tab === 'pending' && (
@@ -456,112 +600,134 @@ export function Orders() {
                     <h2>{o.label}</h2>
                     <span className="badge warn">Editing items</span>
                   </div>
-                  <div className="order-menu-grid" style={{ marginTop: '0.65rem' }}>
-                    {menu.map((m) => {
-                      const ev = o.eventId || activeEventId
-                      if (m.kind === 'combo') {
-                        const qChai = findLineQty(editLines, m.id, 'chai')
-                        const qLassi = findLineQty(editLines, m.id, 'lassi')
-                        return (
-                          <div
-                            key={m.id}
-                            className={`order-menu-tile order-menu-tile--combo ${
-                              qChai + qLassi ? 'is-on' : ''
-                            }`}
-                          >
-                            <div className="order-menu-tile__name">{m.name}</div>
-                            {(['chai', 'lassi'] as DrinkChoice[]).map((drink) => {
-                              const q = drink === 'chai' ? qChai : qLassi
-                              return (
-                                <div key={drink} className="order-combo-drink">
-                                  <div className="order-combo-drink__meta">
-                                    <span>{drinkLabel(drink)}</span>
-                                    <strong>
-                                      <Money
-                                        value={resolveMenuPrice(m, ev, eventPrices, drink)}
-                                      />
-                                    </strong>
-                                  </div>
-                                  <div className="order-menu-tile__qty">
-                                    <button
-                                      type="button"
-                                      className="btn ghost"
-                                      onClick={() =>
-                                        setEditLines(
-                                          upsertLineQty(
-                                            editLines,
-                                            m,
-                                            q - 1,
-                                            ev,
-                                            eventPrices,
-                                            drink,
-                                          ),
-                                        )
-                                      }
-                                    >
-                                      −
-                                    </button>
-                                    <strong>{q}</strong>
-                                    <button
-                                      type="button"
-                                      className="btn ghost"
-                                      onClick={() =>
-                                        setEditLines(
-                                          upsertLineQty(
-                                            editLines,
-                                            m,
-                                            q + 1,
-                                            ev,
-                                            eventPrices,
-                                            drink,
-                                          ),
-                                        )
-                                      }
-                                    >
-                                      +
-                                    </button>
-                                  </div>
-                                </div>
-                              )
-                            })}
-                          </div>
-                        )
-                      }
-                      const q = findLineQty(editLines, m.id)
-                      return (
-                        <div key={m.id} className={`order-menu-tile ${q ? 'is-on' : ''}`}>
-                          <div className="order-menu-tile__name">{m.name}</div>
-                          <div className="order-menu-tile__price">
-                            <Money value={resolveMenuPrice(m, ev, eventPrices)} />
-                          </div>
-                          <div className="order-menu-tile__qty">
-                            <button
-                              type="button"
-                              className="btn ghost"
-                              onClick={() =>
-                                setEditLines(
-                                  upsertLineQty(editLines, m, q - 1, ev, eventPrices),
-                                )
-                              }
+                  <div className="pos-menu pos-menu--edit">
+                    <div className="pos-combo-grid">
+                      {menu
+                        .filter((m) => m.kind === 'combo')
+                        .map((m) => {
+                          const ev = o.eventId || activeEventId
+                          const qChai = findLineQty(editLines, m.id, 'chai')
+                          const qLassi = findLineQty(editLines, m.id, 'lassi')
+                          return (
+                            <div
+                              key={m.id}
+                              className={`pos-combo ${qChai + qLassi ? 'is-on' : ''}`}
                             >
-                              −
-                            </button>
-                            <strong>{q}</strong>
-                            <button
-                              type="button"
-                              className="btn ghost"
-                              onClick={() =>
-                                setEditLines(
-                                  upsertLineQty(editLines, m, q + 1, ev, eventPrices),
-                                )
-                              }
-                            >
-                              +
-                            </button>
-                          </div>
-                        </div>
-                      )
-                    })}
+                              <div className="pos-combo__head">
+                                <div className="pos-combo__name">{m.name}</div>
+                              </div>
+                              <div className="pos-combo__drinks">
+                                {(['chai', 'lassi'] as DrinkChoice[]).map((drink) => {
+                                  const q = drink === 'chai' ? qChai : qLassi
+                                  return (
+                                    <div
+                                      key={drink}
+                                      className={`pos-drink ${q ? 'is-on' : ''}`}
+                                    >
+                                      <button
+                                        type="button"
+                                        className="pos-drink__add"
+                                        onClick={() =>
+                                          setEditLines(
+                                            upsertLineQty(
+                                              editLines,
+                                              m,
+                                              q + 1,
+                                              ev,
+                                              eventPrices,
+                                              drink,
+                                            ),
+                                          )
+                                        }
+                                      >
+                                        <span className="pos-drink__label">
+                                          {shortDrink(drink)}
+                                        </span>
+                                        <span className="pos-drink__price">
+                                          <Money
+                                            value={resolveMenuPrice(m, ev, eventPrices, drink)}
+                                          />
+                                        </span>
+                                        {q > 0 ? (
+                                          <span className="pos-drink__qty">{q}</span>
+                                        ) : (
+                                          <span className="pos-drink__plus">
+                                            <Plus size={18} />
+                                          </span>
+                                        )}
+                                      </button>
+                                      {q > 0 && (
+                                        <button
+                                          type="button"
+                                          className="pos-drink__minus"
+                                          onClick={() =>
+                                            setEditLines(
+                                              upsertLineQty(
+                                                editLines,
+                                                m,
+                                                q - 1,
+                                                ev,
+                                                eventPrices,
+                                                drink,
+                                              ),
+                                            )
+                                          }
+                                        >
+                                          <Minus size={16} />
+                                        </button>
+                                      )}
+                                    </div>
+                                  )
+                                })}
+                              </div>
+                            </div>
+                          )
+                        })}
+                    </div>
+                    <div className="pos-item-grid" style={{ marginTop: '0.75rem' }}>
+                      {menu
+                        .filter((m) => m.kind === 'single')
+                        .map((m) => {
+                          const ev = o.eventId || activeEventId
+                          const q = findLineQty(editLines, m.id)
+                          return (
+                            <div key={m.id} className={`pos-item ${q ? 'is-on' : ''}`}>
+                              {q > 0 && (
+                                <button
+                                  type="button"
+                                  className="pos-item__minus"
+                                  onClick={() =>
+                                    setEditLines(
+                                      upsertLineQty(editLines, m, q - 1, ev, eventPrices),
+                                    )
+                                  }
+                                >
+                                  <Minus size={16} />
+                                </button>
+                              )}
+                              <button
+                                type="button"
+                                className="pos-item__add"
+                                onClick={() =>
+                                  setEditLines(
+                                    upsertLineQty(editLines, m, q + 1, ev, eventPrices),
+                                  )
+                                }
+                              >
+                                <span className="pos-item__name">{m.name}</span>
+                                <span className="pos-item__price">
+                                  <Money value={resolveMenuPrice(m, ev, eventPrices)} />
+                                </span>
+                                {q > 0 ? (
+                                  <span className="pos-item__qty">{q}</span>
+                                ) : (
+                                  <span className="pos-item__hint">Tap</span>
+                                )}
+                              </button>
+                            </div>
+                          )
+                        })}
+                    </div>
                   </div>
                   <div className="page-actions" style={{ marginTop: '0.75rem' }}>
                     <button type="button" className="btn" onClick={saveEdit}>
