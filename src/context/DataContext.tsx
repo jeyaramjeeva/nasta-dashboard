@@ -152,12 +152,16 @@ export interface QuickAddInput {
   transaction: Omit<Transaction, 'month'> & { month?: string | null }
 }
 
+export type DataOrigin = 'cloud' | 'local' | 'seed' | null
+
 interface DataContextValue {
   snapshot: Snapshot | null
   metrics: DashboardMetrics | null
   loading: boolean
   error: string | null
   cloudEnabled: boolean
+  /** Where the current snapshot came from */
+  dataOrigin: DataOrigin
   lastSynced: string | null
   versions: SnapshotVersion[]
   driveSettings: DriveSettings
@@ -208,15 +212,17 @@ export function DataProvider({ children }: { children: ReactNode }) {
   const [snapshot, setSnapshot] = useState<Snapshot | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [dataOrigin, setDataOrigin] = useState<DataOrigin>(null)
   const [versions, setVersions] = useState<SnapshotVersion[]>([])
   const [driveSettings, setDriveSettings] = useState<DriveSettings>(() =>
     loadDriveSettings(),
   )
   const cloudEnabled = isCloudConfigured()
 
-  const apply = useCallback((data: Snapshot | null) => {
+  const apply = useCallback((data: Snapshot | null, origin?: DataOrigin) => {
     const next = data ? normalizeSnapshot(data) : null
     setSnapshot(next)
+    if (origin !== undefined) setDataOrigin(origin)
     if (next) saveLocal(next)
   }, [])
 
@@ -238,33 +244,36 @@ export function DataProvider({ children }: { children: ReactNode }) {
       if (cloudEnabled) {
         const remote = await fetchLatestSnapshot()
         if (remote) {
-          apply(await healMissingCashExtras(remote))
+          apply(await healMissingCashExtras(remote), 'cloud')
           await refreshVersions()
           return
         }
       }
       const local = loadLocal()
       if (local) {
-        apply(await healMissingCashExtras(local))
+        apply(await healMissingCashExtras(local), 'local')
         await refreshVersions()
         return
       }
       const seed = await fetch('/seed-data.json')
       if (seed.ok) {
         const data = (await seed.json()) as Snapshot
-        apply({
-          ...data,
-          paypalBalance: data.paypalBalance ?? 0,
-        })
+        apply(
+          {
+            ...data,
+            paypalBalance: data.paypalBalance ?? 0,
+          },
+          'seed',
+        )
         await refreshVersions()
         return
       }
-      apply(null)
+      apply(null, null)
       await refreshVersions()
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Failed to load data')
       const local = loadLocal()
-      if (local) apply(await healMissingCashExtras(local))
+      if (local) apply(await healMissingCashExtras(local), 'local')
       await refreshVersions()
     } finally {
       setLoading(false)
@@ -330,7 +339,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
           /* ignore if versions table missing */
         }
       }
-      apply(next)
+      apply(next, cloudEnabled ? 'cloud' : 'local')
       await refreshVersions()
     },
     [apply, cloudEnabled, refreshVersions, snapshot],
@@ -449,6 +458,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
     loading,
     error,
     cloudEnabled,
+    dataOrigin,
     lastSynced: snapshot?.uploadedAt ?? null,
     versions,
     driveSettings,

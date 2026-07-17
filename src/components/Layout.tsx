@@ -17,7 +17,7 @@ import {
   Users,
 } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
-import { NavLink, Outlet, useLocation } from 'react-router-dom'
+import { Link, NavLink, Outlet, useLocation } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { useData } from '../context/DataContext'
 import { useLocale } from '../context/LocaleContext'
@@ -44,7 +44,7 @@ function formatWhen(iso: string | null) {
 }
 
 export function Layout() {
-  const { lastSynced, cloudEnabled, loading, refresh } = useData()
+  const { lastSynced, cloudEnabled, dataOrigin, loading, refresh } = useData()
   const { user, signOut } = useAuth()
   const { resolved, mode, cycleMode } = useTheme()
   const { locale, toggleLocale, tr } = useLocale()
@@ -180,6 +180,17 @@ export function Layout() {
           {!online && (
             <div className="alert-item" style={{ marginBottom: '0.75rem' }}>
               {tr('offline')}
+            </div>
+          )}
+          {dataOrigin === 'seed' && (
+            <div className="alert-item" style={{ marginBottom: '0.75rem' }}>
+              Showing <strong>sample seed data</strong> (old demo file). Upload your latest Excel
+              on{' '}
+              <Link to="/upload" style={{ fontWeight: 700, color: 'var(--accent)' }}>
+                Upload
+              </Link>{' '}
+              → choose <strong>Replace</strong> → publish with password{' '}
+              <code>Nasta998#</code>. A localhost upload does not update this website.
             </div>
           )}
           <div className="topbar">
