@@ -70,6 +70,8 @@ export function isStallAllowedPath(pathname: string): boolean {
     p === '/stock' ||
     p.startsWith('/stock/') ||
     p === '/calendar' ||
-    p.startsWith('/calendar/')
+    p.startsWith('/calendar/') ||
+    p === '/account' ||
+    p.startsWith('/account/')
   )
 }

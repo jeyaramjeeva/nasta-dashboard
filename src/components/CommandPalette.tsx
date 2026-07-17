@@ -6,6 +6,7 @@ import {
   Lightbulb,
   PlusCircle,
   Search,
+  Settings,
   Upload,
   Users,
   Package,
@@ -31,6 +32,7 @@ const ACTIONS = [
   { id: 'playground', label: 'Playground', hint: 'Safe demo — try features without touching live data', to: '/playground', icon: FlaskConical, uploadOnly: false },
   { id: 'upload', label: 'Upload Excel', hint: 'Publish weekly sheet', to: '/upload', icon: Upload, uploadOnly: true },
   { id: 'quick', label: 'Quick add', hint: 'Log expense on the go', to: '/quick-add', icon: PlusCircle, uploadOnly: false },
+  { id: 'account', label: 'Account', hint: 'Change password & profile', to: '/account', icon: Settings, uploadOnly: false },
 ]
 
 export function CommandPalette({

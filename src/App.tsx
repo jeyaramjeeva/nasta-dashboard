@@ -12,6 +12,7 @@ import { LocaleProvider } from './context/LocaleContext'
 import { StallModeProvider } from './context/StallModeContext'
 import { StallOpsProvider } from './context/StallOpsContext'
 import { ThemeProvider } from './context/ThemeContext'
+import { Account } from './pages/Account'
 import { CalendarPage } from './pages/Calendar'
 import { Cash } from './pages/Cash'
 import { Dashboard } from './pages/Dashboard'
@@ -119,6 +120,7 @@ export default function App() {
                                 </RequireFinanceAccess>
                               }
                             />
+                            <Route path="account" element={<Account />} />
                             <Route path="*" element={<Navigate to="/" replace />} />
                           </Route>
                         </Routes>

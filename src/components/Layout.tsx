@@ -17,6 +17,7 @@ import {
   PlusCircle,
   RefreshCw,
   Search,
+  Settings,
   Sun,
   Upload,
   Users,
@@ -48,6 +49,7 @@ const links = [
   { to: '/upload', label: 'Upload', icon: Upload, uploadOnly: true, stallOk: false },
   { to: '/quick-add', label: 'Quick add', icon: PlusCircle, uploadOnly: false, stallOk: false },
   { to: '/playground', label: 'Playground', icon: FlaskConical, uploadOnly: false, stallOk: false },
+  { to: '/account', label: 'Account', icon: Settings, uploadOnly: false, stallOk: true },
 ]
 
 function formatWhen(iso: string | null) {
@@ -67,7 +69,7 @@ export function Layout() {
     flushOfflineQueue,
   } = useData()
   const { pendingOps, flushOfflineQueue: flushExtras } = useExtras()
-  const { user, signOut } = useAuth()
+  const { user, signOut, needsNewPassword } = useAuth()
   const { isDemo, exitDemo, resetDemo } = useDemoMode()
   const { isStall, enterStall, unlockStall } = useStallMode()
   const { resolved, cycleMode } = useTheme()
@@ -100,6 +102,12 @@ export function Layout() {
       navigate('/orders', { replace: true })
     }
   }, [isStall, location.pathname, navigate])
+
+  useEffect(() => {
+    if (needsNewPassword && location.pathname !== '/account') {
+      navigate('/account', { replace: true })
+    }
+  }, [needsNewPassword, location.pathname, navigate])
 
   useEffect(() => {
     const on = () => setOnline(true)
@@ -204,6 +212,13 @@ export function Layout() {
               <div className="auth-user">
                 <div className="auth-user__name">{user.name}</div>
                 <div className="auth-user__email">{user.email}</div>
+                <Link
+                  to="/account"
+                  className="btn ghost auth-user__out"
+                  style={{ textDecoration: 'none' }}
+                >
+                  <Settings size={14} /> Account
+                </Link>
                 <button
                   type="button"
                   className="btn ghost auth-user__out"

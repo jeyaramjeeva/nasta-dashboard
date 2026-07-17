@@ -14,6 +14,7 @@ import {
   isEmailAllowed,
   type AllowedUser,
 } from '../lib/authAllowlist'
+import { sendForgotPasswordRequest } from '../lib/passwordHelp'
 import { checkUploadPassword, getSupabase, isCloudConfigured } from '../lib/supabase'
 
 const LOCAL_AUTH_KEY = 'nasta-local-auth-v1'
@@ -30,10 +31,16 @@ interface AuthContextValue {
   loading: boolean
   user: AuthUser | null
   cloudAuth: boolean
+  /** True after clicking a Supabase recovery link — must set a new password. */
+  needsNewPassword: boolean
+  clearNeedsNewPassword: () => void
   signInWithPassword: (email: string, password: string) => Promise<void>
   /** Local-only gate when Supabase is not configured */
   signInLocal: (name: string, password: string) => Promise<void>
   signOut: () => Promise<void>
+  changePassword: (currentPassword: string, newPassword: string) => Promise<void>
+  setNewPassword: (newPassword: string) => Promise<void>
+  requestPasswordReset: (accountName: string, accountEmail: string) => Promise<void>
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null)
@@ -75,6 +82,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const cloudAuth = isCloudConfigured()
   const [loading, setLoading] = useState(true)
   const [user, setUser] = useState<AuthUser | null>(null)
+  const [needsNewPassword, setNeedsNewPassword] = useState(false)
 
   useEffect(() => {
     let cancelled = false
@@ -101,7 +109,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setLoading(false)
     })
 
-    const { data: sub } = sb.auth.onAuthStateChange((_event, next: Session | null) => {
+    const { data: sub } = sb.auth.onAuthStateChange((event, next: Session | null) => {
+      if (event === 'PASSWORD_RECOVERY') {
+        setNeedsNewPassword(true)
+      }
       const mapped = toAuthUser(next?.user?.email)
       setUser(mapped)
       if (next?.user && !mapped) {
@@ -114,6 +125,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       sub.subscription.unsubscribe()
     }
   }, [cloudAuth])
+
+  const clearNeedsNewPassword = useCallback(() => setNeedsNewPassword(false), [])
 
   const signInWithPassword = useCallback(async (email: string, password: string) => {
     const trimmed = email.trim().toLowerCase()
@@ -160,20 +173,102 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const signOut = useCallback(async () => {
     saveLocalAuth(null)
     setUser(null)
+    setNeedsNewPassword(false)
     const sb = getSupabase()
     if (sb) await sb.auth.signOut()
   }, [])
+
+  const changePassword = useCallback(
+    async (currentPassword: string, newPassword: string) => {
+      if (!cloudAuth) {
+        throw new Error('Password changes need cloud login (Supabase).')
+      }
+      if (!user?.email) throw new Error('Not signed in.')
+      if (newPassword.trim().length < 8) {
+        throw new Error('New password must be at least 8 characters.')
+      }
+      const sb = getSupabase()
+      if (!sb) throw new Error('Supabase is not configured')
+
+      const { error: verifyError } = await sb.auth.signInWithPassword({
+        email: user.email,
+        password: currentPassword,
+      })
+      if (verifyError) throw new Error('Current password is wrong.')
+
+      const { error } = await sb.auth.updateUser({ password: newPassword })
+      if (error) throw new Error(error.message)
+    },
+    [cloudAuth, user?.email],
+  )
+
+  const setNewPassword = useCallback(
+    async (newPassword: string) => {
+      if (!cloudAuth) {
+        throw new Error('Password changes need cloud login (Supabase).')
+      }
+      if (newPassword.trim().length < 8) {
+        throw new Error('New password must be at least 8 characters.')
+      }
+      const sb = getSupabase()
+      if (!sb) throw new Error('Supabase is not configured')
+      const { error } = await sb.auth.updateUser({ password: newPassword })
+      if (error) throw new Error(error.message)
+    },
+    [cloudAuth],
+  )
+
+  const requestPasswordReset = useCallback(
+    async (accountName: string, accountEmail: string) => {
+      const name = accountName.trim() || 'Team member'
+      const email = accountEmail.trim().toLowerCase()
+      if (!email.includes('@')) {
+        throw new Error('Pick whose account needs a reset.')
+      }
+
+      await sendForgotPasswordRequest({ accountName: name, accountEmail: email })
+
+      // Also try Supabase recovery to their account email (if inbox works).
+      if (cloudAuth && isEmailAllowed(email)) {
+        const sb = getSupabase()
+        if (sb) {
+          const redirectTo = `${window.location.origin}/account`
+          await sb.auth.resetPasswordForEmail(email, { redirectTo }).catch(() => {
+            /* admin Gmail notify already sent */
+          })
+        }
+      }
+    },
+    [cloudAuth],
+  )
 
   const value = useMemo(
     () => ({
       loading,
       user,
       cloudAuth,
+      needsNewPassword,
+      clearNeedsNewPassword,
       signInWithPassword,
       signInLocal,
       signOut,
+      changePassword,
+      setNewPassword,
+      requestPasswordReset,
     }),
-    [loading, user, cloudAuth, signInWithPassword, signInLocal, signOut],
+    [
+      loading,
+      user,
+      cloudAuth,
+      needsNewPassword,
+      clearNeedsNewPassword,
+      signInWithPassword,
+      signInLocal,
+      signOut,
+      changePassword,
+      setNewPassword,
+      requestPasswordReset,
+    ],
   )
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
