@@ -70,7 +70,7 @@ export function Layout() {
   const { user, signOut } = useAuth()
   const { isDemo, exitDemo, resetDemo } = useDemoMode()
   const { isStall, enterStall, unlockStall } = useStallMode()
-  const { resolved, mode, cycleMode } = useTheme()
+  const { resolved, cycleMode } = useTheme()
   const { locale, toggleLocale, tr } = useLocale()
   const location = useLocation()
   const navigate = useNavigate()
@@ -196,22 +196,6 @@ export function Layout() {
               title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
             >
               {collapsed ? <PanelLeftOpen size={18} /> : <PanelLeftClose size={18} />}
-            </button>
-            <button
-              type="button"
-              className="icon-btn"
-              onClick={toggleLocale}
-              title={tr('language')}
-            >
-              {locale.toUpperCase()}
-            </button>
-            <button
-              type="button"
-              className="icon-btn"
-              onClick={cycleMode}
-              title={`Theme: ${mode}`}
-            >
-              {resolved === 'dark' ? <Sun size={18} /> : <Moon size={18} />}
             </button>
           </div>
 
