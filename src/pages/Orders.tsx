@@ -316,7 +316,7 @@ export function Orders() {
       </div>
 
       {tab === 'new' && (
-        <div className="pos-shell">
+        <div className={`pos-shell${cartLines.length ? ' pos-shell--docked' : ''}`}>
           <div className="pos-toolbar">
             <label className="pos-toolbar__event" htmlFor="active-event">
               <span>Event</span>
@@ -561,24 +561,25 @@ export function Orders() {
             </aside>
           </div>
 
-          <div className="pos-dock">
-            <div className="pos-dock__total">
-              <span>
-                {cartCount ? `${cartCount} items` : 'Empty'}
-              </span>
-              <strong>
-                <Money value={cartTotal} />
-              </strong>
+          {cartLines.length > 0 && (
+            <div className="pos-dock">
+              <div className="pos-dock__total">
+                <span>
+                  {cartCount} item{cartCount === 1 ? '' : 's'}
+                </span>
+                <strong>
+                  <Money value={cartTotal} />
+                </strong>
+              </div>
+              <button
+                type="button"
+                className="btn pos-dock__submit"
+                onClick={submitCart}
+              >
+                Add Customer {nextCustomer}
+              </button>
             </div>
-            <button
-              type="button"
-              className="btn pos-dock__submit"
-              disabled={!cartLines.length}
-              onClick={submitCart}
-            >
-              Add Customer {nextCustomer}
-            </button>
-          </div>
+          )}
         </div>
       )}
 
