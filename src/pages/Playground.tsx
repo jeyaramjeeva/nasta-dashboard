@@ -48,7 +48,7 @@ const TOURS = [
     to: '/',
     icon: LayoutDashboard,
     title: 'Dashboard widgets',
-    body: 'Countdown, mission, plate hunt — all on demo seed numbers.',
+    body: 'Countdown, plate hunt, streak widgets — all on demo seed numbers.',
   },
 ]
 

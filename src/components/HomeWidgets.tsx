@@ -5,7 +5,6 @@ import {
   Flame,
   MapPin,
   Sparkles,
-  Target,
   Timer,
   UtensilsCrossed,
 } from 'lucide-react'
@@ -45,13 +44,8 @@ export function HomeWidgets({
   const reduce = useReducedMotion()
   const { user } = useAuth()
   const canUpload = canManageUploads(user)
-  const { mission, setMission, weather } = useExtras()
+  const { mission, weather } = useExtras()
   const [now, setNow] = useState(() => new Date())
-  const [draftMission, setDraftMission] = useState(mission)
-
-  useEffect(() => {
-    setDraftMission(mission)
-  }, [mission])
 
   useEffect(() => {
     const id = window.setInterval(() => setNow(new Date()), 1000)
@@ -254,45 +248,6 @@ export function HomeWidgets({
             )
           }
         />
-        <div className="home-chip glass-card home-chip--warn">
-          <div className="home-chip__icon">
-            <Target size={16} strokeWidth={1.75} />
-          </div>
-          <div style={{ width: '100%' }}>
-            <div className="home-chip__title">Today’s mission</div>
-            {canUpload ? (
-              <div className="home-chip__body">
-                <textarea
-                  value={draftMission}
-                  onChange={(e) => setDraftMission(e.target.value)}
-                  rows={2}
-                  placeholder={fallbackMission}
-                  style={{
-                    width: '100%',
-                    resize: 'vertical',
-                    marginTop: 4,
-                    font: 'inherit',
-                    background: 'var(--surface-2, transparent)',
-                    border: '1px solid var(--border)',
-                    borderRadius: 8,
-                    padding: '0.4rem 0.5rem',
-                    color: 'inherit',
-                  }}
-                />
-                <button
-                  type="button"
-                  className="btn ghost"
-                  style={{ marginTop: 6, padding: '0.2rem 0.55rem', fontSize: '0.75rem' }}
-                  onClick={() => setMission(draftMission.trim())}
-                >
-                  Save mission
-                </button>
-              </div>
-            ) : (
-              <div className="home-chip__body">{mission || fallbackMission}</div>
-            )}
-          </div>
-        </div>
       </div>
     </div>
   )

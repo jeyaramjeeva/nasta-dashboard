@@ -79,21 +79,6 @@ export function Insights() {
     [metrics, location.key],
   )
 
-  const feeVsMargin = useMemo(() => {
-    if (!metrics) return []
-    return metrics.byEvent
-      .filter((e) => e.status === 'Completed' && e.fee > 0)
-      .map((e) => ({
-        id: e.id,
-        fee: Math.round(e.fee),
-        marginPct: Math.round(e.margin * 100),
-        profit: Math.round(e.profit),
-        location: e.location,
-      }))
-      .sort((a, b) => b.fee - a.fee)
-      .slice(0, 12)
-  }, [metrics])
-
   const pnlChart = useMemo(() => {
     if (!selected) return []
     return [
@@ -137,64 +122,6 @@ export function Insights() {
       </div>
 
       <div ref={reportRef}>
-        {feeVsMargin.length > 0 && (
-          <div style={{ marginBottom: '0.9rem' }}>
-            <ChartChrome
-              title="Stall fee vs net margin"
-              hint="High fee only pays when margin stays healthy"
-            >
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={feeVsMargin} margin={{ top: 8, right: 8, left: 0, bottom: 28 }}>
-                  <CartesianGrid stroke="var(--grid)" strokeDasharray="3 6" vertical={false} />
-                  <XAxis
-                    dataKey="id"
-                    tick={{ fill: 'var(--muted)', fontSize: 10 }}
-                    axisLine={false}
-                    tickLine={false}
-                    interval={0}
-                    angle={-25}
-                    textAnchor="end"
-                    height={50}
-                  />
-                  <YAxis
-                    yAxisId="fee"
-                    tickFormatter={euroTick}
-                    tick={{ fill: 'var(--muted)', fontSize: 11 }}
-                    axisLine={false}
-                    tickLine={false}
-                  />
-                  <YAxis
-                    yAxisId="margin"
-                    orientation="right"
-                    tickFormatter={(v) => `${v}%`}
-                    tick={{ fill: 'var(--muted)', fontSize: 11 }}
-                    axisLine={false}
-                    tickLine={false}
-                  />
-                  <Tooltip
-                    contentStyle={chartTooltipStyle}
-                    formatter={(v, name) => {
-                      const n = Number(v ?? 0)
-                      if (String(name).includes('margin')) return [`${n}%`, 'Margin']
-                      return [euroFull(n), String(name)]
-                    }}
-                  />
-                  <Legend />
-                  <Bar yAxisId="fee" dataKey="fee" name="Stall fee €" fill="var(--accent)" radius={[6, 6, 0, 0]} />
-                  <Bar
-                    yAxisId="margin"
-                    dataKey="marginPct"
-                    name="Margin %"
-                    fill="var(--chart-income)"
-                    radius={[6, 6, 0, 0]}
-                  />
-                  <ReferenceLine yAxisId="margin" y={0} stroke="var(--muted)" />
-                </BarChart>
-              </ResponsiveContainer>
-            </ChartChrome>
-          </div>
-        )}
-
         <div className="grid two" style={{ marginBottom: '0.9rem' }}>
           <ChartChrome title={tr('locationScorecard')} hint="Ranked by €/day, then margin">
             <ResponsiveContainer width="100%" height="100%">
