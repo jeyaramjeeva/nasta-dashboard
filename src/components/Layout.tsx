@@ -4,9 +4,11 @@ import {
   CalendarDays,
   CalendarRange,
   ClipboardList,
+  EyeOff,
   FlaskConical,
   LayoutDashboard,
   Lightbulb,
+  Lock,
   LogOut,
   Moon,
   Package,
@@ -20,30 +22,32 @@ import {
   Users,
 } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
-import { Link, NavLink, Outlet, useLocation } from 'react-router-dom'
+import { Link, NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { useData } from '../context/DataContext'
 import { useDemoMode } from '../context/DemoModeContext'
 import { useExtras } from '../context/ExtrasContext'
 import { useLocale } from '../context/LocaleContext'
+import { useStallMode } from '../context/StallModeContext'
 import { useTheme } from '../context/ThemeContext'
 import { canManageUploads } from '../lib/authAllowlist'
 import { formatGermanyDateTime } from '../lib/germanyTime'
+import { isStallAllowedPath } from '../lib/stallMode'
 import { AmbientBackground } from './AmbientBackground'
 import { CommandPalette } from './CommandPalette'
 
 const links = [
-  { to: '/', label: 'Dashboard', icon: LayoutDashboard, uploadOnly: false },
-  { to: '/events', label: 'Events', icon: CalendarDays, uploadOnly: false },
-  { to: '/calendar', label: 'Calendar', icon: CalendarRange, uploadOnly: false },
-  { to: '/partners', label: 'Partners', icon: Users, uploadOnly: false },
-  { to: '/cash', label: 'Cash box', icon: Banknote, uploadOnly: false },
-  { to: '/insights', label: 'Insights', icon: Lightbulb, uploadOnly: false },
-  { to: '/stock', label: 'Stock', icon: Package, uploadOnly: false },
-  { to: '/orders', label: 'Orders', icon: ClipboardList, uploadOnly: false },
-  { to: '/upload', label: 'Upload', icon: Upload, uploadOnly: true },
-  { to: '/quick-add', label: 'Quick add', icon: PlusCircle, uploadOnly: false },
-  { to: '/playground', label: 'Playground', icon: FlaskConical, uploadOnly: false },
+  { to: '/', label: 'Dashboard', icon: LayoutDashboard, uploadOnly: false, stallOk: false },
+  { to: '/events', label: 'Events', icon: CalendarDays, uploadOnly: false, stallOk: false },
+  { to: '/calendar', label: 'Calendar', icon: CalendarRange, uploadOnly: false, stallOk: true },
+  { to: '/partners', label: 'Partners', icon: Users, uploadOnly: false, stallOk: false },
+  { to: '/cash', label: 'Cash box', icon: Banknote, uploadOnly: false, stallOk: false },
+  { to: '/insights', label: 'Insights', icon: Lightbulb, uploadOnly: false, stallOk: false },
+  { to: '/stock', label: 'Stock', icon: Package, uploadOnly: false, stallOk: true },
+  { to: '/orders', label: 'Orders', icon: ClipboardList, uploadOnly: false, stallOk: true },
+  { to: '/upload', label: 'Upload', icon: Upload, uploadOnly: true, stallOk: false },
+  { to: '/quick-add', label: 'Quick add', icon: PlusCircle, uploadOnly: false, stallOk: false },
+  { to: '/playground', label: 'Playground', icon: FlaskConical, uploadOnly: false, stallOk: false },
 ]
 
 function formatWhen(iso: string | null) {
@@ -65,20 +69,37 @@ export function Layout() {
   const { pendingOps, flushOfflineQueue: flushExtras } = useExtras()
   const { user, signOut } = useAuth()
   const { isDemo, exitDemo, resetDemo } = useDemoMode()
+  const { isStall, enterStall, unlockStall } = useStallMode()
   const { resolved, mode, cycleMode } = useTheme()
   const { locale, toggleLocale, tr } = useLocale()
   const location = useLocation()
+  const navigate = useNavigate()
   const canUpload = canManageUploads(user)
   const queued = pendingOffline + pendingOps
   const navLinks = useMemo(
-    () => links.filter((l) => !l.uploadOnly || canUpload),
-    [canUpload],
+    () =>
+      links.filter((l) => {
+        if (l.uploadOnly && !canUpload) return false
+        if (isStall && !l.stallOk) return false
+        return true
+      }),
+    [canUpload, isStall],
   )
   const [collapsed, setCollapsed] = useState(false)
   const [cmdOpen, setCmdOpen] = useState(false)
+  const [unlockOpen, setUnlockOpen] = useState(false)
+  const [unlockPw, setUnlockPw] = useState('')
+  const [unlockErr, setUnlockErr] = useState('')
   const [online, setOnline] = useState(
     () => (typeof navigator !== 'undefined' ? navigator.onLine : true),
   )
+
+  useEffect(() => {
+    if (!isStall) return
+    if (!isStallAllowedPath(location.pathname)) {
+      navigate('/orders', { replace: true })
+    }
+  }, [isStall, location.pathname, navigate])
 
   useEffect(() => {
     const on = () => setOnline(true)
@@ -95,12 +116,13 @@ export function Layout() {
     const onKey = (e: KeyboardEvent) => {
       if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
         e.preventDefault()
+        if (isStall) return
         setCmdOpen((v) => !v)
       }
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [])
+  }, [isStall])
 
   return (
     <>
@@ -137,6 +159,36 @@ export function Layout() {
           </nav>
 
           <div className="sidebar-tools">
+            {!isStall ? (
+              <button
+                type="button"
+                className="btn ghost"
+                style={{ width: '100%', justifyContent: 'flex-start' }}
+                onClick={() => {
+                  enterStall()
+                  navigate('/orders')
+                }}
+                title="Hide sales & money pages while a helper takes orders"
+              >
+                <EyeOff size={16} />
+                <span className="collapsed-hide">Stall mode</span>
+              </button>
+            ) : (
+              <button
+                type="button"
+                className="btn ghost"
+                style={{ width: '100%', justifyContent: 'flex-start' }}
+                onClick={() => {
+                  setUnlockOpen(true)
+                  setUnlockPw('')
+                  setUnlockErr('')
+                }}
+                title="Unlock money pages"
+              >
+                <Lock size={16} />
+                <span className="collapsed-hide">Unlock</span>
+              </button>
+            )}
             <button
               type="button"
               className="icon-btn"
@@ -215,6 +267,25 @@ export function Layout() {
               </button>
             </div>
           )}
+          {isStall && (
+            <div className="alert-item stall-banner" style={{ marginBottom: '0.75rem' }}>
+              <EyeOff size={14} style={{ verticalAlign: -2, marginRight: 6 }} />
+              <strong>Stall mode</strong> — sales & money pages hidden. Helpers can take orders
+              only.{' '}
+              <button
+                type="button"
+                className="btn ghost"
+                style={{ display: 'inline', padding: '0.15rem 0.5rem' }}
+                onClick={() => {
+                  setUnlockOpen(true)
+                  setUnlockPw('')
+                  setUnlockErr('')
+                }}
+              >
+                Unlock…
+              </button>
+            </div>
+          )}
           {!isDemo && !online && (
             <div className="alert-item" style={{ marginBottom: '0.75rem' }}>
               {tr('offline')}
@@ -265,7 +336,15 @@ export function Layout() {
             </div>
           )}
           <div className="topbar">
-            <button type="button" className="cmd-trigger" onClick={() => setCmdOpen(true)}>
+            <button
+              type="button"
+              className="cmd-trigger"
+              onClick={() => {
+                if (!isStall) setCmdOpen(true)
+              }}
+              disabled={isStall}
+              title={isStall ? 'Search disabled in Stall mode' : 'Search or jump'}
+            >
               <Search size={16} />
               <span>Search or jump…</span>
               <kbd>⌘K</kbd>
@@ -302,7 +381,75 @@ export function Layout() {
         </main>
       </div>
 
-      <CommandPalette open={cmdOpen} onClose={() => setCmdOpen(false)} />
+      {unlockOpen && (
+        <div
+          className="pay-modal-overlay"
+          role="dialog"
+          aria-modal="true"
+          aria-label="Unlock stall mode"
+          onClick={() => setUnlockOpen(false)}
+        >
+          <div className="pay-modal" onClick={(e) => e.stopPropagation()}>
+            <h2>
+              <Lock size={18} style={{ verticalAlign: -3, marginRight: 6 }} />
+              Unlock money pages
+            </h2>
+            <p className="hint-inline">
+              Enter the publish password to leave Stall mode and see Dashboard / sales again.
+            </p>
+            <div className="field" style={{ marginTop: '0.75rem' }}>
+              <label htmlFor="stall-unlock-pw">Password</label>
+              <input
+                id="stall-unlock-pw"
+                type="password"
+                autoFocus
+                value={unlockPw}
+                onChange={(e) => {
+                  setUnlockPw(e.target.value)
+                  setUnlockErr('')
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    if (unlockStall(unlockPw)) {
+                      setUnlockOpen(false)
+                      setUnlockPw('')
+                    } else {
+                      setUnlockErr('Wrong password')
+                    }
+                  }
+                }}
+                placeholder="Publish password"
+              />
+            </div>
+            {unlockErr && (
+              <div className="hint-inline" style={{ color: 'var(--danger)', marginTop: 6 }}>
+                {unlockErr}
+              </div>
+            )}
+            <div className="page-actions" style={{ marginTop: '0.85rem' }}>
+              <button type="button" className="btn ghost" onClick={() => setUnlockOpen(false)}>
+                Cancel
+              </button>
+              <button
+                type="button"
+                className="btn"
+                onClick={() => {
+                  if (unlockStall(unlockPw)) {
+                    setUnlockOpen(false)
+                    setUnlockPw('')
+                  } else {
+                    setUnlockErr('Wrong password')
+                  }
+                }}
+              >
+                Unlock
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      <CommandPalette open={cmdOpen && !isStall} onClose={() => setCmdOpen(false)} />
     </>
   )
 }

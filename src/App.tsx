@@ -1,6 +1,7 @@
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
 import { AuthGate } from './components/AuthGate'
 import { Layout } from './components/Layout'
+import { RequireFinanceAccess } from './components/RequireFinanceAccess'
 import { RequireUploadAccess } from './components/RequireUploadAccess'
 import { ThemeCloudSync } from './components/ThemeCloudSync'
 import { AuthProvider } from './context/AuthContext'
@@ -8,6 +9,7 @@ import { DataProvider } from './context/DataContext'
 import { DemoModeProvider } from './context/DemoModeContext'
 import { ExtrasProvider } from './context/ExtrasContext'
 import { LocaleProvider } from './context/LocaleContext'
+import { StallModeProvider } from './context/StallModeContext'
 import { StallOpsProvider } from './context/StallOpsContext'
 import { ThemeProvider } from './context/ThemeContext'
 import { CalendarPage } from './pages/Calendar'
@@ -32,39 +34,99 @@ export default function App() {
         <AuthProvider>
           <AuthGate>
             <DemoModeProvider>
-              <ThemeCloudSync />
-              <ExtrasProvider key={demo ? 'demo-x' : 'live-x'}>
-                <StallOpsProvider key={demo ? 'demo-s' : 'live-s'}>
-                  <DataProvider key={demo ? 'demo-d' : 'live-d'}>
-                    <BrowserRouter>
-                      <Routes>
-                        <Route element={<Layout />}>
-                          <Route index element={<Dashboard />} />
-                          <Route path="events" element={<Events />} />
-                          <Route path="calendar" element={<CalendarPage />} />
-                          <Route path="partners" element={<Partners />} />
-                          <Route path="cash" element={<Cash />} />
-                          <Route path="insights" element={<Insights />} />
-                          <Route path="stock" element={<Stock />} />
-                          <Route path="orders" element={<Orders />} />
-                          <Route path="plates" element={<Plates />} />
-                          <Route path="playground" element={<Playground />} />
-                          <Route
-                            path="upload"
-                            element={
-                              <RequireUploadAccess>
-                                <Upload />
-                              </RequireUploadAccess>
-                            }
-                          />
-                          <Route path="quick-add" element={<QuickAdd />} />
-                          <Route path="*" element={<Navigate to="/" replace />} />
-                        </Route>
-                      </Routes>
-                    </BrowserRouter>
-                  </DataProvider>
-                </StallOpsProvider>
-              </ExtrasProvider>
+              <StallModeProvider>
+                <ThemeCloudSync />
+                <ExtrasProvider key={demo ? 'demo-x' : 'live-x'}>
+                  <StallOpsProvider key={demo ? 'demo-s' : 'live-s'}>
+                    <DataProvider key={demo ? 'demo-d' : 'live-d'}>
+                      <BrowserRouter>
+                        <Routes>
+                          <Route element={<Layout />}>
+                            <Route
+                              index
+                              element={
+                                <RequireFinanceAccess>
+                                  <Dashboard />
+                                </RequireFinanceAccess>
+                              }
+                            />
+                            <Route
+                              path="events"
+                              element={
+                                <RequireFinanceAccess>
+                                  <Events />
+                                </RequireFinanceAccess>
+                              }
+                            />
+                            <Route path="calendar" element={<CalendarPage />} />
+                            <Route
+                              path="partners"
+                              element={
+                                <RequireFinanceAccess>
+                                  <Partners />
+                                </RequireFinanceAccess>
+                              }
+                            />
+                            <Route
+                              path="cash"
+                              element={
+                                <RequireFinanceAccess>
+                                  <Cash />
+                                </RequireFinanceAccess>
+                              }
+                            />
+                            <Route
+                              path="insights"
+                              element={
+                                <RequireFinanceAccess>
+                                  <Insights />
+                                </RequireFinanceAccess>
+                              }
+                            />
+                            <Route path="stock" element={<Stock />} />
+                            <Route path="orders" element={<Orders />} />
+                            <Route
+                              path="plates"
+                              element={
+                                <RequireFinanceAccess>
+                                  <Plates />
+                                </RequireFinanceAccess>
+                              }
+                            />
+                            <Route
+                              path="playground"
+                              element={
+                                <RequireFinanceAccess>
+                                  <Playground />
+                                </RequireFinanceAccess>
+                              }
+                            />
+                            <Route
+                              path="upload"
+                              element={
+                                <RequireFinanceAccess>
+                                  <RequireUploadAccess>
+                                    <Upload />
+                                  </RequireUploadAccess>
+                                </RequireFinanceAccess>
+                              }
+                            />
+                            <Route
+                              path="quick-add"
+                              element={
+                                <RequireFinanceAccess>
+                                  <QuickAdd />
+                                </RequireFinanceAccess>
+                              }
+                            />
+                            <Route path="*" element={<Navigate to="/" replace />} />
+                          </Route>
+                        </Routes>
+                      </BrowserRouter>
+                    </DataProvider>
+                  </StallOpsProvider>
+                </ExtrasProvider>
+              </StallModeProvider>
             </DemoModeProvider>
           </AuthGate>
         </AuthProvider>

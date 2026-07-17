@@ -13,6 +13,7 @@ import { Link } from 'react-router-dom'
 import { Money } from '../components/Money'
 import { MotionCard } from '../components/MotionCard'
 import { useData } from '../context/DataContext'
+import { useStallMode } from '../context/StallModeContext'
 import { orderTotal, useStallOps } from '../context/StallOpsContext'
 import { germanyTodayYmd } from '../lib/germanyTime'
 import { summarizePosCashToday } from '../lib/posCash'
@@ -57,6 +58,7 @@ function upsertLineQty(
 
 export function Orders() {
   const { snapshot } = useData()
+  const { isStall, enterStall } = useStallMode()
   const {
     menu,
     orders,
@@ -107,6 +109,10 @@ export function Orders() {
     if (priceEventId) return
     if (activeEventId) setPriceEventId(activeEventId)
   }, [activeEventId, priceEventId])
+
+  useEffect(() => {
+    if (isStall && (tab === 'sales' || tab === 'menu')) setTab('new')
+  }, [isStall, tab])
 
   const pending = useMemo(
     () => orders.filter((o) => o.status === 'pending'),
@@ -206,12 +212,19 @@ export function Orders() {
           </p>
         </div>
         <div className="page-actions">
-          <span className="badge ok" title="Paid − change returned today">
-            Cash in box today <Money value={posCash.netIn} />
-          </span>
-          <Link className="btn ghost" to="/cash">
-            Cash box →
-          </Link>
+          {!isStall && (
+            <>
+              <span className="badge ok" title="Paid − change returned today">
+                Cash in box today <Money value={posCash.netIn} />
+              </span>
+              <Link className="btn ghost" to="/cash">
+                Cash box →
+              </Link>
+              <button type="button" className="btn ghost" onClick={enterStall}>
+                Stall mode
+              </button>
+            </>
+          )}
           <Link className="btn ghost" to="/stock">
             Stock →
           </Link>
@@ -220,13 +233,15 @@ export function Orders() {
 
       <div className="split-mode-row" style={{ marginBottom: '0.85rem' }}>
         {(
-          [
-            ['new', 'New order'],
-            ['pending', `Pending (${pending.length})`],
-            ['completed', `Sold (${completed.length})`],
-            ['sales', 'Sales'],
-            ['menu', 'Menu prices'],
-          ] as const
+          (
+            [
+              ['new', 'New order'],
+              ['pending', `Pending (${pending.length})`],
+              ['completed', `Sold (${completed.length})`],
+              ['sales', 'Sales'],
+              ['menu', 'Menu prices'],
+            ] as const
+          ).filter(([id]) => !isStall || (id !== 'sales' && id !== 'menu'))
         ).map(([id, text]) => (
           <button
             key={id}
@@ -557,6 +572,7 @@ export function Orders() {
 
       {tab === 'completed' && (
         <>
+          {!isStall && (
           <div style={{ marginBottom: '0.9rem' }}>
           <MotionCard interactive={false}>
             <div className="card-head">
@@ -594,6 +610,7 @@ export function Orders() {
             </div>
           </MotionCard>
           </div>
+          )}
 
           <div className="order-list">
             {completed.map((o) => (
@@ -606,15 +623,23 @@ export function Orders() {
                   {o.lines.map((l) => (
                     <li key={lineKey(l.menuItemId, l.drink)}>
                       {l.qty}× {l.name}
+                      {!isStall && (
+                        <span className="hint-inline">
+                          {' '}
+                          <Money value={l.price * l.qty} />
+                        </span>
+                      )}
                     </li>
                   ))}
                 </ul>
                 <div className="order-total-bar">
                   <div>
-                    <div>
-                      Total <Money value={orderTotal(o.lines)} />
-                    </div>
-                    {o.paid != null && (
+                    {!isStall && (
+                      <div>
+                        Total <Money value={orderTotal(o.lines)} />
+                      </div>
+                    )}
+                    {!isStall && o.paid != null && (
                       <div className="hint-inline">
                         Paid <Money value={o.paid} />
                         {o.change != null && o.change > 0 ? (
@@ -624,6 +649,7 @@ export function Orders() {
                         ) : null}
                       </div>
                     )}
+                    {isStall && <div className="hint-inline">Ticket done</div>}
                   </div>
                   <button type="button" className="btn ghost" onClick={() => reopenOrder(o.id)}>
                     <RotateCcw size={14} /> Back to pending
