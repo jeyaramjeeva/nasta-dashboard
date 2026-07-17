@@ -49,7 +49,7 @@ const links = [
   { to: '/upload', label: 'Upload', icon: Upload, uploadOnly: true, stallOk: false },
   { to: '/quick-add', label: 'Quick add', icon: PlusCircle, uploadOnly: false, stallOk: false },
   { to: '/playground', label: 'Playground', icon: FlaskConical, uploadOnly: false, stallOk: false },
-  { to: '/account', label: 'Account', icon: Settings, uploadOnly: false, stallOk: true },
+  { to: '/account', label: 'Account', icon: Settings, uploadOnly: false, stallOk: false },
 ]
 
 function formatWhen(iso: string | null) {
@@ -97,17 +97,19 @@ export function Layout() {
   )
 
   useEffect(() => {
-    if (!isStall) return
-    if (!isStallAllowedPath(location.pathname)) {
-      navigate('/orders', { replace: true })
-    }
-  }, [isStall, location.pathname, navigate])
-
-  useEffect(() => {
     if (needsNewPassword && location.pathname !== '/account') {
       navigate('/account', { replace: true })
     }
   }, [needsNewPassword, location.pathname, navigate])
+
+  useEffect(() => {
+    if (!isStall) return
+    // Password recovery may land on Account — allow that path only then.
+    if (needsNewPassword && location.pathname === '/account') return
+    if (!isStallAllowedPath(location.pathname)) {
+      navigate('/orders', { replace: true })
+    }
+  }, [isStall, location.pathname, navigate, needsNewPassword])
 
   useEffect(() => {
     const on = () => setOnline(true)
@@ -212,13 +214,15 @@ export function Layout() {
               <div className="auth-user">
                 <div className="auth-user__name">{user.name}</div>
                 <div className="auth-user__email">{user.email}</div>
-                <Link
-                  to="/account"
-                  className="btn ghost auth-user__out"
-                  style={{ textDecoration: 'none' }}
-                >
-                  <Settings size={14} /> Account
-                </Link>
+                {!isStall && (
+                  <Link
+                    to="/account"
+                    className="btn ghost auth-user__out"
+                    style={{ textDecoration: 'none' }}
+                  >
+                    <Settings size={14} /> Account
+                  </Link>
+                )}
                 <button
                   type="button"
                   className="btn ghost auth-user__out"

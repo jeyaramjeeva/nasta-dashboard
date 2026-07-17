@@ -120,7 +120,14 @@ export default function App() {
                                 </RequireFinanceAccess>
                               }
                             />
-                            <Route path="account" element={<Account />} />
+                            <Route
+                              path="account"
+                              element={
+                                <RequireFinanceAccess>
+                                  <Account />
+                                </RequireFinanceAccess>
+                              }
+                            />
                             <Route path="*" element={<Navigate to="/" replace />} />
                           </Route>
                         </Routes>

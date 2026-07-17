@@ -18,6 +18,7 @@ const MONEY_PATHS = [
   '/quick-add',
   '/playground',
   '/plates',
+  '/account',
 ] as const
 
 export function isStallMode(): boolean {
@@ -70,8 +71,6 @@ export function isStallAllowedPath(pathname: string): boolean {
     p === '/stock' ||
     p.startsWith('/stock/') ||
     p === '/calendar' ||
-    p.startsWith('/calendar/') ||
-    p === '/account' ||
-    p.startsWith('/account/')
+    p.startsWith('/calendar/')
   )
 }
