@@ -3,7 +3,7 @@ import type { InventoryItemDef, InventoryLine, WeatherTag } from './extrasStore'
 import { getSupabase, isCloudConfigured } from './supabase'
 import { germanyTodayYmd } from './germanyTime'
 import type { StallOpsState } from './stallOps'
-import { emptyStallOps, loadStallOps, saveStallOpsLocal } from './stallOps'
+import { emptyStallOps, loadStallOps, mergeMenu, saveStallOpsLocal } from './stallOps'
 
 export interface TeamExtrasPayload {
   weather: Record<string, WeatherTag>
@@ -76,9 +76,10 @@ export async function fetchStallOps(): Promise<StallOpsState | null> {
   if (extras.stallOps && (extras.stallOps.stock?.length || extras.stallOps.menu?.length)) {
     return {
       stock: extras.stallOps.stock?.length ? extras.stallOps.stock : emptyStallOps().stock,
-      menu: extras.stallOps.menu?.length ? extras.stallOps.menu : emptyStallOps().menu,
+      menu: mergeMenu(extras.stallOps.menu),
       orders: extras.stallOps.orders || [],
       activeEventId: extras.stallOps.activeEventId || '',
+      eventPrices: extras.stallOps.eventPrices || {},
     }
   }
   return null

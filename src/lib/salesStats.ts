@@ -108,8 +108,10 @@ export function buildSalesReport(
     ev.row.cashIn += net
 
     for (const l of o.lines) {
-      const cur = itemMap.get(l.menuItemId) || {
-        menuItemId: l.menuItemId,
+      const key =
+        l.drink === 'chai' || l.drink === 'lassi' ? `${l.menuItemId}:${l.drink}` : l.menuItemId
+      const cur = itemMap.get(key) || {
+        menuItemId: key,
         name: l.name,
         qty: 0,
         revenue: 0,
@@ -118,12 +120,12 @@ export function buildSalesReport(
       cur.qty += l.qty
       cur.revenue += l.qty * l.price
       cur.name = l.name
-      itemMap.set(l.menuItemId, cur)
+      itemMap.set(key, cur)
 
-      const iq = ev.itemQty.get(l.menuItemId) || { name: l.name, qty: 0 }
+      const iq = ev.itemQty.get(key) || { name: l.name, qty: 0 }
       iq.qty += l.qty
       iq.name = l.name
-      ev.itemQty.set(l.menuItemId, iq)
+      ev.itemQty.set(key, iq)
     }
   }
 

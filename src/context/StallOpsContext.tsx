@@ -26,6 +26,7 @@ import {
   remainingOf,
   saveStallOpsLocal,
   slugId,
+  type EventPriceOverride,
   type MenuItem,
   type OrderLine,
   type StallOpsState,
@@ -40,6 +41,7 @@ interface StallOpsContextValue {
   menu: MenuItem[]
   orders: StallOrder[]
   activeEventId: string
+  eventPrices: Record<string, Record<string, EventPriceOverride>>
   lowStock: StockItem[]
   syncing: boolean
   buyStock: (itemId: string, qty: number) => void
@@ -47,6 +49,9 @@ interface StallOpsContextValue {
   setStockLowAt: (itemId: string, lowAt: number) => void
   addStockItem: (name: string, unit?: string, lowAt?: number) => void
   setMenuPrice: (id: string, price: number) => void
+  setComboDefaultPrices: (id: string, chai: number, lassi: number) => void
+  setEventPrice: (eventId: string, itemId: string, patch: EventPriceOverride) => void
+  clearEventPrices: (eventId: string) => void
   addMenuItem: (name: string, price: number) => void
   setActiveEventId: (eventId: string) => void
   /** Auto Customer 1, 2, … (resets each Germany calendar day). */
@@ -209,10 +214,67 @@ export function StallOpsProvider({ children }: { children: ReactNode }) {
 
   const setMenuPrice = useCallback(
     (id: string, price: number) => {
+      const p = Math.max(0, price)
       persist({
         ...state,
-        menu: state.menu.map((m) => (m.id === id ? { ...m, price: Math.max(0, price) } : m)),
+        menu: state.menu.map((m) =>
+          m.id === id
+            ? m.kind === 'combo'
+              ? { ...m, price: p, priceWithChai: p }
+              : { ...m, price: p }
+            : m,
+        ),
       })
+    },
+    [persist, state],
+  )
+
+  const setComboDefaultPrices = useCallback(
+    (id: string, chai: number, lassi: number) => {
+      const c = Math.max(0, chai)
+      const l = Math.max(0, lassi)
+      persist({
+        ...state,
+        menu: state.menu.map((m) =>
+          m.id === id && m.kind === 'combo'
+            ? { ...m, price: c, priceWithChai: c, priceWithLassi: l }
+            : m,
+        ),
+      })
+    },
+    [persist, state],
+  )
+
+  const setEventPrice = useCallback(
+    (eventId: string, itemId: string, patch: EventPriceOverride) => {
+      if (!eventId) return
+      const prevEv = state.eventPrices?.[eventId] || {}
+      const prevItem = prevEv[itemId] || {}
+      const nextItem: EventPriceOverride = { ...prevItem }
+      if (patch.price !== undefined) nextItem.price = Math.max(0, patch.price)
+      if (patch.priceWithChai !== undefined) {
+        nextItem.priceWithChai = Math.max(0, patch.priceWithChai)
+      }
+      if (patch.priceWithLassi !== undefined) {
+        nextItem.priceWithLassi = Math.max(0, patch.priceWithLassi)
+      }
+      persist({
+        ...state,
+        eventPrices: {
+          ...(state.eventPrices || {}),
+          [eventId]: { ...prevEv, [itemId]: nextItem },
+        },
+      })
+    },
+    [persist, state],
+  )
+
+  const clearEventPrices = useCallback(
+    (eventId: string) => {
+      if (!eventId) return
+      const next = { ...(state.eventPrices || {}) }
+      delete next[eventId]
+      persist({ ...state, eventPrices: next })
     },
     [persist, state],
   )
@@ -225,7 +287,10 @@ export function StallOpsProvider({ children }: { children: ReactNode }) {
       if (state.menu.some((m) => m.id === id)) return
       persist({
         ...state,
-        menu: [...state.menu, { id, name: trimmed, price: Math.max(0, price) }],
+        menu: [
+          ...state.menu,
+          { id, name: trimmed, kind: 'single', price: Math.max(0, price) },
+        ],
       })
     },
     [persist, state],
@@ -334,6 +399,7 @@ export function StallOpsProvider({ children }: { children: ReactNode }) {
       menu: state.menu,
       orders: state.orders,
       activeEventId: state.activeEventId || '',
+      eventPrices: state.eventPrices || {},
       lowStock,
       syncing,
       nextCustomer,
@@ -342,6 +408,9 @@ export function StallOpsProvider({ children }: { children: ReactNode }) {
       setStockLowAt,
       addStockItem,
       setMenuPrice,
+      setComboDefaultPrices,
+      setEventPrice,
+      clearEventPrices,
       addMenuItem,
       setActiveEventId,
       createOrder,
@@ -361,6 +430,9 @@ export function StallOpsProvider({ children }: { children: ReactNode }) {
       setStockLowAt,
       addStockItem,
       setMenuPrice,
+      setComboDefaultPrices,
+      setEventPrice,
+      clearEventPrices,
       addMenuItem,
       setActiveEventId,
       createOrder,

@@ -1994,7 +1994,7 @@ tbody tr:last-child td {
 
 .order-menu-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
   gap: 0.55rem;
   margin-top: 0.85rem;
 }
@@ -2006,6 +2006,15 @@ tbody tr:last-child td {
   display: flex;
   flex-direction: column;
   gap: 0.35rem;
+}
+.order-menu-tile--combo {
+  grid-column: span 1;
+  min-width: 0;
+}
+@media (min-width: 700px) {
+  .order-menu-tile--combo {
+    grid-column: span 2;
+  }
 }
 .order-menu-tile.is-on {
   border-color: color-mix(in srgb, var(--accent) 55%, var(--border));
@@ -2028,6 +2037,38 @@ tbody tr:last-child td {
 .order-menu-tile__qty .btn {
   padding: 0.25rem 0.45rem;
   min-width: 2rem;
+}
+.order-combo-drink {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.4rem;
+  padding: 0.35rem 0.4rem;
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--bg) 55%, transparent);
+  border: 1px solid color-mix(in srgb, var(--border) 80%, transparent);
+}
+.order-combo-drink__meta {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+  font-size: 0.82rem;
+}
+.order-combo-drink__meta strong {
+  font-size: 0.95rem;
+}
+.price-pair {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.55rem;
+}
+.price-pair label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  font-size: 0.75rem;
+  color: var(--text-soft);
 }
 .order-total-bar {
   display: flex;

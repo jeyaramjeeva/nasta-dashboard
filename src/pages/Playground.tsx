@@ -18,7 +18,7 @@ const TOURS = [
     to: '/orders',
     icon: ClipboardList,
     title: 'Orders & payment',
-    body: 'Add Customer 1 → items → Delivered → enter cash given → see change. Check Sales tab.',
+    body: 'Pick event → Combo Pack with chai or lassi → singles → Delivered → cash/change. Set event prices under Menu prices.',
   },
   {
     to: '/stock',

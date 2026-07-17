@@ -13,10 +13,26 @@ export interface StockItem {
   used: number
 }
 
+export type MenuKind = 'single' | 'combo'
+export type DrinkChoice = 'chai' | 'lassi'
+
 export interface MenuItem {
   id: string
   name: string
+  kind: MenuKind
+  /** Default price for single items. */
   price: number
+  /** Default combo price with masala chai. */
+  priceWithChai?: number
+  /** Default combo price with mango lassi. */
+  priceWithLassi?: number
+}
+
+/** Per-event overrides for one menu item. */
+export interface EventPriceOverride {
+  price?: number
+  priceWithChai?: number
+  priceWithLassi?: number
 }
 
 export interface OrderLine {
@@ -24,6 +40,7 @@ export interface OrderLine {
   name: string
   price: number
   qty: number
+  drink?: DrinkChoice
 }
 
 export type OrderStatus = 'pending' | 'completed'
@@ -50,6 +67,8 @@ export interface StallOpsState {
   orders: StallOrder[]
   /** Event selected for new POS tickets. */
   activeEventId?: string
+  /** eventId → menuItemId → price overrides for that stall. */
+  eventPrices?: Record<string, Record<string, EventPriceOverride>>
 }
 
 const KEY = 'nasta-stall-ops-v1'
@@ -70,14 +89,87 @@ export const DEFAULT_STOCK: StockItem[] = [
 ]
 
 export const DEFAULT_MENU: MenuItem[] = [
-  { id: 'masala-dosa', name: 'Masala dosa', price: 8 },
-  { id: 'cheese-masala-dosa', name: 'Cheese masala dosa', price: 9 },
-  { id: 'plain-dosa', name: 'Plain dosa', price: 7 },
-  { id: 'sambar-idli', name: 'Sambar idli', price: 6 },
-  { id: 'gobi-65', name: 'Gobi 65', price: 7 },
-  { id: 'masala-chai', name: 'Masala chai', price: 3 },
-  { id: 'mango-lassi', name: 'Mango lassi', price: 4 },
+  {
+    id: 'combo-1',
+    name: 'Combo Pack 1',
+    kind: 'combo',
+    price: 10,
+    priceWithChai: 10,
+    priceWithLassi: 11,
+  },
+  {
+    id: 'combo-2',
+    name: 'Combo Pack 2',
+    kind: 'combo',
+    price: 12,
+    priceWithChai: 12,
+    priceWithLassi: 13,
+  },
+  {
+    id: 'combo-3',
+    name: 'Combo Pack 3',
+    kind: 'combo',
+    price: 14,
+    priceWithChai: 14,
+    priceWithLassi: 15,
+  },
+  { id: 'masala-dosa', name: 'Masala dosa', kind: 'single', price: 8 },
+  { id: 'cheese-masala-dosa', name: 'Cheese masala dosa', kind: 'single', price: 9 },
+  { id: 'plain-dosa', name: 'Plain dosa', kind: 'single', price: 7 },
+  { id: 'sambar-idli', name: 'Sambar idli', kind: 'single', price: 6 },
+  { id: 'gobi-65', name: 'Gobi 65', kind: 'single', price: 7 },
+  { id: 'masala-chai', name: 'Masala chai', kind: 'single', price: 3 },
+  { id: 'mango-lassi', name: 'Mango lassi', kind: 'single', price: 4 },
 ]
+
+export function drinkLabel(drink: DrinkChoice): string {
+  return drink === 'chai' ? 'Masala chai' : 'Mango lassi'
+}
+
+export function lineKey(menuItemId: string, drink?: DrinkChoice): string {
+  return drink ? `${menuItemId}:${drink}` : menuItemId
+}
+
+export function comboLineName(item: MenuItem, drink: DrinkChoice): string {
+  return `${item.name} · ${drinkLabel(drink)}`
+}
+
+export function resolveMenuPrice(
+  item: MenuItem,
+  eventId: string | undefined,
+  eventPrices: Record<string, Record<string, EventPriceOverride>> | undefined,
+  drink?: DrinkChoice,
+): number {
+  const ov = eventId ? eventPrices?.[eventId]?.[item.id] : undefined
+  if (item.kind === 'combo') {
+    const d = drink || 'chai'
+    if (d === 'chai') {
+      const v = ov?.priceWithChai ?? item.priceWithChai ?? item.price
+      return Math.max(0, Number(v) || 0)
+    }
+    const v = ov?.priceWithLassi ?? item.priceWithLassi ?? item.price
+    return Math.max(0, Number(v) || 0)
+  }
+  const v = ov?.price ?? item.price
+  return Math.max(0, Number(v) || 0)
+}
+
+export function makeOrderLine(
+  item: MenuItem,
+  qty: number,
+  eventId: string | undefined,
+  eventPrices: Record<string, Record<string, EventPriceOverride>> | undefined,
+  drink?: DrinkChoice,
+): OrderLine {
+  const d = item.kind === 'combo' ? drink || 'chai' : undefined
+  return {
+    menuItemId: item.id,
+    name: d ? comboLineName(item, d) : item.name,
+    price: resolveMenuPrice(item, eventId, eventPrices, d),
+    qty,
+    drink: d,
+  }
+}
 
 export function remainingOf(item: StockItem): number {
   return Math.max(0, (item.bought || 0) - (item.used || 0))
@@ -91,12 +183,88 @@ export function orderTotal(lines: OrderLine[]): number {
   return Math.round(lines.reduce((s, l) => s + l.price * l.qty, 0) * 100) / 100
 }
 
+function normalizeMenuItem(raw: Partial<MenuItem> & { id: string }): MenuItem {
+  const def = DEFAULT_MENU.find((d) => d.id === raw.id)
+  const kind: MenuKind =
+    raw.kind === 'combo' || raw.kind === 'single'
+      ? raw.kind
+      : def?.kind === 'combo' || /^combo-\d+$/i.test(raw.id)
+        ? 'combo'
+        : 'single'
+  const price = Math.max(0, Number(raw.price ?? def?.price) || 0)
+  if (kind === 'combo') {
+    return {
+      id: raw.id,
+      name: raw.name || def?.name || raw.id,
+      kind: 'combo',
+      price,
+      priceWithChai: Math.max(
+        0,
+        Number(raw.priceWithChai ?? def?.priceWithChai ?? price) || 0,
+      ),
+      priceWithLassi: Math.max(
+        0,
+        Number(raw.priceWithLassi ?? def?.priceWithLassi ?? price) || 0,
+      ),
+    }
+  }
+  return {
+    id: raw.id,
+    name: raw.name || def?.name || raw.id,
+    kind: 'single',
+    price,
+  }
+}
+
+/** Merge saved menu with defaults so new combos appear for everyone. */
+export function mergeMenu(raw: Partial<MenuItem>[] | undefined | null): MenuItem[] {
+  const byId = new Map<string, MenuItem>()
+  for (const d of DEFAULT_MENU) byId.set(d.id, { ...d })
+  if (Array.isArray(raw)) {
+    for (const r of raw) {
+      if (!r?.id) continue
+      const prev = byId.get(r.id)
+      byId.set(r.id, normalizeMenuItem({ ...prev, ...r, id: r.id }))
+    }
+  }
+  const defaults = DEFAULT_MENU.map((d) => byId.get(d.id)!)
+  const extras = [...byId.values()].filter((m) => !DEFAULT_MENU.some((d) => d.id === m.id))
+  return [...defaults, ...extras]
+}
+
+function normalizeEventPrices(
+  raw: StallOpsState['eventPrices'],
+): Record<string, Record<string, EventPriceOverride>> {
+  if (!raw || typeof raw !== 'object') return {}
+  const out: Record<string, Record<string, EventPriceOverride>> = {}
+  for (const [eventId, items] of Object.entries(raw)) {
+    if (!items || typeof items !== 'object') continue
+    out[eventId] = {}
+    for (const [itemId, ov] of Object.entries(items)) {
+      if (!ov || typeof ov !== 'object') continue
+      const patch: EventPriceOverride = {}
+      if (ov.price != null && Number.isFinite(Number(ov.price))) {
+        patch.price = Math.max(0, Number(ov.price))
+      }
+      if (ov.priceWithChai != null && Number.isFinite(Number(ov.priceWithChai))) {
+        patch.priceWithChai = Math.max(0, Number(ov.priceWithChai))
+      }
+      if (ov.priceWithLassi != null && Number.isFinite(Number(ov.priceWithLassi))) {
+        patch.priceWithLassi = Math.max(0, Number(ov.priceWithLassi))
+      }
+      if (Object.keys(patch).length) out[eventId][itemId] = patch
+    }
+  }
+  return out
+}
+
 export function emptyStallOps(): StallOpsState {
   return {
     stock: DEFAULT_STOCK.map((s) => ({ ...s })),
     menu: DEFAULT_MENU.map((m) => ({ ...m })),
     orders: [],
     activeEventId: '',
+    eventPrices: {},
   }
 }
 
@@ -114,14 +282,7 @@ function normalize(raw: Partial<StallOpsState> | null): StallOpsState {
           used: Math.max(0, Number(s.used) || 0),
         }))
       : base.stock
-  const menu =
-    Array.isArray(raw.menu) && raw.menu.length
-      ? raw.menu.map((m) => ({
-          id: m.id,
-          name: m.name || m.id,
-          price: Math.max(0, Number(m.price) || 0),
-        }))
-      : base.menu
+  const menu = mergeMenu(raw.menu as Partial<MenuItem>[] | undefined)
   const orders = Array.isArray(raw.orders)
     ? raw.orders.map((o) => ({
         id: o.id,
@@ -132,6 +293,7 @@ function normalize(raw: Partial<StallOpsState> | null): StallOpsState {
           name: l.name,
           price: Number(l.price) || 0,
           qty: Math.max(0, Number(l.qty) || 0),
+          drink: l.drink === 'chai' || l.drink === 'lassi' ? l.drink : undefined,
         })),
         createdAt: o.createdAt || new Date().toISOString(),
         completedAt: o.completedAt,
@@ -145,6 +307,7 @@ function normalize(raw: Partial<StallOpsState> | null): StallOpsState {
     menu,
     orders,
     activeEventId: typeof raw.activeEventId === 'string' ? raw.activeEventId : '',
+    eventPrices: normalizeEventPrices(raw.eventPrices),
   }
 }
 
@@ -166,11 +329,12 @@ export function soldCounts(orders: StallOrder[]): { name: string; qty: number; r
   const map = new Map<string, { name: string; qty: number; revenue: number }>()
   for (const o of orders.filter((x) => x.status === 'completed')) {
     for (const l of o.lines) {
-      const cur = map.get(l.menuItemId) || { name: l.name, qty: 0, revenue: 0 }
+      const key = lineKey(l.menuItemId, l.drink)
+      const cur = map.get(key) || { name: l.name, qty: 0, revenue: 0 }
       cur.qty += l.qty
       cur.revenue += l.qty * l.price
       cur.name = l.name
-      map.set(l.menuItemId, cur)
+      map.set(key, cur)
     }
   }
   return [...map.values()].sort((a, b) => b.qty - a.qty)

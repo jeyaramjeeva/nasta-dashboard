@@ -17,10 +17,43 @@ import { orderTotal, useStallOps } from '../context/StallOpsContext'
 import { germanyTodayYmd } from '../lib/germanyTime'
 import { summarizePosCashToday } from '../lib/posCash'
 import { buildSalesReport } from '../lib/salesStats'
-import { soldCounts, type OrderLine, type StallOrder } from '../lib/stallOps'
+import {
+  drinkLabel,
+  lineKey,
+  makeOrderLine,
+  resolveMenuPrice,
+  soldCounts,
+  type DrinkChoice,
+  type EventPriceOverride,
+  type MenuItem,
+  type OrderLine,
+  type StallOrder,
+} from '../lib/stallOps'
 
 type Tab = 'new' | 'pending' | 'completed' | 'sales' | 'menu'
 type SalesScope = 'today' | 'event' | 'all'
+
+function findLineQty(lines: OrderLine[], itemId: string, drink?: DrinkChoice): number {
+  return (
+    lines.find((l) => l.menuItemId === itemId && (l.drink || undefined) === (drink || undefined))
+      ?.qty || 0
+  )
+}
+
+function upsertLineQty(
+  lines: OrderLine[],
+  item: MenuItem,
+  qty: number,
+  eventId: string,
+  eventPrices: Record<string, Record<string, EventPriceOverride>>,
+  drink?: DrinkChoice,
+): OrderLine[] {
+  const d = item.kind === 'combo' ? drink : undefined
+  const key = lineKey(item.id, d)
+  const next = lines.filter((l) => lineKey(l.menuItemId, l.drink) !== key)
+  if (qty > 0) next.push(makeOrderLine(item, qty, eventId, eventPrices, d))
+  return next
+}
 
 export function Orders() {
   const { snapshot } = useData()
@@ -28,6 +61,7 @@ export function Orders() {
     menu,
     orders,
     activeEventId,
+    eventPrices,
     nextCustomer,
     createOrder,
     updatePendingOrder,
@@ -35,6 +69,9 @@ export function Orders() {
     reopenOrder,
     deleteOrder,
     setMenuPrice,
+    setComboDefaultPrices,
+    setEventPrice,
+    clearEventPrices,
     addMenuItem,
     setActiveEventId,
   } = useStallOps()
@@ -49,6 +86,7 @@ export function Orders() {
   const [paidInput, setPaidInput] = useState('')
   const [salesScope, setSalesScope] = useState<SalesScope>('today')
   const [salesEventId, setSalesEventId] = useState('')
+  const [priceEventId, setPriceEventId] = useState('')
 
   const events = snapshot?.events || []
   const stallEvents = useMemo(
@@ -64,6 +102,11 @@ export function Orders() {
     const upcoming = stallEvents.find((e) => (e.status || '').toLowerCase() !== 'completed')
     setActiveEventId((upcoming || stallEvents[0])!.id)
   }, [activeEventId, stallEvents, setActiveEventId])
+
+  useEffect(() => {
+    if (priceEventId) return
+    if (activeEventId) setPriceEventId(activeEventId)
+  }, [activeEventId, priceEventId])
 
   const pending = useMemo(
     () => orders.filter((o) => o.status === 'pending'),
@@ -88,24 +131,36 @@ export function Orders() {
   const sales = useMemo(() => buildSalesReport(orders, salesFilter), [orders, salesFilter])
   const salesAllEvents = useMemo(() => buildSalesReport(orders), [orders])
 
-  const cartLines: OrderLine[] = menu
-    .map((m) => ({
-      menuItemId: m.id,
-      name: m.name,
-      price: m.price,
-      qty: cart[m.id] || 0,
-    }))
-    .filter((l) => l.qty > 0)
+  const cartLines: OrderLine[] = useMemo(() => {
+    const lines: OrderLine[] = []
+    for (const m of menu) {
+      if (m.kind === 'combo') {
+        for (const drink of ['chai', 'lassi'] as DrinkChoice[]) {
+          const q = cart[lineKey(m.id, drink)] || 0
+          if (q > 0) lines.push(makeOrderLine(m, q, activeEventId, eventPrices, drink))
+        }
+      } else {
+        const q = cart[m.id] || 0
+        if (q > 0) lines.push(makeOrderLine(m, q, activeEventId, eventPrices))
+      }
+    }
+    return lines
+  }, [menu, cart, activeEventId, eventPrices])
 
   const cartTotal = orderTotal(cartLines)
 
-  function setQty(id: string, qty: number) {
+  function setQty(item: MenuItem, qty: number, drink?: DrinkChoice) {
+    const key = lineKey(item.id, item.kind === 'combo' ? drink : undefined)
     setCart((c) => {
       const next = { ...c }
-      if (qty <= 0) delete next[id]
-      else next[id] = qty
+      if (qty <= 0) delete next[key]
+      else next[key] = qty
       return next
     })
+  }
+
+  function cartQty(item: MenuItem, drink?: DrinkChoice): number {
+    return cart[lineKey(item.id, item.kind === 'combo' ? drink : undefined)] || 0
   }
 
   function startEdit(o: StallOrder) {
@@ -206,24 +261,89 @@ export function Orders() {
           </div>
           <div className="chip-row" style={{ marginBottom: '0.35rem' }}>
             <span className="badge ok">Next ticket: Customer {nextCustomer}</span>
-            <span className="hint-inline">Resets to Customer 1 each new day (Germany time)</span>
+            <span className="hint-inline">
+              Prices for this event — set under Menu prices. Combos: pick chai or lassi.
+            </span>
           </div>
 
           <div className="order-menu-grid">
             {menu.map((m) => {
-              const q = cart[m.id] || 0
+              if (m.kind === 'combo') {
+                const qChai = cartQty(m, 'chai')
+                const qLassi = cartQty(m, 'lassi')
+                const on = qChai + qLassi > 0
+                const pChai = resolveMenuPrice(m, activeEventId, eventPrices, 'chai')
+                const pLassi = resolveMenuPrice(m, activeEventId, eventPrices, 'lassi')
+                return (
+                  <div key={m.id} className={`order-menu-tile order-menu-tile--combo ${on ? 'is-on' : ''}`}>
+                    <div className="order-menu-tile__name">{m.name}</div>
+                    <div className="order-combo-drink">
+                      <div className="order-combo-drink__meta">
+                        <span>{drinkLabel('chai')}</span>
+                        <strong>
+                          <Money value={pChai} />
+                        </strong>
+                      </div>
+                      <div className="order-menu-tile__qty">
+                        <button
+                          type="button"
+                          className="btn ghost"
+                          onClick={() => setQty(m, qChai - 1, 'chai')}
+                        >
+                          −
+                        </button>
+                        <strong>{qChai}</strong>
+                        <button
+                          type="button"
+                          className="btn ghost"
+                          onClick={() => setQty(m, qChai + 1, 'chai')}
+                        >
+                          <Plus size={14} />
+                        </button>
+                      </div>
+                    </div>
+                    <div className="order-combo-drink">
+                      <div className="order-combo-drink__meta">
+                        <span>{drinkLabel('lassi')}</span>
+                        <strong>
+                          <Money value={pLassi} />
+                        </strong>
+                      </div>
+                      <div className="order-menu-tile__qty">
+                        <button
+                          type="button"
+                          className="btn ghost"
+                          onClick={() => setQty(m, qLassi - 1, 'lassi')}
+                        >
+                          −
+                        </button>
+                        <strong>{qLassi}</strong>
+                        <button
+                          type="button"
+                          className="btn ghost"
+                          onClick={() => setQty(m, qLassi + 1, 'lassi')}
+                        >
+                          <Plus size={14} />
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                )
+              }
+              const q = cartQty(m)
+              const price = resolveMenuPrice(m, activeEventId, eventPrices)
               return (
                 <div key={m.id} className={`order-menu-tile ${q ? 'is-on' : ''}`}>
                   <div className="order-menu-tile__name">{m.name}</div>
                   <div className="order-menu-tile__price">
-                    <Money value={m.price} />
+                    <Money value={price} />
                   </div>
                   <div className="order-menu-tile__qty">
-                    <button type="button" className="btn ghost" onClick={() => setQty(m.id, q - 1)}>
+                    <button type="button" className="btn ghost" onClick={() => setQty(m, q - 1)}>
                       −
                     </button>
                     <strong>{q}</strong>
-                    <button type="button" className="btn ghost" onClick={() => setQty(m.id, q + 1)}>
+                    <button type="button" className="btn ghost" onClick={() => setQty(m, q + 1)}>
                       <Plus size={14} />
                     </button>
                   </div>
@@ -272,27 +392,91 @@ export function Orders() {
                   </div>
                   <div className="order-menu-grid" style={{ marginTop: '0.65rem' }}>
                     {menu.map((m) => {
-                      const line = editLines.find((l) => l.menuItemId === m.id)
-                      const q = line?.qty || 0
+                      const ev = o.eventId || activeEventId
+                      if (m.kind === 'combo') {
+                        const qChai = findLineQty(editLines, m.id, 'chai')
+                        const qLassi = findLineQty(editLines, m.id, 'lassi')
+                        return (
+                          <div
+                            key={m.id}
+                            className={`order-menu-tile order-menu-tile--combo ${
+                              qChai + qLassi ? 'is-on' : ''
+                            }`}
+                          >
+                            <div className="order-menu-tile__name">{m.name}</div>
+                            {(['chai', 'lassi'] as DrinkChoice[]).map((drink) => {
+                              const q = drink === 'chai' ? qChai : qLassi
+                              return (
+                                <div key={drink} className="order-combo-drink">
+                                  <div className="order-combo-drink__meta">
+                                    <span>{drinkLabel(drink)}</span>
+                                    <strong>
+                                      <Money
+                                        value={resolveMenuPrice(m, ev, eventPrices, drink)}
+                                      />
+                                    </strong>
+                                  </div>
+                                  <div className="order-menu-tile__qty">
+                                    <button
+                                      type="button"
+                                      className="btn ghost"
+                                      onClick={() =>
+                                        setEditLines(
+                                          upsertLineQty(
+                                            editLines,
+                                            m,
+                                            q - 1,
+                                            ev,
+                                            eventPrices,
+                                            drink,
+                                          ),
+                                        )
+                                      }
+                                    >
+                                      −
+                                    </button>
+                                    <strong>{q}</strong>
+                                    <button
+                                      type="button"
+                                      className="btn ghost"
+                                      onClick={() =>
+                                        setEditLines(
+                                          upsertLineQty(
+                                            editLines,
+                                            m,
+                                            q + 1,
+                                            ev,
+                                            eventPrices,
+                                            drink,
+                                          ),
+                                        )
+                                      }
+                                    >
+                                      +
+                                    </button>
+                                  </div>
+                                </div>
+                              )
+                            })}
+                          </div>
+                        )
+                      }
+                      const q = findLineQty(editLines, m.id)
                       return (
                         <div key={m.id} className={`order-menu-tile ${q ? 'is-on' : ''}`}>
                           <div className="order-menu-tile__name">{m.name}</div>
+                          <div className="order-menu-tile__price">
+                            <Money value={resolveMenuPrice(m, ev, eventPrices)} />
+                          </div>
                           <div className="order-menu-tile__qty">
                             <button
                               type="button"
                               className="btn ghost"
-                              onClick={() => {
-                                const next = editLines.filter((l) => l.menuItemId !== m.id)
-                                if (q - 1 > 0) {
-                                  next.push({
-                                    menuItemId: m.id,
-                                    name: m.name,
-                                    price: m.price,
-                                    qty: q - 1,
-                                  })
-                                }
-                                setEditLines(next)
-                              }}
+                              onClick={() =>
+                                setEditLines(
+                                  upsertLineQty(editLines, m, q - 1, ev, eventPrices),
+                                )
+                              }
                             >
                               −
                             </button>
@@ -300,16 +484,11 @@ export function Orders() {
                             <button
                               type="button"
                               className="btn ghost"
-                              onClick={() => {
-                                const next = editLines.filter((l) => l.menuItemId !== m.id)
-                                next.push({
-                                  menuItemId: m.id,
-                                  name: m.name,
-                                  price: m.price,
-                                  qty: q + 1,
-                                })
-                                setEditLines(next)
-                              }}
+                              onClick={() =>
+                                setEditLines(
+                                  upsertLineQty(editLines, m, q + 1, ev, eventPrices),
+                                )
+                              }
                             >
                               +
                             </button>
@@ -340,7 +519,7 @@ export function Orders() {
                   )}
                   <ul className="order-lines">
                     {o.lines.map((l) => (
-                      <li key={l.menuItemId}>
+                      <li key={lineKey(l.menuItemId, l.drink)}>
                         {l.qty}× {l.name}{' '}
                         <span className="hint-inline">
                           <Money value={l.price * l.qty} />
@@ -425,7 +604,7 @@ export function Orders() {
                 </div>
                 <ul className="order-lines">
                   {o.lines.map((l) => (
-                    <li key={l.menuItemId}>
+                    <li key={lineKey(l.menuItemId, l.drink)}>
                       {l.qty}× {l.name}
                     </li>
                   ))}
@@ -729,36 +908,194 @@ export function Orders() {
       {tab === 'menu' && (
         <MotionCard interactive={false}>
           <h2>Menu prices</h2>
-          <div className="table-wrap" style={{ marginTop: '0.65rem' }}>
+          <p className="hint-inline" style={{ marginTop: '0.35rem' }}>
+            Defaults apply everywhere. Set <strong>This event</strong> prices for the stall you are
+            selling — each event can differ. Combos have two prices: with masala chai and with mango
+            lassi.
+          </p>
+
+          <div className="field" style={{ marginTop: '0.75rem', maxWidth: 420 }}>
+            <label htmlFor="price-event">Prices for event</label>
+            <select
+              id="price-event"
+              value={priceEventId}
+              onChange={(e) => setPriceEventId(e.target.value)}
+            >
+              <option value="">— pick stall —</option>
+              {stallEvents.map((e) => (
+                <option key={e.id} value={e.id}>
+                  {e.id} · {e.location || e.name}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {priceEventId && (
+            <div className="page-actions" style={{ marginTop: '0.5rem' }}>
+              <button
+                type="button"
+                className="btn ghost"
+                onClick={() => clearEventPrices(priceEventId)}
+              >
+                Clear event overrides (use defaults)
+              </button>
+            </div>
+          )}
+
+          <div className="table-wrap" style={{ marginTop: '0.75rem' }}>
             <table>
               <thead>
                 <tr>
                   <th>Item</th>
-                  <th>€</th>
+                  <th>Default</th>
+                  <th>This event {priceEventId ? `(${priceEventId})` : ''}</th>
                 </tr>
               </thead>
               <tbody>
-                {menu.map((m) => (
-                  <tr key={m.id}>
-                    <td>{m.name}</td>
-                    <td>
-                      <input
-                        className="input-tiny"
-                        type="number"
-                        min={0}
-                        step={0.5}
-                        value={m.price}
-                        onChange={(e) => setMenuPrice(m.id, Number(e.target.value) || 0)}
-                      />
-                    </td>
-                  </tr>
-                ))}
+                {menu.map((m) => {
+                  const ov = priceEventId ? eventPrices[priceEventId]?.[m.id] : undefined
+                  if (m.kind === 'combo') {
+                    return (
+                      <tr key={m.id}>
+                        <td>
+                          {m.name}
+                          <div className="hint-inline">Combo · chai / lassi</div>
+                        </td>
+                        <td>
+                          <div className="price-pair">
+                            <label>
+                              Chai
+                              <input
+                                className="input-tiny"
+                                type="number"
+                                min={0}
+                                step={0.5}
+                                value={m.priceWithChai ?? m.price}
+                                onChange={(e) =>
+                                  setComboDefaultPrices(
+                                    m.id,
+                                    Number(e.target.value) || 0,
+                                    m.priceWithLassi ?? m.price,
+                                  )
+                                }
+                              />
+                            </label>
+                            <label>
+                              Lassi
+                              <input
+                                className="input-tiny"
+                                type="number"
+                                min={0}
+                                step={0.5}
+                                value={m.priceWithLassi ?? m.price}
+                                onChange={(e) =>
+                                  setComboDefaultPrices(
+                                    m.id,
+                                    m.priceWithChai ?? m.price,
+                                    Number(e.target.value) || 0,
+                                  )
+                                }
+                              />
+                            </label>
+                          </div>
+                        </td>
+                        <td>
+                          {priceEventId ? (
+                            <div className="price-pair">
+                              <label>
+                                Chai
+                                <input
+                                  className="input-tiny"
+                                  type="number"
+                                  min={0}
+                                  step={0.5}
+                                  placeholder={String(m.priceWithChai ?? m.price)}
+                                  value={
+                                    ov?.priceWithChai != null
+                                      ? ov.priceWithChai
+                                      : resolveMenuPrice(m, priceEventId, eventPrices, 'chai')
+                                  }
+                                  onChange={(e) =>
+                                    setEventPrice(priceEventId, m.id, {
+                                      priceWithChai: Number(e.target.value) || 0,
+                                      priceWithLassi:
+                                        ov?.priceWithLassi ??
+                                        m.priceWithLassi ??
+                                        m.price,
+                                    })
+                                  }
+                                />
+                              </label>
+                              <label>
+                                Lassi
+                                <input
+                                  className="input-tiny"
+                                  type="number"
+                                  min={0}
+                                  step={0.5}
+                                  placeholder={String(m.priceWithLassi ?? m.price)}
+                                  value={
+                                    ov?.priceWithLassi != null
+                                      ? ov.priceWithLassi
+                                      : resolveMenuPrice(m, priceEventId, eventPrices, 'lassi')
+                                  }
+                                  onChange={(e) =>
+                                    setEventPrice(priceEventId, m.id, {
+                                      priceWithChai:
+                                        ov?.priceWithChai ?? m.priceWithChai ?? m.price,
+                                      priceWithLassi: Number(e.target.value) || 0,
+                                    })
+                                  }
+                                />
+                              </label>
+                            </div>
+                          ) : (
+                            <span className="hint-inline">Pick an event</span>
+                          )}
+                        </td>
+                      </tr>
+                    )
+                  }
+                  return (
+                    <tr key={m.id}>
+                      <td>{m.name}</td>
+                      <td>
+                        <input
+                          className="input-tiny"
+                          type="number"
+                          min={0}
+                          step={0.5}
+                          value={m.price}
+                          onChange={(e) => setMenuPrice(m.id, Number(e.target.value) || 0)}
+                        />
+                      </td>
+                      <td>
+                        {priceEventId ? (
+                          <input
+                            className="input-tiny"
+                            type="number"
+                            min={0}
+                            step={0.5}
+                            value={resolveMenuPrice(m, priceEventId, eventPrices)}
+                            onChange={(e) =>
+                              setEventPrice(priceEventId, m.id, {
+                                price: Number(e.target.value) || 0,
+                              })
+                            }
+                          />
+                        ) : (
+                          <span className="hint-inline">Pick an event</span>
+                        )}
+                      </td>
+                    </tr>
+                  )
+                })}
               </tbody>
             </table>
           </div>
           <div className="filters" style={{ marginTop: '0.85rem' }}>
             <div className="field">
-              <label>New item</label>
+              <label>New single item</label>
               <input
                 value={newMenuName}
                 onChange={(e) => setNewMenuName(e.target.value)}
@@ -766,7 +1103,7 @@ export function Orders() {
               />
             </div>
             <div className="field">
-              <label>Price €</label>
+              <label>Default price €</label>
               <input
                 type="number"
                 min={0}
