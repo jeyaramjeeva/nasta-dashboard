@@ -2064,13 +2064,9 @@ tbody tr:last-child td {
   gap: 0.75rem;
   padding-bottom: 1rem;
 }
-.pos-shell--docked {
-  padding-bottom: calc(6.75rem + env(safe-area-inset-bottom, 0px));
-}
-@media (min-width: 980px) {
-  .pos-shell,
+@media (max-width: 979.98px) {
   .pos-shell--docked {
-    padding-bottom: 0;
+    padding-bottom: calc(7.75rem + env(safe-area-inset-bottom, 0px));
   }
 }
 .pos-toolbar {
@@ -2300,9 +2296,6 @@ tbody tr:last-child td {
     flex-direction: column;
     gap: 0.65rem;
   }
-  .pos-dock {
-    display: none;
-  }
 }
 .pos-cart__head {
   display: flex;
@@ -2386,20 +2379,26 @@ tbody tr:last-child td {
 .pos-cart__clear {
   width: 100%;
 }
+/* Mobile-only checkout bar. Must stay hidden on desktop (side Ticket panel). */
 .pos-dock {
-  position: fixed;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  z-index: 40;
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  padding: 0.85rem 1rem calc(0.85rem + env(safe-area-inset-bottom, 0px));
-  border-top: 1px solid var(--border);
-  background: color-mix(in srgb, var(--bg) 94%, transparent);
-  backdrop-filter: blur(10px);
-  box-shadow: 0 -8px 24px color-mix(in srgb, #000 8%, transparent);
+  display: none;
+}
+@media (max-width: 979.98px) {
+  .pos-dock {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 40;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.85rem 1rem calc(0.85rem + env(safe-area-inset-bottom, 0px));
+    border-top: 1px solid var(--border);
+    background: color-mix(in srgb, var(--bg) 94%, transparent);
+    backdrop-filter: blur(10px);
+    box-shadow: 0 -8px 24px color-mix(in srgb, #000 8%, transparent);
+  }
 }
 .pos-dock__total {
   display: flex;
