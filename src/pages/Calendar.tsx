@@ -14,6 +14,7 @@ import { EmptyState, SkeletonPage } from '../components/Skeleton'
 import { WeatherIcon } from '../components/WeatherIcon'
 import { useData } from '../context/DataContext'
 import { useExtras } from '../context/ExtrasContext'
+import { useStallMode } from '../context/StallModeContext'
 import { useStallOps } from '../context/StallOpsContext'
 import type { PrepAssignee } from '../lib/stallOps'
 import {
@@ -45,6 +46,7 @@ type ListFilter = 'all' | 'completed' | 'upcoming'
 
 export function CalendarPage() {
   const { metrics, snapshot, loading } = useData()
+  const { isStall } = useStallMode()
   const {
     weather,
     inventoryDefs: defs,
@@ -373,7 +375,7 @@ export function CalendarPage() {
       <div style={{ marginTop: '0.9rem' }}>
         <MotionCard interactive={false}>
           <div className="card-head">
-            <h2>Stall list — spend &amp; gain</h2>
+            <h2>{isStall ? 'Stall list' : 'Stall list — spend & gain'}</h2>
             <div className="split-mode-row" style={{ margin: 0 }}>
               {(
                 [
@@ -400,9 +402,13 @@ export function CalendarPage() {
                   <th>Event</th>
                   <th>Days</th>
                   <th>Prep</th>
-                  <th>Spend</th>
-                  <th>Gain</th>
-                  <th>Net</th>
+                  {!isStall && (
+                    <>
+                      <th>Spend</th>
+                      <th>Gain</th>
+                      <th>Net</th>
+                    </>
+                  )}
                   <th>Weather</th>
                 </tr>
               </thead>
@@ -427,23 +433,27 @@ export function CalendarPage() {
                     <td>
                       <span className={`badge ${PREP_BADGE[c.prep]}`}>{c.prep}</span>
                     </td>
-                    <td>
-                      <Money value={c.spend} />
-                      {c.inventoryCost > 0 && (
-                        <div className="hint-inline">
-                          incl. inv. <Money value={c.inventoryCost} />
-                        </div>
-                      )}
-                    </td>
-                    <td>
-                      <Money value={c.gain} />
-                      {c.event.status !== 'Completed' && (
-                        <div className="hint-inline">expected</div>
-                      )}
-                    </td>
-                    <td>
-                      {c.net != null ? <Money value={c.net} colored signed /> : '—'}
-                    </td>
+                    {!isStall && (
+                      <>
+                        <td>
+                          <Money value={c.spend} />
+                          {c.inventoryCost > 0 && (
+                            <div className="hint-inline">
+                              incl. inv. <Money value={c.inventoryCost} />
+                            </div>
+                          )}
+                        </td>
+                        <td>
+                          <Money value={c.gain} />
+                          {c.event.status !== 'Completed' && (
+                            <div className="hint-inline">expected</div>
+                          )}
+                        </td>
+                        <td>
+                          {c.net != null ? <Money value={c.net} colored signed /> : '—'}
+                        </td>
+                      </>
+                    )}
                     <td>
                       <select
                         className="select-compact"
@@ -565,7 +575,7 @@ export function CalendarPage() {
               ))}
             </select>
           </div>
-          {activeCard && (
+          {activeCard && !isStall && (
             <div className="grid three" style={{ margin: '0.65rem 0' }}>
               <div>
                 <div className="kpi-label">
@@ -595,15 +605,23 @@ export function CalendarPage() {
               </div>
             </div>
           )}
-          <p className="hint-inline">Edit qty and €/unit. Inventory cost rolls into spend.</p>
+          <p className="hint-inline">
+            {isStall
+              ? 'Edit prep quantities for the stall.'
+              : 'Edit qty and €/unit. Inventory cost rolls into spend.'}
+          </p>
           <div className="table-wrap" style={{ marginTop: '0.75rem' }}>
             <table>
               <thead>
                 <tr>
                   <th>Dish</th>
                   <th>Qty</th>
-                  <th>€/unit</th>
-                  <th>Total</th>
+                  {!isStall && (
+                    <>
+                      <th>€/unit</th>
+                      <th>Total</th>
+                    </>
+                  )}
                 </tr>
               </thead>
               <tbody>
@@ -625,19 +643,23 @@ export function CalendarPage() {
                           onChange={(e) => setQty(d.id, Number(e.target.value) || 0)}
                         />
                       </td>
-                      <td>
-                        <input
-                          type="number"
-                          min={0}
-                          step={0.5}
-                          value={d.unitCost}
-                          style={{ width: 80 }}
-                          onChange={(e) => setUnitCost(d.id, Number(e.target.value) || 0)}
-                        />
-                      </td>
-                      <td>
-                        <Money value={d.unitCost * qty} />
-                      </td>
+                      {!isStall && (
+                        <>
+                          <td>
+                            <input
+                              type="number"
+                              min={0}
+                              step={0.5}
+                              value={d.unitCost}
+                              style={{ width: 80 }}
+                              onChange={(e) => setUnitCost(d.id, Number(e.target.value) || 0)}
+                            />
+                          </td>
+                          <td>
+                            <Money value={d.unitCost * qty} />
+                          </td>
+                        </>
+                      )}
                     </tr>
                   )
                 })}
@@ -645,39 +667,41 @@ export function CalendarPage() {
             </table>
           </div>
 
-          <div className="filters" style={{ marginTop: '0.85rem', alignItems: 'flex-end' }}>
-            <div>
-              <div className="hint-inline">Add dish</div>
-              <input
-                placeholder="e.g. Vada"
-                value={newDish}
-                onChange={(e) => setNewDish(e.target.value)}
-                style={{ minWidth: 120 }}
-              />
+          {!isStall && (
+            <div className="filters" style={{ marginTop: '0.85rem', alignItems: 'flex-end' }}>
+              <div>
+                <div className="hint-inline">Add dish</div>
+                <input
+                  placeholder="e.g. Vada"
+                  value={newDish}
+                  onChange={(e) => setNewDish(e.target.value)}
+                  style={{ minWidth: 120 }}
+                />
+              </div>
+              <div>
+                <div className="hint-inline">Unit</div>
+                <input
+                  value={newUnit}
+                  onChange={(e) => setNewUnit(e.target.value)}
+                  style={{ width: 90 }}
+                />
+              </div>
+              <div>
+                <div className="hint-inline">€/unit</div>
+                <input
+                  type="number"
+                  min={0}
+                  step={0.5}
+                  value={newCost}
+                  onChange={(e) => setNewCost(Number(e.target.value) || 0)}
+                  style={{ width: 80 }}
+                />
+              </div>
+              <button className="btn" type="button" onClick={addDish} disabled={!newDish.trim()}>
+                <Plus size={16} /> Add
+              </button>
             </div>
-            <div>
-              <div className="hint-inline">Unit</div>
-              <input
-                value={newUnit}
-                onChange={(e) => setNewUnit(e.target.value)}
-                style={{ width: 90 }}
-              />
-            </div>
-            <div>
-              <div className="hint-inline">€/unit</div>
-              <input
-                type="number"
-                min={0}
-                step={0.5}
-                value={newCost}
-                onChange={(e) => setNewCost(Number(e.target.value) || 0)}
-                style={{ width: 80 }}
-              />
-            </div>
-            <button className="btn" type="button" onClick={addDish} disabled={!newDish.trim()}>
-              <Plus size={16} /> Add
-            </button>
-          </div>
+          )}
 
           <div className="chip-row" style={{ marginTop: '0.75rem' }}>
             <span className="badge">
