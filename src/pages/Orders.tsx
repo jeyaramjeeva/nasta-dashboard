@@ -271,9 +271,6 @@ export function Orders() {
             <ClipboardList size={22} style={{ verticalAlign: -3, marginRight: 8 }} />
             Orders
           </h1>
-          {!isStall && (
-            <p>Tap items → Add ticket → Mark paid when handed over.</p>
-          )}
         </div>
         <div className="page-actions">
           {!isStall && (
