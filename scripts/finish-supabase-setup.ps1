@@ -47,5 +47,5 @@ Write-Host "Redeploying production..."
 npx --yes vercel@latest deploy --prod --yes 2>&1 | Out-Host
 
 Write-Host ""
-Write-Host "Done. Open https://nasta-dashboard.vercel.app and log in with email + password."
+Write-Host "Done. Open https://nastazentrum.vercel.app and log in with email + password."
 Write-Host "Remember: run supabase/schema.sql in SQL Editor and create the 3 users first."

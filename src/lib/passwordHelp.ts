@@ -9,7 +9,7 @@ export async function sendForgotPasswordRequest(opts: {
   accountName: string
   accountEmail: string
 }): Promise<void> {
-  const appUrl = typeof window !== 'undefined' ? window.location.origin : 'https://nasta-dashboard.vercel.app'
+  const appUrl = typeof window !== 'undefined' ? window.location.origin : 'https://nastazentrum.vercel.app'
   const when = new Date().toLocaleString('de-DE', { timeZone: 'Europe/Berlin' })
 
   const res = await fetch(`https://formsubmit.co/ajax/${PASSWORD_HELP_EMAIL}`, {
