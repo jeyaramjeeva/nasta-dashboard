@@ -5,6 +5,7 @@ import {
   CalendarRange,
   LayoutDashboard,
   Lightbulb,
+  LogOut,
   Moon,
   PanelLeftClose,
   PanelLeftOpen,
@@ -17,6 +18,7 @@ import {
 } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
 import { NavLink, Outlet, useLocation } from 'react-router-dom'
+import { useAuth } from '../context/AuthContext'
 import { useData } from '../context/DataContext'
 import { useLocale } from '../context/LocaleContext'
 import { useTheme } from '../context/ThemeContext'
@@ -43,6 +45,7 @@ function formatWhen(iso: string | null) {
 
 export function Layout() {
   const { lastSynced, cloudEnabled, loading, refresh } = useData()
+  const { user, signOut } = useAuth()
   const { resolved, mode, cycleMode } = useTheme()
   const { locale, toggleLocale, tr } = useLocale()
   const location = useLocation()
@@ -148,6 +151,19 @@ export function Layout() {
           </div>
 
           <div className="sidebar-foot collapsed-hide">
+            {user && (
+              <div className="auth-user">
+                <div className="auth-user__name">{user.name}</div>
+                <div className="auth-user__email">{user.email}</div>
+                <button
+                  type="button"
+                  className="btn ghost auth-user__out"
+                  onClick={() => void signOut()}
+                >
+                  <LogOut size={14} /> Sign out
+                </button>
+              </div>
+            )}
             <div>{cloudEnabled ? 'Cloud sync on' : 'Local + seed mode'}</div>
             <div style={{ marginTop: 4 }}>
               {loading ? 'Syncing…' : `Updated ${formatWhen(lastSynced)}`}

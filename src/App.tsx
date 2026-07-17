@@ -1,5 +1,7 @@
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
+import { AuthGate } from './components/AuthGate'
 import { Layout } from './components/Layout'
+import { AuthProvider } from './context/AuthContext'
 import { DataProvider } from './context/DataContext'
 import { LocaleProvider } from './context/LocaleContext'
 import { ThemeProvider } from './context/ThemeContext'
@@ -16,23 +18,27 @@ export default function App() {
   return (
     <ThemeProvider>
       <LocaleProvider>
-      <DataProvider>
-        <BrowserRouter>
-          <Routes>
-            <Route element={<Layout />}>
-              <Route index element={<Dashboard />} />
-              <Route path="events" element={<Events />} />
-              <Route path="calendar" element={<CalendarPage />} />
-              <Route path="partners" element={<Partners />} />
-              <Route path="cash" element={<Cash />} />
-              <Route path="insights" element={<Insights />} />
-              <Route path="upload" element={<Upload />} />
-              <Route path="quick-add" element={<QuickAdd />} />
-              <Route path="*" element={<Navigate to="/" replace />} />
-            </Route>
-          </Routes>
-        </BrowserRouter>
-      </DataProvider>
+        <AuthProvider>
+          <AuthGate>
+            <DataProvider>
+              <BrowserRouter>
+                <Routes>
+                  <Route element={<Layout />}>
+                    <Route index element={<Dashboard />} />
+                    <Route path="events" element={<Events />} />
+                    <Route path="calendar" element={<CalendarPage />} />
+                    <Route path="partners" element={<Partners />} />
+                    <Route path="cash" element={<Cash />} />
+                    <Route path="insights" element={<Insights />} />
+                    <Route path="upload" element={<Upload />} />
+                    <Route path="quick-add" element={<QuickAdd />} />
+                    <Route path="*" element={<Navigate to="/" replace />} />
+                  </Route>
+                </Routes>
+              </BrowserRouter>
+            </DataProvider>
+          </AuthGate>
+        </AuthProvider>
       </LocaleProvider>
     </ThemeProvider>
   )
