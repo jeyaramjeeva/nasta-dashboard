@@ -64,7 +64,7 @@ interface StallOpsContextValue {
   nextCustomer: number
   createOrder: (lines: OrderLine[]) => void
   updatePendingOrder: (id: string, lines: OrderLine[]) => void
-  completeOrder: (id: string, paid: number) => void
+  completeOrder: (id: string, paid: number, tip?: number) => void
   reopenOrder: (id: string) => void
   deleteOrder: (id: string) => void
   voidOrder: (id: string, reason: string) => void
@@ -404,12 +404,13 @@ export function StallOpsProvider({ children }: { children: ReactNode }) {
   )
 
   const completeOrder = useCallback(
-    (id: string, paid: number) => {
+    (id: string, paid: number, tip = 0) => {
       const order = state.orders.find((o) => o.id === id)
       if (!order) return
       const total = orderTotal(order.lines)
       const paidSafe = Math.max(0, Math.round(paid * 100) / 100)
-      const change = Math.round((paidSafe - total) * 100) / 100
+      const tipSafe = Math.max(0, Math.round(tip * 100) / 100)
+      const change = Math.round((paidSafe - total - tipSafe) * 100) / 100
       persist({
         ...state,
         orders: state.orders.map((o) =>
@@ -419,6 +420,7 @@ export function StallOpsProvider({ children }: { children: ReactNode }) {
                 status: 'completed',
                 completedAt: new Date().toISOString(),
                 paid: paidSafe,
+                tip: tipSafe > 0 ? tipSafe : undefined,
                 change,
               }
             : o,
@@ -439,6 +441,7 @@ export function StallOpsProvider({ children }: { children: ReactNode }) {
                 status: 'pending',
                 completedAt: undefined,
                 paid: undefined,
+                tip: undefined,
                 change: undefined,
               }
             : o,

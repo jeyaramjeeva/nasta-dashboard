@@ -6,7 +6,13 @@ import {
   useState,
   type ReactNode,
 } from 'react'
-import { t, type I18nKey, type Locale } from '../lib/i18n'
+import {
+  isLocale,
+  nextLocale,
+  t,
+  type I18nKey,
+  type Locale,
+} from '../lib/i18n'
 
 interface LocaleContextValue {
   locale: Locale
@@ -21,17 +27,17 @@ const KEY = 'nasta-locale'
 export function LocaleProvider({ children }: { children: ReactNode }) {
   const [locale, setLocaleState] = useState<Locale>(() => {
     const saved = localStorage.getItem(KEY)
-    return saved === 'de' || saved === 'en' ? saved : 'en'
+    return isLocale(saved) ? saved : 'en'
   })
 
   const setLocale = useCallback((l: Locale) => {
     setLocaleState(l)
     localStorage.setItem(KEY, l)
-    document.documentElement.lang = l
+    document.documentElement.lang = l === 'ka' ? 'kn' : l
   }, [])
 
   const toggleLocale = useCallback(() => {
-    setLocale(locale === 'en' ? 'de' : 'en')
+    setLocale(nextLocale(locale))
   }, [locale, setLocale])
 
   const tr = useCallback((key: I18nKey) => t(locale, key), [locale])

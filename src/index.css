@@ -2647,6 +2647,118 @@ tbody tr:last-child td {
   letter-spacing: -0.02em;
 }
 
+.queue-ticket-num {
+  font-size: 1.55rem !important;
+  letter-spacing: -0.03em;
+}
+.pay-change__drawer {
+  margin-top: 0.45rem;
+  font-size: 0.95rem;
+  font-weight: 650;
+  color: var(--text);
+}
+.badge-toast {
+  position: fixed;
+  right: 1rem;
+  bottom: 1.25rem;
+  z-index: 90;
+  display: flex;
+  gap: 0.65rem;
+  align-items: flex-start;
+  max-width: min(22rem, calc(100vw - 2rem));
+  padding: 0.85rem 1rem;
+  border-radius: 14px;
+  border: 1px solid color-mix(in srgb, var(--accent) 40%, var(--border));
+  background: color-mix(in srgb, var(--elevated) 92%, transparent);
+  box-shadow: 0 12px 36px color-mix(in srgb, #000 18%, transparent);
+  animation: badge-pop 0.35s ease;
+}
+@keyframes badge-pop {
+  from {
+    transform: translateY(12px);
+    opacity: 0;
+  }
+  to {
+    transform: none;
+    opacity: 1;
+  }
+}
+
+.cust-display {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  padding: 2rem 1.5rem;
+  text-align: center;
+  background:
+    radial-gradient(ellipse 80% 50% at 50% 0%, color-mix(in srgb, var(--accent) 18%, transparent), transparent),
+    var(--bg, #f4f6f4);
+  color: var(--text);
+}
+.cust-display__brand {
+  font-size: clamp(1.6rem, 4vw, 2.4rem);
+  font-weight: 800;
+  letter-spacing: -0.03em;
+}
+.cust-display__tag {
+  color: var(--text-soft);
+  font-size: 0.95rem;
+  margin-bottom: 1rem;
+}
+.cust-display__label {
+  font-size: clamp(1.1rem, 2.5vw, 1.5rem);
+  font-weight: 650;
+  color: var(--text-soft);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+.cust-display__total {
+  font-size: clamp(3.5rem, 12vw, 7rem);
+  font-weight: 800;
+  letter-spacing: -0.04em;
+  line-height: 1;
+}
+.cust-display__total--sm {
+  font-size: clamp(1.8rem, 5vw, 2.8rem);
+  margin-top: 0.5rem;
+}
+.cust-display__ticket {
+  font-size: clamp(5rem, 22vw, 12rem);
+  font-weight: 800;
+  letter-spacing: -0.05em;
+  line-height: 0.95;
+  color: var(--accent);
+}
+.cust-display__wait {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  font-size: clamp(1.4rem, 4vw, 2.2rem);
+}
+.cust-display__wait span {
+  font-size: 0.85em;
+  color: var(--text-soft);
+}
+.cust-display__lines {
+  max-width: 36rem;
+  font-size: 1.15rem;
+  color: var(--text-soft);
+  line-height: 1.4;
+}
+.cust-display__idle p {
+  font-size: clamp(2rem, 6vw, 3.2rem);
+  font-weight: 750;
+  margin: 0;
+}
+.cust-display__sub {
+  font-size: 1.25rem !important;
+  font-weight: 500 !important;
+  color: var(--text-soft);
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,

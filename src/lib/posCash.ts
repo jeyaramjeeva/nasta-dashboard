@@ -24,6 +24,8 @@ export interface PosCashSummary {
   paidTotal: number
   /** Sum of change returned. */
   changeReturned: number
+  /** Tips kept in the box today. */
+  tipTotal: number
   orderCount: number
 }
 
@@ -35,6 +37,7 @@ export function summarizePosCashToday(
   let netIn = 0
   let paidTotal = 0
   let changeReturned = 0
+  let tipTotal = 0
   let orderCount = 0
   for (const o of orders) {
     if (o.status !== 'completed' || o.voided) continue
@@ -46,11 +49,13 @@ export function summarizePosCashToday(
     if (o.paid != null) paidTotal += o.paid
     else paidTotal += net
     if (o.change != null && o.change > 0) changeReturned += o.change
+    if (o.tip != null && o.tip > 0) tipTotal += o.tip
   }
   return {
     netIn: Math.round(netIn * 100) / 100,
     paidTotal: Math.round(paidTotal * 100) / 100,
     changeReturned: Math.round(changeReturned * 100) / 100,
+    tipTotal: Math.round(tipTotal * 100) / 100,
     orderCount,
   }
 }

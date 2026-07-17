@@ -74,6 +74,7 @@ export function Layout() {
   const { isStall, isGuestLocked, enterStall, unlockStall } = useStallMode()
   const { resolved, cycleMode } = useTheme()
   const { locale, toggleLocale, tr } = useLocale()
+  // locale cycles EN → DE → TA → KA
   const location = useLocation()
   const navigate = useNavigate()
   const canUpload = canManageUploads(user)
@@ -362,7 +363,12 @@ export function Layout() {
               >
                 <RefreshCw size={16} className={loading ? 'spin' : undefined} />
               </button>
-              <button type="button" className="icon-btn" onClick={toggleLocale} title={tr('language')}>
+              <button
+                type="button"
+                className="icon-btn"
+                onClick={toggleLocale}
+                title={`${tr('language')}: EN / DE / TA / KA`}
+              >
                 {locale.toUpperCase()}
               </button>
               <button type="button" className="icon-btn" onClick={cycleMode} title="Toggle theme">

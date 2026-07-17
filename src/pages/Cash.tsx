@@ -172,6 +172,12 @@ export function Cash() {
             <div className="hint-inline">
               Paid <Money value={posToday.paidTotal} /> − change returned{' '}
               <Money value={posToday.changeReturned} />
+              {posToday.tipTotal > 0 && (
+                <>
+                  {' '}
+                  · tips <Money value={posToday.tipTotal} />
+                </>
+              )}
             </div>
           </div>
           <div>

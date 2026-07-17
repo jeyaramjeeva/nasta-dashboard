@@ -1,9 +1,12 @@
 import {
+  Award,
   Check,
   ClipboardList,
+  Monitor,
   Minus,
   Pencil,
   Plus,
+  Printer,
   RotateCcw,
   Trash2,
   TrendingUp,
@@ -14,11 +17,20 @@ import { Link } from 'react-router-dom'
 import { Money } from '../components/Money'
 import { MotionCard } from '../components/MotionCard'
 import { useData } from '../context/DataContext'
+import { useLocale } from '../context/LocaleContext'
 import { useOrdersStallIdle, useStallMode } from '../context/StallModeContext'
 import { orderTotal, useStallOps } from '../context/StallOpsContext'
+import {
+  allUnlockedForDay,
+  evaluateAchievements,
+  type AchievementDef,
+} from '../lib/achievements'
+import { formatChangeSuggestion, suggestChange } from '../lib/changeDrawer'
+import { openCustomerDisplay, publishDisplay } from '../lib/displaySync'
 import { germanyTodayYmd } from '../lib/germanyTime'
 import { summarizePosCashToday } from '../lib/posCash'
 import { buildSalesReport } from '../lib/salesStats'
+import { printQueueTicket } from '../lib/ticketPrint'
 import {
   joinComboContents,
   lineKey,
@@ -66,6 +78,7 @@ function upsertLineQty(
 
 export function Orders() {
   const { snapshot } = useData()
+  const { tr } = useLocale()
   const { isStall, isGuestLocked, enterStall } = useStallMode()
   useOrdersStallIdle()
   const {
@@ -100,6 +113,8 @@ export function Orders() {
   const [comboAddCustom, setComboAddCustom] = useState<Record<string, string>>({})
   const [payOrder, setPayOrder] = useState<StallOrder | null>(null)
   const [paidInput, setPaidInput] = useState('')
+  const [tipInput, setTipInput] = useState('0')
+  const [badgeToast, setBadgeToast] = useState<AchievementDef | null>(null)
   const [salesScope, setSalesScope] = useState<SalesScope>('today')
   const [salesEventId, setSalesEventId] = useState('')
   const [priceEventId, setPriceEventId] = useState('')
@@ -229,6 +244,13 @@ export function Orders() {
   function submitCart() {
     if (!cartLines.length) return
     createOrder(cartLines)
+    publishDisplay({
+      phase: 'waiting',
+      total: cartTotal,
+      ticketLabel: `Customer ${nextCustomer}`,
+      ticketNumber: nextCustomer,
+      lineSummary: cartLines.map((l) => `${l.qty}× ${l.name}`).join(' · '),
+    })
     setCart({})
     setTab('pending')
   }
@@ -244,22 +266,83 @@ export function Orders() {
     setEditId(null)
   }
 
+  useEffect(() => {
+    if (tab !== 'new') return
+    if (!cartLines.length) {
+      publishDisplay({
+        phase: 'idle',
+        total: 0,
+        ticketLabel: '',
+        ticketNumber: null,
+        lineSummary: '',
+      })
+      return
+    }
+    publishDisplay({
+      phase: 'ordering',
+      total: cartTotal,
+      ticketLabel: '',
+      ticketNumber: null,
+      lineSummary: cartLines.map((l) => `${l.qty}× ${l.name}`).join(' · '),
+    })
+  }, [tab, cartLines, cartTotal])
+
+  useEffect(() => {
+    if (!badgeToast) return
+    const timer = window.setTimeout(() => setBadgeToast(null), 4200)
+    return () => window.clearTimeout(timer)
+  }, [badgeToast])
+
   const payTotal = payOrder ? orderTotal(payOrder.lines) : 0
   const paidNum = Number(paidInput.replace(',', '.'))
+  const tipNum = Math.max(0, Number(String(tipInput).replace(',', '.')) || 0)
   const paidValid = Number.isFinite(paidNum) && paidNum >= 0
-  const changeDue = paidValid ? Math.round((paidNum - payTotal) * 100) / 100 : null
-  const canConfirmPay = paidValid && paidNum + 1e-9 >= payTotal
+  const changeDue = paidValid
+    ? Math.round((paidNum - payTotal - tipNum) * 100) / 100
+    : null
+  const canConfirmPay =
+    paidValid && paidNum + 1e-9 >= payTotal + tipNum && tipNum >= 0
+  const changePieces =
+    changeDue != null && changeDue > 0 ? suggestChange(changeDue) : []
+  const badgesToday = useMemo(() => allUnlockedForDay(), [orders, badgeToast])
 
   function openPay(o: StallOrder) {
     setPayOrder(o)
     setPaidInput(String(orderTotal(o.lines)))
+    setTipInput('0')
+    publishDisplay({
+      phase: 'waiting',
+      total: orderTotal(o.lines),
+      ticketLabel: o.label,
+      ticketNumber: Number(o.label.replace(/\D/g, '')) || null,
+      lineSummary: o.lines.map((l) => `${l.qty}× ${l.name}`).join(' · '),
+    })
   }
 
   function confirmPay() {
     if (!payOrder || !canConfirmPay) return
-    completeOrder(payOrder.id, paidNum)
+    completeOrder(payOrder.id, paidNum, tipNum)
+    const completed: StallOrder = {
+      ...payOrder,
+      status: 'completed',
+      completedAt: new Date().toISOString(),
+      paid: paidNum,
+      tip: tipNum > 0 ? tipNum : undefined,
+      change: changeDue ?? 0,
+    }
+    const nextOrders = orders.map((o) => (o.id === payOrder.id ? completed : o))
+    const unlocked = evaluateAchievements(nextOrders, completed)
+    if (unlocked[0]) setBadgeToast(unlocked[0])
+    publishDisplay({
+      phase: 'ready',
+      total: payTotal,
+      ticketLabel: payOrder.label,
+      ticketNumber: Number(payOrder.label.replace(/\D/g, '')) || null,
+      lineSummary: '',
+    })
     setPayOrder(null)
     setPaidInput('')
+    setTipInput('0')
     setTab('completed')
   }
 
@@ -291,8 +374,40 @@ export function Orders() {
           <Link className="btn ghost" to="/stock">
             Stock →
           </Link>
+          <button
+            type="button"
+            className="btn ghost"
+            onClick={() => openCustomerDisplay()}
+            title={tr('customerDisplay')}
+          >
+            <Monitor size={16} /> {tr('customerDisplay')}
+          </button>
         </div>
       </div>
+
+      {badgesToday.length > 0 && !isStall && (
+        <div className="chip-row" style={{ marginBottom: '0.65rem' }}>
+          <span className="badge ok">
+            <Award size={12} style={{ verticalAlign: -2 }} /> {tr('badges')}:{' '}
+            {badgesToday.map((b) => b.title).join(' · ')}
+          </span>
+          {posCash.tipTotal > 0 && (
+            <span className="badge">
+              {tr('tipsToday')} <Money value={posCash.tipTotal} />
+            </span>
+          )}
+        </div>
+      )}
+
+      {badgeToast && (
+        <div className="badge-toast" role="status">
+          <Award size={18} />
+          <div>
+            <strong>{badgeToast.title}</strong>
+            <div className="hint-inline">{badgeToast.description}</div>
+          </div>
+        </div>
+      )}
 
       <div className="split-mode-row" style={{ marginBottom: '0.85rem' }}>
         {(
@@ -741,7 +856,7 @@ export function Orders() {
               ) : (
                 <>
                   <div className="card-head">
-                    <h2>{o.label}</h2>
+                    <h2 className="queue-ticket-num">{o.label}</h2>
                     <span className="badge warn">Pending</span>
                   </div>
                   {o.eventId && (
@@ -766,6 +881,14 @@ export function Orders() {
                     <div className="page-actions">
                       <button type="button" className="btn ghost" onClick={() => startEdit(o)}>
                         <Pencil size={14} /> Edit
+                      </button>
+                      <button
+                        type="button"
+                        className="btn ghost"
+                        onClick={() => printQueueTicket(o)}
+                        title={tr('printTicket')}
+                      >
+                        <Printer size={14} /> {tr('printTicket')}
                       </button>
                       <button type="button" className="btn" onClick={() => openPay(o)}>
                         <Check size={14} /> Delivered
@@ -955,19 +1078,21 @@ export function Orders() {
         >
           <div className="pay-panel" onClick={(e) => e.stopPropagation()}>
             <div className="card-head">
-              <h2 id="pay-title">{payOrder.label} — payment</h2>
+              <h2 id="pay-title">
+                {payOrder.label} — {tr('payment')}
+              </h2>
               <button type="button" className="btn ghost" onClick={() => setPayOrder(null)}>
                 <X size={16} />
               </button>
             </div>
             <div className="pay-total">
-              <div className="kpi-label">Order total</div>
+              <div className="kpi-label">{tr('orderTotal')}</div>
               <strong>
                 <Money value={payTotal} />
               </strong>
             </div>
             <div className="field" style={{ marginTop: '0.85rem' }}>
-              <label htmlFor="paid-amount">Customer gave (€)</label>
+              <label htmlFor="paid-amount">{tr('customerGave')} (€)</label>
               <input
                 id="paid-amount"
                 type="number"
@@ -994,6 +1119,30 @@ export function Orders() {
                 </button>
               ))}
             </div>
+            <div className="field" style={{ marginTop: '0.75rem' }}>
+              <label htmlFor="tip-amount">{tr('tip')} (€)</label>
+              <input
+                id="tip-amount"
+                type="number"
+                inputMode="decimal"
+                min={0}
+                step={0.5}
+                value={tipInput}
+                onChange={(e) => setTipInput(e.target.value)}
+              />
+            </div>
+            {changeDue != null && changeDue > 0 && (
+              <button
+                type="button"
+                className="btn ghost"
+                style={{ marginTop: '0.45rem', width: '100%' }}
+                onClick={() => {
+                  setTipInput(String(changeDue + tipNum))
+                }}
+              >
+                {tr('keepChangeAsTip')}
+              </button>
+            )}
             <div
               className={`pay-change ${changeDue != null && changeDue < 0 ? 'is-short' : ''}`}
             >
@@ -1001,15 +1150,34 @@ export function Orders() {
                 <span className="hint-inline">Enter amount received</span>
               ) : changeDue < 0 ? (
                 <>
-                  Still need <strong><Money value={-changeDue} /></strong>
+                  Still need{' '}
+                  <strong>
+                    <Money value={-changeDue} />
+                  </strong>
                 </>
               ) : changeDue === 0 ? (
                 <>
                   Exact — <strong>no change</strong>
+                  {tipNum > 0 && (
+                    <>
+                      {' '}
+                      · {tr('tip')} <Money value={tipNum} />
+                    </>
+                  )}
                 </>
               ) : (
                 <>
-                  Return <strong className="pay-change__amount"><Money value={changeDue} /></strong>
+                  <div>
+                    {tr('changeDrawer')}{' '}
+                    <strong className="pay-change__amount">
+                      <Money value={changeDue} />
+                    </strong>
+                  </div>
+                  {changePieces.length > 0 && (
+                    <div className="pay-change__drawer">
+                      {formatChangeSuggestion(changePieces)}
+                    </div>
+                  )}
                 </>
               )}
             </div>
@@ -1023,7 +1191,7 @@ export function Orders() {
                 disabled={!canConfirmPay}
                 onClick={confirmPay}
               >
-                Confirm delivery
+                {tr('confirmDelivery')}
               </button>
             </div>
           </div>

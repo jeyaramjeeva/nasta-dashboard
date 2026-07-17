@@ -74,7 +74,9 @@ export interface StallOrder {
   eventId?: string
   /** Cash the customer handed over (€). */
   paid?: number
-  /** Change to return (€) = paid − total. */
+  /** Tip kept in the box (€). */
+  tip?: number
+  /** Change to return (€) = paid − total − tip. */
   change?: number
   /** Voided / refunded after completion. */
   voided?: boolean

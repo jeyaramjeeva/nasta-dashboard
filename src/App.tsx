@@ -15,6 +15,7 @@ import { ThemeProvider } from './context/ThemeContext'
 import { Account } from './pages/Account'
 import { CalendarPage } from './pages/Calendar'
 import { Cash } from './pages/Cash'
+import { CustomerDisplay } from './pages/CustomerDisplay'
 import { Dashboard } from './pages/Dashboard'
 import { Events } from './pages/Events'
 import { Insights } from './pages/Insights'
@@ -42,6 +43,7 @@ export default function App() {
                     <DataProvider key={demo ? 'demo-d' : 'live-d'}>
                       <BrowserRouter>
                         <Routes>
+                          <Route path="display" element={<CustomerDisplay />} />
                           <Route element={<Layout />}>
                             <Route
                               index
