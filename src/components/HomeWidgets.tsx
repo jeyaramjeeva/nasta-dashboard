@@ -1,5 +1,7 @@
 import { motion, useReducedMotion } from 'framer-motion'
 import {
+  CloudRain,
+  FileDown,
   Flame,
   MapPin,
   Sparkles,
@@ -10,6 +12,7 @@ import {
 import { useEffect, useMemo, useState, type ReactNode } from 'react'
 import { Link } from 'react-router-dom'
 import type { CalendarEventCard } from '../lib/calendar'
+import { downloadStallBriefingPdf } from '../lib/briefingPdf'
 import { formatGermanyCalendarDay } from '../lib/germanyTime'
 import {
   bestLocationHint,
@@ -21,7 +24,11 @@ import {
   prepPercent,
   profitStreak,
 } from '../lib/homeWidgets'
+import { weatherCallBadge, weatherGoCautionSkip } from '../lib/weatherAdvice'
 import type { DashboardMetrics } from '../types'
+import { useAuth } from '../context/AuthContext'
+import { useExtras } from '../context/ExtrasContext'
+import { canManageUploads } from '../lib/authAllowlist'
 import { Money } from './Money'
 
 function pad(n: number) {
@@ -36,7 +43,15 @@ export function HomeWidgets({
   metrics: DashboardMetrics
 }) {
   const reduce = useReducedMotion()
+  const { user } = useAuth()
+  const canUpload = canManageUploads(user)
+  const { mission, setMission, weather } = useExtras()
   const [now, setNow] = useState(() => new Date())
+  const [draftMission, setDraftMission] = useState(mission)
+
+  useEffect(() => {
+    setDraftMission(mission)
+  }, [mission])
 
   useEffect(() => {
     const id = window.setInterval(() => setNow(new Date()), 1000)
@@ -56,6 +71,16 @@ export function HomeWidgets({
   const mood = moneyMood(metrics.net, next?.net ?? null)
   const plates = next ? platesToBreakEven(next.event, 8) : 0
   const locationHint = bestLocationHint(metrics.byLocation)
+  const advice = useMemo(
+    () => weatherGoCautionSkip(next?.weather, metrics.byEvent, weather),
+    [next, metrics.byEvent, weather],
+  )
+
+  const fallbackMission = next
+    ? next.prepNotes.length && next.prep !== 'ready'
+      ? `First gap: ${next.prepNotes[0]}.`
+      : 'Float ready, fee logged — protect the coin reserve.'
+    : 'Schedule the next market date in Excel to unlock missions.'
 
   const dateLabel = next?.event.startDate
     ? formatGermanyCalendarDay(next.event.startDate)
@@ -74,11 +99,30 @@ export function HomeWidgets({
           <span className="home-countdown__eyebrow">
             <Timer size={14} /> Next stall
           </span>
-          {next ? (
-            <Link to="/calendar" className="hint-inline">
-              Open calendar →
-            </Link>
-          ) : null}
+          <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+            {next ? (
+              <button
+                type="button"
+                className="btn ghost"
+                style={{ padding: '0.2rem 0.55rem', fontSize: '0.75rem' }}
+                onClick={() =>
+                  downloadStallBriefingPdf({
+                    card: next,
+                    mission: mission || fallbackMission,
+                    weatherAdvice: advice,
+                    platesNeeded: plates,
+                  })
+                }
+              >
+                <FileDown size={14} /> Briefing
+              </button>
+            ) : null}
+            {next ? (
+              <Link to="/calendar" className="hint-inline">
+                Open calendar →
+              </Link>
+            ) : null}
+          </div>
         </div>
 
         {next && cd ? (
@@ -97,7 +141,8 @@ export function HomeWidgets({
             {cd.isLive ? (
               <div className="home-countdown__live">
                 <span className="home-live-dot" />
-                Live today — dosa time
+                Live today —{' '}
+                <Link to="/plates">count plates →</Link>
               </div>
             ) : cd.isPast ? (
               <div className="home-countdown__live is-past">Stall window passed</div>
@@ -133,14 +178,31 @@ export function HomeWidgets({
         ) : (
           <div className="home-countdown__empty">
             <p>No upcoming stall dated yet.</p>
-            <Link className="btn ghost" to="/upload">
-              Sync Excel dates
-            </Link>
+            {canUpload ? (
+              <Link className="btn ghost" to="/upload">
+                Sync Excel dates
+              </Link>
+            ) : (
+              <p style={{ opacity: 0.75, margin: 0 }}>Ask Jeeva to sync Excel dates.</p>
+            )}
           </div>
         )}
       </motion.div>
 
       <div className="home-widget-grid">
+        <Widget
+          icon={CloudRain}
+          title={advice.title}
+          tone={advice.call === 'go' ? 'leaf' : 'warn'}
+          body={
+            <>
+              <span className={`badge ${weatherCallBadge(advice.call)}`} style={{ marginRight: 6 }}>
+                {advice.call}
+              </span>
+              {advice.line}
+            </>
+          }
+        />
         <Widget
           icon={UtensilsCrossed}
           title="Plate hunt"
@@ -149,7 +211,7 @@ export function HomeWidgets({
             next && plates > 0 ? (
               <>
                 Need about <strong>{plates} plates</strong> at €8 to clear break-even for{' '}
-                {next.event.id}.
+                {next.event.id}. <Link to="/plates">Live counter →</Link>
               </>
             ) : (
               <>Pick an upcoming stall with fee + grocery to unlock plate math.</>
@@ -192,22 +254,45 @@ export function HomeWidgets({
             )
           }
         />
-        <Widget
-          icon={Target}
-          title="Mission for next stall"
-          tone="warn"
-          body={
-            next ? (
-              next.prepNotes.length && next.prep !== 'ready' ? (
-                <>First gap: {next.prepNotes[0]}.</>
-              ) : (
-                <>Float ready, fee logged — protect the coin reserve.</>
-              )
+        <div className="home-chip glass-card home-chip--warn">
+          <div className="home-chip__icon">
+            <Target size={16} strokeWidth={1.75} />
+          </div>
+          <div style={{ width: '100%' }}>
+            <div className="home-chip__title">Today’s mission</div>
+            {canUpload ? (
+              <div className="home-chip__body">
+                <textarea
+                  value={draftMission}
+                  onChange={(e) => setDraftMission(e.target.value)}
+                  rows={2}
+                  placeholder={fallbackMission}
+                  style={{
+                    width: '100%',
+                    resize: 'vertical',
+                    marginTop: 4,
+                    font: 'inherit',
+                    background: 'var(--surface-2, transparent)',
+                    border: '1px solid var(--border)',
+                    borderRadius: 8,
+                    padding: '0.4rem 0.5rem',
+                    color: 'inherit',
+                  }}
+                />
+                <button
+                  type="button"
+                  className="btn ghost"
+                  style={{ marginTop: 6, padding: '0.2rem 0.55rem', fontSize: '0.75rem' }}
+                  onClick={() => setMission(draftMission.trim())}
+                >
+                  Save mission
+                </button>
+              </div>
             ) : (
-              <>Schedule the next market date in Excel to unlock missions.</>
-            )
-          }
-        />
+              <div className="home-chip__body">{mission || fallbackMission}</div>
+            )}
+          </div>
+        </div>
       </div>
     </div>
   )

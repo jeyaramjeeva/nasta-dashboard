@@ -1,5 +1,7 @@
 /** Local extras that aren't in Excel yet: weather, inventory, partner split rules. */
 
+import { demoStorageKey } from './demoMode'
+
 export type WeatherTag = 'sunny' | 'good' | 'windy' | 'rainy' | 'mixed' | ''
 
 export const WEATHER_OPTIONS: { value: WeatherTag; label: string }[] = [
@@ -51,7 +53,7 @@ const DEFAULT_ITEMS: InventoryItemDef[] = [
 
 function readJson<T>(key: string, fallback: T): T {
   try {
-    const raw = localStorage.getItem(key)
+    const raw = localStorage.getItem(demoStorageKey(key))
     if (!raw) return fallback
     return JSON.parse(raw) as T
   } catch {
@@ -60,7 +62,7 @@ function readJson<T>(key: string, fallback: T): T {
 }
 
 function writeJson(key: string, value: unknown) {
-  localStorage.setItem(key, JSON.stringify(value))
+  localStorage.setItem(demoStorageKey(key), JSON.stringify(value))
 }
 
 function migrateWeatherTag(tag: string): WeatherTag {

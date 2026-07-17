@@ -14,15 +14,30 @@ export interface DriveSettings {
   url: string
   lastPulledAt: string | null
   autoRemindDays: number
+  /** When true, pull Excel on a timer (browser must be open). */
+  autoPullEnabled: boolean
+  /** Hours between auto-pulls. */
+  autoPullHours: number
+  /** Jeeva-only: publish merge after a successful scheduled pull. */
+  autoPublish: boolean
+}
+
+const DEFAULT_DRIVE: DriveSettings = {
+  url: '',
+  lastPulledAt: null,
+  autoRemindDays: 7,
+  autoPullEnabled: false,
+  autoPullHours: 24,
+  autoPublish: false,
 }
 
 export function loadDriveSettings(): DriveSettings {
   try {
     const raw = localStorage.getItem(SETTINGS_KEY)
-    if (!raw) return { url: '', lastPulledAt: null, autoRemindDays: 7 }
-    return { url: '', lastPulledAt: null, autoRemindDays: 7, ...JSON.parse(raw) }
+    if (!raw) return { ...DEFAULT_DRIVE }
+    return { ...DEFAULT_DRIVE, ...JSON.parse(raw) }
   } catch {
-    return { url: '', lastPulledAt: null, autoRemindDays: 7 }
+    return { ...DEFAULT_DRIVE }
   }
 }
 
@@ -205,6 +220,10 @@ async function fetchDirect(downloadUrl: string): Promise<ArrayBuffer> {
 export function isPullDue(settings: DriveSettings): boolean {
   if (!settings.url || !settings.lastPulledAt) return Boolean(settings.url)
   const last = new Date(settings.lastPulledAt).getTime()
+  if (settings.autoPullEnabled) {
+    const hours = Math.max(1, settings.autoPullHours || 24)
+    return Date.now() - last > hours * 3600000
+  }
   const days = settings.autoRemindDays || 7
   return Date.now() - last > days * 86400000
 }

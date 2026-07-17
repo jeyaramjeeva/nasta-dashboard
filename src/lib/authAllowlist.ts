@@ -1,5 +1,7 @@
 /** Only these people may use the app. Configure via VITE_ALLOWED_EMAILS. */
 
+import { isDemoMode } from './demoMode'
+
 export interface AllowedUser {
   email: string
   name: string
@@ -46,6 +48,15 @@ export function findAllowedUser(email: string | undefined | null): AllowedUser |
 
 export function isEmailAllowed(email: string | undefined | null): boolean {
   return Boolean(findAllowedUser(email))
+}
+
+/** Only Jeeva may open Upload and publish Excel changes (everyone in demo mode). */
+export function canManageUploads(user: { name?: string; email?: string } | null | undefined): boolean {
+  if (isDemoMode()) return true
+  if (!user) return false
+  if (user.name?.trim().toLowerCase() === 'jeeva') return true
+  const allowed = findAllowedUser(user.email)
+  return allowed?.name.trim().toLowerCase() === 'jeeva'
 }
 
 export const TEAM_NAMES = ['Jeeva', 'Sriram', 'Sneha'] as const

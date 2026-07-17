@@ -1,4 +1,5 @@
 import type { Snapshot } from '../types'
+import { demoStorageKey } from './demoMode'
 import type { UploadMode } from './merge'
 
 export interface SnapshotVersion {
@@ -23,7 +24,7 @@ function uid() {
 
 export function loadLocalHistory(): SnapshotVersion[] {
   try {
-    const raw = localStorage.getItem(HISTORY_KEY)
+    const raw = localStorage.getItem(demoStorageKey(HISTORY_KEY))
     if (!raw) return []
     const list = JSON.parse(raw) as SnapshotVersion[]
     return Array.isArray(list) ? list : []
@@ -33,7 +34,7 @@ export function loadLocalHistory(): SnapshotVersion[] {
 }
 
 function saveLocalHistory(list: SnapshotVersion[]) {
-  localStorage.setItem(HISTORY_KEY, JSON.stringify(list.slice(0, MAX_LOCAL)))
+  localStorage.setItem(demoStorageKey(HISTORY_KEY), JSON.stringify(list.slice(0, MAX_LOCAL)))
 }
 
 export function pushLocalHistory(

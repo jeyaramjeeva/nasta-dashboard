@@ -2,7 +2,9 @@ import { PlusCircle } from 'lucide-react'
 import { useMemo, useState, type FormEvent } from 'react'
 import { Link } from 'react-router-dom'
 import { MotionCard } from '../components/MotionCard'
+import { useAuth } from '../context/AuthContext'
 import { useData } from '../context/DataContext'
+import { canManageUploads } from '../lib/authAllowlist'
 import { germanyTodayYmd } from '../lib/germanyTime'
 
 const CATEGORIES = [
@@ -20,6 +22,8 @@ const PEOPLE = ['Jeeva', 'Sriram', 'Sneha', 'Box', 'Paypal']
 
 export function QuickAdd() {
   const { snapshot, quickAddTransaction, cloudEnabled } = useData()
+  const { user } = useAuth()
+  const canUpload = canManageUploads(user)
   const [password, setPassword] = useState('')
   const [busy, setBusy] = useState(false)
   const [msg, setMsg] = useState<{ type: 'ok' | 'err'; text: string } | null>(null)
@@ -89,14 +93,18 @@ export function QuickAdd() {
             merge the sheet later if you also track there.
           </p>
         </div>
-        <Link className="btn ghost" to="/upload">
-          Data workflow →
-        </Link>
+        {canUpload && (
+          <Link className="btn ghost" to="/upload">
+            Data workflow →
+          </Link>
+        )}
       </div>
 
       {!snapshot && (
         <div className="alert-item" style={{ marginBottom: '0.9rem' }}>
-          No snapshot loaded yet. Publish an Excel file once from Upload before using quick-add.
+          {canUpload
+            ? 'No snapshot loaded yet. Publish an Excel file once from Upload before using quick-add.'
+            : 'No snapshot loaded yet. Ask Jeeva to publish Excel once before using quick-add.'}
         </div>
       )}
 

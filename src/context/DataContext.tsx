@@ -10,6 +10,7 @@ import {
 import { countCash, isDenomLabel, isLedgerEventId } from '../lib/cash'
 import {
   fetchExcelFromUrl,
+  isPullDue,
   loadDriveSettings,
   parseDriveLink,
   saveDriveSettings,
@@ -25,6 +26,14 @@ import { applyUploadMode, type UploadMode } from '../lib/merge'
 import { computeMetrics } from '../lib/metrics'
 import { parseWorkbook, parseWorkbookFile } from '../lib/parseWorkbook'
 import { recomputePartners } from '../lib/partners'
+import { canManageUploads } from '../lib/authAllowlist'
+import { demoStorageKey, isDemoMode } from '../lib/demoMode'
+import {
+  enqueueOffline,
+  offlineQueueCount,
+  peekOfflineQueue,
+  replaceOfflineQueue,
+} from '../lib/offlineQueue'
 import {
   checkUploadPassword,
   fetchLatestSnapshot,
@@ -38,6 +47,7 @@ import {
 } from '../lib/supabase'
 import { validateSnapshot, type ValidationReport } from '../lib/validate'
 import type { DashboardMetrics, EventCashCount, Snapshot, Transaction } from '../types'
+import { useAuth } from './AuthContext'
 
 function fillBeforeFromStartOfDay(entry: EventCashCount): EventCashCount {
   if (entry.before.length || entry.beforeCash > 0) return entry
@@ -145,6 +155,8 @@ export interface PublishOptions {
   note?: string
   /** Allow publish even when validation has errors. */
   force?: boolean
+  /** Skip password when Jeeva is signed in (scheduled Drive pull). */
+  trustedSession?: boolean
 }
 
 export interface QuickAddInput {
@@ -165,8 +177,12 @@ interface DataContextValue {
   lastSynced: string | null
   versions: SnapshotVersion[]
   driveSettings: DriveSettings
+  pendingOffline: number
+  autoPullStatus: string | null
   refresh: () => Promise<void>
   refreshVersions: () => Promise<void>
+  saveDriveSettingsPatch: (patch: Partial<DriveSettings>) => void
+  flushOfflineQueue: () => Promise<void>
   /** Parse file and return candidate + validation (does not publish). */
   prepareUpload: (
     file: File,
@@ -196,7 +212,7 @@ const LOCAL_KEY = 'nasta-snapshot-v3'
 
 function loadLocal(): Snapshot | null {
   try {
-    const raw = localStorage.getItem(LOCAL_KEY)
+    const raw = localStorage.getItem(demoStorageKey(LOCAL_KEY))
     if (!raw) return null
     return JSON.parse(raw) as Snapshot
   } catch {
@@ -205,10 +221,11 @@ function loadLocal(): Snapshot | null {
 }
 
 function saveLocal(snapshot: Snapshot) {
-  localStorage.setItem(LOCAL_KEY, JSON.stringify(snapshot))
+  localStorage.setItem(demoStorageKey(LOCAL_KEY), JSON.stringify(snapshot))
 }
 
 export function DataProvider({ children }: { children: ReactNode }) {
+  const { user } = useAuth()
   const [snapshot, setSnapshot] = useState<Snapshot | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -217,7 +234,10 @@ export function DataProvider({ children }: { children: ReactNode }) {
   const [driveSettings, setDriveSettings] = useState<DriveSettings>(() =>
     loadDriveSettings(),
   )
-  const cloudEnabled = isCloudConfigured()
+  const [pendingOffline, setPendingOffline] = useState(() => offlineQueueCount())
+  const [autoPullStatus, setAutoPullStatus] = useState<string | null>(null)
+  const cloudEnabled = isCloudConfigured() && !isDemoMode()
+  const isJeeva = canManageUploads(user)
 
   const apply = useCallback((data: Snapshot | null, origin?: DataOrigin) => {
     const next = data ? normalizeSnapshot(data) : null
@@ -347,7 +367,11 @@ export function DataProvider({ children }: { children: ReactNode }) {
 
   const publishSnapshot = useCallback(
     async (candidate: Snapshot, options: PublishOptions) => {
-      if (!checkUploadPassword(options.password)) {
+      if (!canManageUploads(user)) {
+        throw new Error('Only Jeeva can publish Excel updates.')
+      }
+      const trusted = Boolean(options.trustedSession && canManageUploads(user))
+      if (!trusted && !checkUploadPassword(options.password)) {
         throw new Error('Wrong upload password')
       }
       const report = validateSnapshot(candidate, { mode: options.mode })
@@ -365,11 +389,14 @@ export function DataProvider({ children }: { children: ReactNode }) {
       await persistVersion(stamped, options.mode, options.note)
       return validateSnapshot(stamped, { mode: options.mode })
     },
-    [persistVersion],
+    [persistVersion, user],
   )
 
   const restoreVersion = useCallback(
     async (id: string, password: string) => {
+      if (!canManageUploads(user)) {
+        throw new Error('Only Jeeva can restore Excel versions.')
+      }
       if (!checkUploadPassword(password)) {
         throw new Error('Wrong upload password')
       }
@@ -384,11 +411,17 @@ export function DataProvider({ children }: { children: ReactNode }) {
       }
       await persistVersion(restored, 'restore', `Restored from ${version.createdAt}`)
     },
-    [cloudEnabled, persistVersion],
+    [cloudEnabled, persistVersion, user],
   )
 
   const saveDriveUrl = useCallback((url: string) => {
     const next = { ...loadDriveSettings(), url }
+    saveDriveSettings(next)
+    setDriveSettings(next)
+  }, [])
+
+  const saveDriveSettingsPatch = useCallback((patch: Partial<DriveSettings>) => {
+    const next = { ...loadDriveSettings(), ...patch }
     saveDriveSettings(next)
     setDriveSettings(next)
   }, [])
@@ -442,10 +475,120 @@ export function DataProvider({ children }: { children: ReactNode }) {
         transactions,
         partners: recomputePartners(transactions),
       }
-      await persistVersion(next, 'quick-add', `Quick add: ${row.description || row.category}`)
+
+      if (typeof navigator !== 'undefined' && !navigator.onLine) {
+        enqueueOffline({
+          kind: 'quick_add',
+          payload: { input, next },
+        })
+        apply(next, dataOrigin || 'local')
+        setPendingOffline(offlineQueueCount())
+        return
+      }
+
+      try {
+        await persistVersion(next, 'quick-add', `Quick add: ${row.description || row.category}`)
+      } catch (e) {
+        if (cloudEnabled) {
+          enqueueOffline({ kind: 'quick_add', payload: { input, next } })
+          apply(next, dataOrigin || 'local')
+          setPendingOffline(offlineQueueCount())
+          return
+        }
+        throw e
+      }
     },
-    [persistVersion, snapshot],
+    [apply, cloudEnabled, dataOrigin, persistVersion, snapshot],
   )
+
+  const flushOfflineQueue = useCallback(async () => {
+    if (!navigator.onLine) return
+    const ops = peekOfflineQueue()
+    const still = []
+    for (const op of ops) {
+      if (op.kind !== 'quick_add') {
+        still.push(op)
+        continue
+      }
+      try {
+        const payload = op.payload as { next?: Snapshot }
+        if (payload.next) {
+          await persistVersion(
+            payload.next,
+            'quick-add',
+            'Synced from offline queue',
+          )
+        }
+      } catch {
+        still.push(op)
+      }
+    }
+    replaceOfflineQueue(still)
+    setPendingOffline(offlineQueueCount())
+  }, [persistVersion])
+
+  useEffect(() => {
+    const on = () => void flushOfflineQueue()
+    window.addEventListener('online', on)
+    return () => window.removeEventListener('online', on)
+  }, [flushOfflineQueue])
+
+  // Scheduled Drive auto-pull (browser must stay open)
+  useEffect(() => {
+    if (!driveSettings.autoPullEnabled || !driveSettings.url || !isJeeva) return
+    let busy = false
+    const tick = async () => {
+      if (busy || !navigator.onLine) return
+      if (!isPullDue(driveSettings)) return
+      busy = true
+      setAutoPullStatus('Auto-pulling Excel from Drive…')
+      try {
+        const prepared = await pullFromDrive('merge')
+        if (driveSettings.autoPublish) {
+          await publishSnapshot(prepared.candidate, {
+            password: '',
+            mode: 'merge',
+            note: 'Scheduled Drive auto-pull',
+            trustedSession: true,
+            force: !prepared.report.ok,
+          })
+          setAutoPullStatus('Auto-pulled and published from Drive.')
+        } else {
+          setAutoPullStatus('Drive auto-pull ready — open Upload to review & publish.')
+          try {
+            sessionStorage.setItem(
+              'nasta-pending-drive-pull',
+              JSON.stringify({
+                at: new Date().toISOString(),
+                summary: prepared.report.summary,
+              }),
+            )
+          } catch {
+            /* ignore */
+          }
+        }
+      } catch (e) {
+        setAutoPullStatus(
+          e instanceof Error ? `Auto-pull failed: ${e.message}` : 'Auto-pull failed',
+        )
+      } finally {
+        busy = false
+        setDriveSettings(loadDriveSettings())
+      }
+    }
+    void tick()
+    const id = window.setInterval(() => void tick(), 5 * 60 * 1000)
+    return () => window.clearInterval(id)
+  }, [
+    driveSettings.autoPullEnabled,
+    driveSettings.autoPullHours,
+    driveSettings.autoPublish,
+    driveSettings.url,
+    driveSettings.lastPulledAt,
+    isJeeva,
+    pullFromDrive,
+    publishSnapshot,
+  ])
 
   const metrics = useMemo(
     () => (snapshot ? computeMetrics(snapshot) : null),
@@ -462,6 +605,8 @@ export function DataProvider({ children }: { children: ReactNode }) {
     lastSynced: snapshot?.uploadedAt ?? null,
     versions,
     driveSettings,
+    pendingOffline,
+    autoPullStatus,
     refresh,
     refreshVersions,
     prepareUpload,
@@ -470,6 +615,8 @@ export function DataProvider({ children }: { children: ReactNode }) {
     restoreVersion,
     pullFromDrive,
     saveDriveUrl,
+    saveDriveSettingsPatch,
+    flushOfflineQueue,
     quickAddTransaction,
   }
 

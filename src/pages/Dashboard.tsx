@@ -28,11 +28,13 @@ import { KpiCard } from '../components/KpiCard'
 import { Money } from '../components/Money'
 import { MotionCard, Stagger } from '../components/MotionCard'
 import { EmptyState, SkeletonPage } from '../components/Skeleton'
+import { useAuth } from '../context/AuthContext'
 import { useData } from '../context/DataContext'
+import { useExtras } from '../context/ExtrasContext'
 import { useLocale } from '../context/LocaleContext'
+import { canManageUploads } from '../lib/authAllowlist'
 import { buildCalendarCards } from '../lib/calendar'
 import { exportElementPdf, exportElementPng } from '../lib/exportReport'
-import { loadWeather } from '../lib/extrasStore'
 import { germanyTodayYmd } from '../lib/germanyTime'
 import { computeMetrics } from '../lib/metrics'
 import { addSavedView, loadSavedViews, removeSavedView } from '../lib/savedViews'
@@ -43,6 +45,9 @@ type EventPulseFilter = 'all' | 'completed' | 'upcoming'
 
 export function Dashboard() {
   const { snapshot, loading, error, cloudEnabled, refresh } = useData()
+  const { weather } = useExtras()
+  const { user } = useAuth()
+  const canUpload = canManageUploads(user)
   const { tr } = useLocale()
   const reportRef = useRef<HTMLDivElement>(null)
   const [months, setMonths] = useState<string[]>([])
@@ -108,8 +113,8 @@ export function Dashboard() {
 
   const eventCards = useMemo(() => {
     if (!snapshot || !metrics) return []
-    return buildCalendarCards(snapshot, metrics, loadWeather())
-  }, [snapshot, metrics])
+    return buildCalendarCards(snapshot, metrics, weather)
+  }, [snapshot, metrics, weather])
 
   const completedCards = useMemo(
     () => eventCards.filter((c) => c.event.status === 'Completed'),
@@ -244,11 +249,17 @@ export function Dashboard() {
     return (
       <EmptyState
         title="No snapshot yet"
-        body="Upload your Excel tracker to publish live KPIs for every machine."
+        body={
+          canUpload
+            ? 'Upload your Excel tracker to publish live KPIs for every machine.'
+            : 'Ask Jeeva to upload the Excel tracker so live KPIs appear for everyone.'
+        }
         action={
-          <Link className="btn" to="/upload">
-            Upload Excel <ArrowUpRight size={16} style={{ marginLeft: 6, verticalAlign: -2 }} />
-          </Link>
+          canUpload ? (
+            <Link className="btn" to="/upload">
+              Upload Excel <ArrowUpRight size={16} style={{ marginLeft: 6, verticalAlign: -2 }} />
+            </Link>
+          ) : undefined
         }
       />
     )

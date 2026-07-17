@@ -1,5 +1,6 @@
 import {
   CloudDownload,
+  GitCompare,
   History,
   Link2,
   ShieldAlert,
@@ -9,13 +10,16 @@ import { useCallback, useMemo, useState, type DragEvent } from 'react'
 import { Link } from 'react-router-dom'
 import { MotionCard } from '../components/MotionCard'
 import { useData } from '../context/DataContext'
+import { useDemoMode } from '../context/DemoModeContext'
 import { isPullDue, parseDriveLink } from '../lib/drive'
 import { formatGermanyDateTime } from '../lib/germanyTime'
 import type { UploadMode } from '../lib/merge'
+import { diffSnapshots, summarizeDiff } from '../lib/snapshotDiff'
 import type { ValidationReport } from '../lib/validate'
 import type { Snapshot } from '../types'
 
 export function Upload() {
+  const { isDemo } = useDemoMode()
   const {
     cloudEnabled,
     lastSynced,
@@ -27,6 +31,7 @@ export function Upload() {
     restoreVersion,
     pullFromDrive,
     saveDriveUrl,
+    saveDriveSettingsPatch,
   } = useData()
 
   const [password, setPassword] = useState('')
@@ -42,6 +47,15 @@ export function Upload() {
 
   const driveInfo = useMemo(() => parseDriveLink(driveUrl), [driveUrl])
   const pullDue = isPullDue(driveSettings)
+
+  const previousPayload = versions[0]?.payload ?? null
+  const diffAgainst = candidate || snapshot
+  const diffBase = candidate ? snapshot : previousPayload
+  const diffLines = useMemo(
+    () => diffSnapshots(diffBase, diffAgainst),
+    [diffBase, diffAgainst],
+  )
+  const diffSummary = summarizeDiff(diffLines)
 
   const onDrop = useCallback((e: DragEvent) => {
     e.preventDefault()
@@ -94,9 +108,11 @@ export function Upload() {
         type: 'ok',
         text: force
           ? 'Published with warnings/errors forced. History saved.'
-          : cloudEnabled
-            ? 'Published & synced. Version saved to history.'
-            : 'Published locally. Version saved in this browser.',
+          : isDemo
+            ? 'Published in demo sandbox only — live Excel & cloud unchanged.'
+            : cloudEnabled
+              ? 'Published & synced. Version saved to history.'
+              : 'Published locally. Version saved in this browser.',
       })
       setFile(null)
       setCandidate(null)
@@ -168,7 +184,14 @@ export function Upload() {
         </Link>
       </div>
 
-      {pullDue && driveSettings.url && (
+      {isDemo && (
+        <div className="alert-item demo-banner" style={{ marginBottom: '0.9rem' }}>
+          <strong>Demo sandbox.</strong> Publish and Drive pull stay on this device only — they never
+          overwrite live Excel amounts or sync to the team cloud.
+        </div>
+      )}
+
+      {pullDue && driveSettings.url && !isDemo && (
         <div className="alert-item" style={{ marginBottom: '0.9rem' }}>
           Weekly Drive pull is due
           {driveSettings.lastPulledAt
@@ -326,8 +349,76 @@ export function Upload() {
             <div className="hint-inline" style={{ marginTop: '0.75rem' }}>
               Last pull:{' '}
               {formatGermanyDateTime(driveSettings.lastPulledAt)}
+              {pullDue ? ' · due again' : ''}
             </div>
           )}
+          <div className="filters" style={{ marginTop: '0.85rem' }}>
+            <label className="hint-inline" style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+              <input
+                type="checkbox"
+                checked={driveSettings.autoPullEnabled}
+                onChange={(e) =>
+                  saveDriveSettingsPatch({
+                    url: driveUrl || driveSettings.url,
+                    autoPullEnabled: e.target.checked,
+                  })
+                }
+              />
+              Auto-pull on a schedule (while this browser is open)
+            </label>
+            <div className="field">
+              <label htmlFor="pull-hours">Every (hours)</label>
+              <input
+                id="pull-hours"
+                type="number"
+                min={1}
+                max={168}
+                value={driveSettings.autoPullHours}
+                onChange={(e) =>
+                  saveDriveSettingsPatch({
+                    autoPullHours: Math.max(1, Number(e.target.value) || 24),
+                  })
+                }
+              />
+            </div>
+            <label className="hint-inline" style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+              <input
+                type="checkbox"
+                checked={driveSettings.autoPublish}
+                onChange={(e) => saveDriveSettingsPatch({ autoPublish: e.target.checked })}
+              />
+              Auto-publish after scheduled pull (Jeeva session, merge mode)
+            </label>
+          </div>
+        </MotionCard>
+      </div>
+
+      <div style={{ marginBottom: '0.9rem' }}>
+        <MotionCard interactive={false}>
+          <div className="card-head">
+            <h2>
+              <GitCompare size={18} style={{ verticalAlign: -3, marginRight: 6 }} />
+              What changed
+            </h2>
+            <span className="badge">{diffSummary}</span>
+          </div>
+          <p className="hint-inline">
+            {candidate
+              ? 'Comparing current live data → your validated candidate.'
+              : 'Comparing previous upload → current live snapshot.'}
+          </p>
+          <div className="diff-list">
+            {diffLines.length === 0 && (
+              <div className="hint-inline">No differences to show yet.</div>
+            )}
+            {diffLines.slice(0, 60).map((line, i) => (
+              <div key={`${line.kind}-${line.label}-${i}`} className={`diff-line diff-${line.kind}`}>
+                <span className="diff-kind">{line.kind}</span>
+                <strong>{line.label}</strong>
+                {line.detail ? <span className="hint-inline"> — {line.detail}</span> : null}
+              </div>
+            ))}
+          </div>
         </MotionCard>
       </div>
 

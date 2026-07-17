@@ -1,29 +1,37 @@
-import { CloudRain, CloudSun, Package, Plus } from 'lucide-react'
-import { useMemo, useState } from 'react'
+import {
+  CalendarPlus,
+  CloudRain,
+  CloudSun,
+  FileDown,
+  Package,
+  Plus,
+  RefreshCw,
+} from 'lucide-react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Money } from '../components/Money'
 import { MotionCard } from '../components/MotionCard'
 import { EmptyState, SkeletonPage } from '../components/Skeleton'
+import { WeatherIcon } from '../components/WeatherIcon'
 import { useData } from '../context/DataContext'
+import { useExtras } from '../context/ExtrasContext'
 import {
   buildCalendarCards,
   formatDaySpan,
   marksForMonth,
   monthGrid,
 } from '../lib/calendar'
+import { downloadStallBriefingPdf } from '../lib/briefingPdf'
 import { germanyMonthLabel, germanyParts } from '../lib/germanyTime'
+import { downloadIcs, buildStallCalendarIcs } from '../lib/ics'
+import { nextStallCard, platesToBreakEven } from '../lib/homeWidgets'
+import { WEATHER_OPTIONS, type InventoryLine, type WeatherTag } from '../lib/extrasStore'
 import {
-  WEATHER_OPTIONS,
-  addInventoryDish,
-  loadEventInventory,
-  loadInventoryDefs,
-  loadWeather,
-  setEventInventory,
-  setEventWeather,
-  updateInventoryUnitCost,
-  type InventoryItemDef,
-  type InventoryLine,
-  type WeatherTag,
-} from '../lib/extrasStore'
+  fetchLiveWeatherForStalls,
+  tagToIcon,
+  type LiveDayWeather,
+  type LiveWeatherByDate,
+} from '../lib/liveWeather'
+import { weatherCallBadge, weatherGoCautionSkip } from '../lib/weatherAdvice'
 
 const PREP_BADGE: Record<string, string> = {
   ready: 'ok',
@@ -36,23 +44,35 @@ type ListFilter = 'all' | 'completed' | 'upcoming'
 
 export function CalendarPage() {
   const { metrics, snapshot, loading } = useData()
+  const {
+    weather,
+    inventoryDefs: defs,
+    inventoryEvents: eventInv,
+    mission,
+    setEventWeather,
+    setEventInventory,
+    updateUnitCost,
+    addDish: addDishExtra,
+    cloudExtras,
+  } = useExtras()
   const berlinNow = germanyParts()
   const [year, setYear] = useState(berlinNow.year)
   const [month, setMonth] = useState(berlinNow.month)
-  const [weather, setWeatherState] = useState(loadWeather)
-  const [invTick, setInvTick] = useState(0)
   const [invEvent, setInvEvent] = useState('')
-  const [defs, setDefs] = useState<InventoryItemDef[]>(() => loadInventoryDefs())
   const [listFilter, setListFilter] = useState<ListFilter>('all')
   const [newDish, setNewDish] = useState('')
   const [newUnit, setNewUnit] = useState('portion')
   const [newCost, setNewCost] = useState(0)
+  const [liveByDate, setLiveByDate] = useState<LiveWeatherByDate>({})
+  const [liveByEventDate, setLiveByEventDate] = useState<Record<string, LiveDayWeather>>({})
+  const [wxLoading, setWxLoading] = useState(false)
+  const [wxError, setWxError] = useState<string | null>(null)
+  const [wxTick, setWxTick] = useState(0)
 
   const cards = useMemo(() => {
     if (!metrics || !snapshot) return []
-    void invTick
     return buildCalendarCards(snapshot, metrics, weather)
-  }, [metrics, snapshot, weather, invTick])
+  }, [metrics, snapshot, weather])
 
   const cells = useMemo(() => monthGrid(year, month), [year, month])
   const byDay = useMemo(() => marksForMonth(cards, year, month), [cards, year, month])
@@ -65,46 +85,96 @@ export function CalendarPage() {
 
   const monthLabel = germanyMonthLabel(year, month)
   const todayParts = germanyParts()
+  const next = useMemo(() => nextStallCard(cards), [cards])
 
-  const eventInv = loadEventInventory()
+  const loadLiveWeather = useCallback(async () => {
+    if (!cards.length) return
+    setWxLoading(true)
+    setWxError(null)
+    try {
+      const stalls = cards
+        .filter((c) => c.event.location && c.dateSpan.length)
+        .map((c) => ({
+          eventId: c.event.id,
+          location: c.event.location,
+          dates: c.dateSpan,
+        }))
+      const result = await fetchLiveWeatherForStalls(stalls)
+      setLiveByDate(result.byDate)
+      setLiveByEventDate(result.byEventDate)
+      if (result.errors.length) setWxError(result.errors[0]!)
+    } catch (e) {
+      setWxError(e instanceof Error ? e.message : 'Could not load live weather')
+    } finally {
+      setWxLoading(false)
+    }
+  }, [cards])
+
+  useEffect(() => {
+    void loadLiveWeather()
+  }, [loadLiveWeather, wxTick])
+
+  const nextLive = useMemo(() => {
+    if (!next?.dateSpan[0]) return null
+    return liveByEventDate[`${next.event.id}|${next.dateSpan[0]}`] || null
+  }, [next, liveByEventDate])
+
+  const nextAdvice = useMemo(
+    () =>
+      weatherGoCautionSkip(
+        next?.weather || nextLive?.tag || '',
+        metrics?.byEvent || [],
+        weather,
+      ),
+    [next, nextLive, metrics, weather],
+  )
+
+  function liveForMark(eventId: string, dayIndex: number, dateSpan: string[]): LiveDayWeather | null {
+    const iso = dateSpan[dayIndex - 1]
+    if (!iso) return null
+    return liveByEventDate[`${eventId}|${iso}`] || liveByDate[iso] || null
+  }
+
+  function applyLiveTags() {
+    for (const c of cards) {
+      if (c.weather) continue
+      const first = c.dateSpan[0]
+      if (!first) continue
+      const live = liveByEventDate[`${c.event.id}|${first}`]
+      if (live?.tag) setEventWeather(c.event.id, live.tag)
+    }
+  }
+
   const activeInvId = invEvent || cards[0]?.event.id || ''
   const activeCard = cards.find((c) => c.event.id === activeInvId) || null
   const activeLines = eventInv[activeInvId] || []
 
   function changeWeather(eventId: string, tag: WeatherTag) {
     setEventWeather(eventId, tag)
-    setWeatherState(loadWeather())
   }
 
-  function syncLines(nextDefs: InventoryItemDef[], mutate: (lines: InventoryLine[]) => InventoryLine[]) {
+  function syncLines(mutate: (lines: InventoryLine[]) => InventoryLine[]) {
     if (!activeInvId) return
-    const base = nextDefs.map((d) => {
+    const base = defs.map((d) => {
       const existing = activeLines.find((l) => l.itemId === d.id)
       return { itemId: d.id, qty: existing?.qty || 0 }
     })
     setEventInventory(activeInvId, mutate(base))
-    setInvTick((t) => t + 1)
   }
 
   function setQty(itemId: string, qty: number) {
-    syncLines(defs, (lines) =>
-      lines.map((l) => (l.itemId === itemId ? { ...l, qty } : l)),
-    )
+    syncLines((lines) => lines.map((l) => (l.itemId === itemId ? { ...l, qty } : l)))
   }
 
   function setUnitCost(itemId: string, unitCost: number) {
-    const next = updateInventoryUnitCost(itemId, unitCost)
-    setDefs(next)
-    setInvTick((t) => t + 1)
+    updateUnitCost(itemId, unitCost)
   }
 
   function addDish() {
-    const next = addInventoryDish(newDish, newUnit, newCost)
-    setDefs(next)
+    addDishExtra(newDish, newUnit, newCost)
     setNewDish('')
     setNewUnit('portion')
     setNewCost(0)
-    setInvTick((t) => t + 1)
   }
 
   if (loading) return <SkeletonPage />
@@ -133,10 +203,48 @@ export function CalendarPage() {
         <div>
           <h1>Calendar</h1>
           <p>
-            Multi-day stalls show every day (Day 1/3 …). Track weather, inventory, spend &amp; gain.
+            Multi-day stalls show every day (Day 1/3 …). Track weather, inventory, spend &amp; gain
+            {cloudExtras ? ' — synced to the team cloud.' : '.'}
           </p>
         </div>
         <div className="page-actions">
+          <button
+            className="btn ghost"
+            type="button"
+            title="Add stalls to phone calendar"
+            onClick={() => {
+              const ics = buildStallCalendarIcs(snapshot.events)
+              downloadIcs(ics)
+            }}
+          >
+            <CalendarPlus size={16} /> .ics
+          </button>
+          {next && (
+            <button
+              className="btn ghost"
+              type="button"
+              onClick={() =>
+                downloadStallBriefingPdf({
+                  card: next,
+                  mission: mission || next.prepNotes[0] || 'Protect the float.',
+                  weatherAdvice: nextAdvice,
+                  platesNeeded: platesToBreakEven(next.event, 8),
+                })
+              }
+            >
+              <FileDown size={16} /> Briefing PDF
+            </button>
+          )}
+          <button
+            className="btn ghost"
+            type="button"
+            title="Refresh live weather"
+            disabled={wxLoading}
+            onClick={() => setWxTick((t) => t + 1)}
+          >
+            <RefreshCw size={16} className={wxLoading ? 'spin' : undefined} />
+            Weather
+          </button>
           <button className="btn ghost" type="button" onClick={() => shiftMonth(-1)}>
             ←
           </button>
@@ -147,11 +255,51 @@ export function CalendarPage() {
         </div>
       </div>
 
+      {next && (
+        <div className="alert-item" style={{ marginBottom: '0.75rem' }}>
+          {nextLive ? (
+            <WeatherIcon
+              kind={nextLive.icon}
+              size="md"
+              title={`${nextLive.label}${nextLive.tempMax != null ? ` · ${Math.round(nextLive.tempMax)}°C` : ''}`}
+            />
+          ) : (
+            <CloudRain size={14} style={{ verticalAlign: -2, marginRight: 6 }} />
+          )}{' '}
+          <span className={`badge ${weatherCallBadge(nextAdvice.call)}`} style={{ marginRight: 8 }}>
+            {nextAdvice.call.toUpperCase()}
+          </span>
+          <strong>{nextAdvice.title}</strong> — {nextAdvice.line}
+          {nextLive && (
+            <span className="hint-inline" style={{ marginLeft: 8 }}>
+              Live: {nextLive.label}
+              {nextLive.tempMax != null ? ` · ${Math.round(nextLive.tempMax)}°C` : ''}
+            </span>
+          )}
+        </div>
+      )}
+
+      {wxError && (
+        <div className="alert-item" style={{ marginBottom: '0.75rem' }}>
+          {wxError}
+        </div>
+      )}
+
       <MotionCard interactive={false} className="cal-card">
-        <p className="hint-inline" style={{ marginBottom: '0.65rem' }}>
-          Multi-day events (3–4 days) are marked on <strong>every</strong> stall day — not only the
-          start. Labels show Day 1/3, Day 2/3, …
-        </p>
+        <div className="card-head" style={{ marginBottom: '0.45rem' }}>
+          <p className="hint-inline" style={{ margin: 0 }}>
+            Live weather icons from Open-Meteo (by stall location). Manual tags still editable below.
+          </p>
+          <button
+            type="button"
+            className="btn ghost"
+            style={{ padding: '0.25rem 0.55rem', fontSize: '0.75rem' }}
+            onClick={applyLiveTags}
+            disabled={!Object.keys(liveByEventDate).length}
+          >
+            Fill empty tags from live
+          </button>
+        </div>
         <div className="cal-weekdays">
           {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((d) => (
             <div key={d}>{d}</div>
@@ -164,34 +312,64 @@ export function CalendarPage() {
               day === todayParts.day &&
               month === todayParts.month &&
               year === todayParts.year
+            const isoDay =
+              day != null
+                ? `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`
+                : null
+            const dayWx = isoDay ? liveByDate[isoDay] : null
+            const firstMarkWx =
+              dayMarks[0] &&
+              liveForMark(dayMarks[0].card.event.id, dayMarks[0].dayIndex, dayMarks[0].card.dateSpan)
+            const cellWx = firstMarkWx || dayWx
             return (
               <div
                 key={i}
                 className={`cal-cell ${day ? '' : 'is-empty'} ${isToday ? 'is-today' : ''}`}
               >
-                {day != null && <div className="cal-daynum">{day}</div>}
-                {dayMarks.map((m) => (
-                  <div
-                    key={`${m.card.event.id}-${m.dayIndex}`}
-                    className={`cal-pill prep-${m.card.prep} role-${m.role} ${m.totalDays > 1 ? 'is-multi' : ''}`}
-                    title={`${m.card.event.location} · ${formatDaySpan(m.totalDays, m.card.event.startDate, m.card.event.endDate)}`}
-                  >
-                    <strong>
-                      {m.card.event.id}
-                      {m.totalDays > 1 ? ` · D${m.dayIndex}/${m.totalDays}` : ''}
-                    </strong>
-                    <span>{m.card.event.location.slice(0, 12)}</span>
-                    {m.totalDays > 1 && (
-                      <span className="cal-pill-role">
-                        {m.role === 'start'
-                          ? 'Start'
-                          : m.role === 'end'
-                            ? 'End'
-                            : `Day ${m.dayIndex}`}
-                      </span>
+                {day != null && (
+                  <div className="cal-daynum">
+                    <span>{day}</span>
+                    {cellWx && (
+                      <WeatherIcon
+                        kind={cellWx.icon}
+                        title={`${cellWx.label}${cellWx.tempMax != null ? ` · ${Math.round(cellWx.tempMax)}°C` : ''}${cellWx.precipMm != null ? ` · ${cellWx.precipMm}mm` : ''}`}
+                      />
                     )}
                   </div>
-                ))}
+                )}
+                {dayMarks.map((m) => {
+                  const wx =
+                    liveForMark(m.card.event.id, m.dayIndex, m.card.dateSpan) ||
+                    null
+                  const fallbackIcon = tagToIcon(m.card.weather)
+                  const iconKind = wx?.icon || fallbackIcon
+                  const tip = wx
+                    ? `${wx.label}${wx.tempMax != null ? ` · ${Math.round(wx.tempMax)}°C` : ''}`
+                    : m.card.weather || undefined
+                  return (
+                    <div
+                      key={`${m.card.event.id}-${m.dayIndex}`}
+                      className={`cal-pill prep-${m.card.prep} role-${m.role} ${m.totalDays > 1 ? 'is-multi' : ''}`}
+                      title={`${m.card.event.location} · ${formatDaySpan(m.totalDays, m.card.event.startDate, m.card.event.endDate)}${tip ? ` · ${tip}` : ''}`}
+                    >
+                      <strong className="cal-pill__title">
+                        {iconKind && <WeatherIcon kind={iconKind} title={tip} />}
+                        {m.card.event.id}
+                        {m.totalDays > 1 ? ` · D${m.dayIndex}/${m.totalDays}` : ''}
+                      </strong>
+                      <span>{m.card.event.location.slice(0, 12)}</span>
+                      {m.totalDays > 1 && (
+                        <span className="cal-pill-role">
+                          {m.role === 'start'
+                            ? 'Start'
+                            : m.role === 'end'
+                              ? 'End'
+                              : `Day ${m.dayIndex}`}
+                        </span>
+                      )}
+                    </div>
+                  )
+                })}
               </div>
             )
           })}

@@ -1,28 +1,36 @@
 import { AnimatePresence, motion } from 'framer-motion'
 import {
   Banknote,
+  FlaskConical,
   LayoutDashboard,
   Lightbulb,
   PlusCircle,
   Search,
   Upload,
   Users,
+  Package,
+  ClipboardList,
   CalendarDays,
   CalendarRange,
 } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { useAuth } from '../context/AuthContext'
+import { canManageUploads } from '../lib/authAllowlist'
 import { springSnappy } from '../lib/motion'
 
 const ACTIONS = [
-  { id: 'dash', label: 'Dashboard', hint: 'Overview & KPIs', to: '/', icon: LayoutDashboard },
-  { id: 'events', label: 'Events', hint: 'Scorecards & filters', to: '/events', icon: CalendarDays },
-  { id: 'calendar', label: 'Calendar', hint: 'Prep, weather, inventory', to: '/calendar', icon: CalendarRange },
-  { id: 'partners', label: 'Partners', hint: 'Balances & settlements', to: '/partners', icon: Users },
-  { id: 'cash', label: 'Cash box', hint: 'Ledger vs count', to: '/cash', icon: Banknote },
-  { id: 'insights', label: 'Insights', hint: 'Locations & estimates', to: '/insights', icon: Lightbulb },
-  { id: 'upload', label: 'Upload Excel', hint: 'Publish weekly sheet', to: '/upload', icon: Upload },
-  { id: 'quick', label: 'Quick add', hint: 'Log expense on the go', to: '/quick-add', icon: PlusCircle },
+  { id: 'dash', label: 'Dashboard', hint: 'Overview & KPIs', to: '/', icon: LayoutDashboard, uploadOnly: false },
+  { id: 'events', label: 'Events', hint: 'Scorecards & filters', to: '/events', icon: CalendarDays, uploadOnly: false },
+  { id: 'calendar', label: 'Calendar', hint: 'Prep, weather, inventory', to: '/calendar', icon: CalendarRange, uploadOnly: false },
+  { id: 'partners', label: 'Partners', hint: 'Balances & settlements', to: '/partners', icon: Users, uploadOnly: false },
+  { id: 'cash', label: 'Cash box', hint: 'Ledger vs count', to: '/cash', icon: Banknote, uploadOnly: false },
+  { id: 'insights', label: 'Insights', hint: 'Locations & estimates', to: '/insights', icon: Lightbulb, uploadOnly: false },
+  { id: 'stock', label: 'Stall stock', hint: 'Buy / use / remaining', to: '/stock', icon: Package, uploadOnly: false },
+  { id: 'orders', label: 'Orders', hint: 'Pending tickets & sold count', to: '/orders', icon: ClipboardList, uploadOnly: false },
+  { id: 'playground', label: 'Playground', hint: 'Safe demo — try features without touching live data', to: '/playground', icon: FlaskConical, uploadOnly: false },
+  { id: 'upload', label: 'Upload Excel', hint: 'Publish weekly sheet', to: '/upload', icon: Upload, uploadOnly: true },
+  { id: 'quick', label: 'Quick add', hint: 'Log expense on the go', to: '/quick-add', icon: PlusCircle, uploadOnly: false },
 ]
 
 export function CommandPalette({
@@ -33,6 +41,8 @@ export function CommandPalette({
   onClose: () => void
 }) {
   const navigate = useNavigate()
+  const { user } = useAuth()
+  const canUpload = canManageUploads(user)
   const [q, setQ] = useState('')
 
   useEffect(() => {
@@ -49,14 +59,15 @@ export function CommandPalette({
   }, [open, onClose])
 
   const items = useMemo(() => {
+    const allowed = ACTIONS.filter((a) => !a.uploadOnly || canUpload)
     const query = q.trim().toLowerCase()
-    if (!query) return ACTIONS
-    return ACTIONS.filter(
+    if (!query) return allowed
+    return allowed.filter(
       (a) =>
         a.label.toLowerCase().includes(query) ||
         a.hint.toLowerCase().includes(query),
     )
-  }, [q])
+  }, [q, canUpload])
 
   function run(to: string) {
     navigate(to)

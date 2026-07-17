@@ -1,4 +1,4 @@
-import { Banknote, Coins, Diff, WalletCards } from 'lucide-react'
+import { Banknote, Coins, Diff, ShoppingBag, WalletCards } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import {
   Bar,
@@ -16,9 +16,11 @@ import { Money } from '../components/Money'
 import { MotionCard, Stagger } from '../components/MotionCard'
 import { EmptyState, SkeletonPage } from '../components/Skeleton'
 import { useData } from '../context/DataContext'
+import { useStallOps } from '../context/StallOpsContext'
 import { useLocale } from '../context/LocaleContext'
 import { countCash, denomValue, isLedgerEventId } from '../lib/cash'
 import { explainCashMismatch } from '../lib/mismatch'
+import { liveCashCounted, summarizePosCashToday } from '../lib/posCash'
 import type { EventCashCount, EventRow } from '../types'
 
 /** Latest completed stall that has an Event Cash Box row. */
@@ -48,10 +50,13 @@ function latestCompletedCashEventId(
 
 export function Cash() {
   const { metrics, snapshot, loading } = useData()
+  const { orders } = useStallOps()
   const { tr } = useLocale()
   const [eventFilter, setEventFilter] = useState('all')
   const [typeFilter, setTypeFilter] = useState('all')
   const [countEvent, setCountEvent] = useState('')
+
+  const posToday = useMemo(() => summarizePosCashToday(orders), [orders])
 
   const ledgerRows = useMemo(() => {
     if (!snapshot) return []
@@ -124,56 +129,120 @@ export function Cash() {
   const mismatchBad = Math.abs(metrics.cashMismatch) > 5
   const reserve = snapshot.coinReserve || []
   const reserveTotal = metrics.coinReserveTotal || countCash(reserve)
+  const excelCounted = metrics.cashCounted
+  const liveCounted = liveCashCounted(excelCounted, posToday.netIn)
+  const liveWithPaypal = liveCounted + (snapshot.paypalBalance || 0)
+  const eventLive =
+    activeCount != null
+      ? Math.round((activeCount.beforeCash + posToday.netIn) * 100) / 100
+      : null
 
   return (
     <>
       <div className="page-head">
         <div>
           <h1>{tr('cashBox')}</h1>
-          <p>Main box, coin reserve, event before/after counts, and mismatch clues.</p>
+          <p>
+            Main box, coin reserve, event counts — plus live POS cash (customer paid − change).
+          </p>
         </div>
         <span className={`badge ${mismatchBad ? 'warn' : 'ok'}`}>
           {mismatchBad ? tr('mismatch') : 'Cash + PayPal matches ledger'}
         </span>
       </div>
 
-      <Stagger className="grid kpi">
-        <KpiCard
-          label={tr('mainBox')}
-          value={metrics.mainBoxTotal || metrics.cashWithPaypal}
-          icon={WalletCards}
-          tone="neutral"
-          hint="Ledger / mit PayPal"
-        />
-        <KpiCard
-          label={tr('coinReserve')}
-          value={reserveTotal}
-          icon={Coins}
-          tone="accent"
-          hint={`${reserve.length} denominations`}
-        />
-        <KpiCard
-          label={tr('allBoxes')}
-          value={metrics.allBoxesTotal || metrics.cashWithPaypal + reserveTotal}
-          icon={Banknote}
-          tone="positive"
-          hint="Main + reserve"
-        />
-        <KpiCard
-          label={tr('mismatch')}
-          value={metrics.cashMismatch}
-          icon={Diff}
-          tone={mismatchBad ? 'negative' : 'positive'}
-          hint={explain?.headline}
-          format={(n) =>
-            new Intl.NumberFormat('de-DE', {
-              style: 'currency',
-              currency: 'EUR',
-              signDisplay: 'exceptZero',
-            }).format(n)
-          }
-        />
-      </Stagger>
+      <MotionCard interactive={false} className="pos-cash-banner">
+        <div className="card-head">
+          <h2>
+            <ShoppingBag size={18} style={{ verticalAlign: -3, marginRight: 6 }} />
+            Live cash count (today)
+          </h2>
+          <span className="badge ok">{posToday.orderCount} POS orders</span>
+        </div>
+        <div className="grid kpi" style={{ marginTop: '0.65rem' }}>
+          <div>
+            <div className="kpi-label">Excel cash counted</div>
+            <div className="kpi-value">
+              <Money value={excelCounted} />
+            </div>
+            <div className="hint-inline">Last physical count from Excel</div>
+          </div>
+          <div>
+            <div className="kpi-label">POS cash in today</div>
+            <div className="kpi-value">
+              <Money value={posToday.netIn} signed colored />
+            </div>
+            <div className="hint-inline">
+              Paid <Money value={posToday.paidTotal} /> − change returned{' '}
+              <Money value={posToday.changeReturned} />
+            </div>
+          </div>
+          <div>
+            <div className="kpi-label">Live main-box estimate</div>
+            <div className="kpi-value">
+              <Money value={liveCounted} />
+            </div>
+            <div className="hint-inline">
+              Excel count + POS net · with PayPal <Money value={liveWithPaypal} />
+            </div>
+          </div>
+          {eventLive != null && (
+            <div>
+              <div className="kpi-label">Live event cash ({activeCount?.eventId})</div>
+              <div className="kpi-value">
+                <Money value={eventLive} />
+              </div>
+              <div className="hint-inline">
+                Start/before <Money value={activeCount!.beforeCash} /> + POS today
+              </div>
+            </div>
+          )}
+        </div>
+        <p className="hint-inline" style={{ marginTop: '0.75rem' }}>
+          Excel remains the official recount. At stall end, count notes/coins in Excel and publish —
+          this live figure is for during the day.
+        </p>
+      </MotionCard>
+
+      <div style={{ marginTop: '0.9rem' }}>
+        <Stagger className="grid kpi">
+          <KpiCard
+            label={tr('mainBox')}
+            value={metrics.mainBoxTotal || metrics.cashWithPaypal}
+            icon={WalletCards}
+            tone="neutral"
+            hint="Ledger / mit PayPal"
+          />
+          <KpiCard
+            label={tr('coinReserve')}
+            value={reserveTotal}
+            icon={Coins}
+            tone="accent"
+            hint={`${reserve.length} denominations`}
+          />
+          <KpiCard
+            label="Live cash + PayPal"
+            value={liveWithPaypal}
+            icon={Banknote}
+            tone="positive"
+            hint="Excel count + POS today + PayPal"
+          />
+          <KpiCard
+            label={tr('mismatch')}
+            value={metrics.cashMismatch}
+            icon={Diff}
+            tone={mismatchBad ? 'negative' : 'positive'}
+            hint={explain?.headline}
+            format={(n) =>
+              new Intl.NumberFormat('de-DE', {
+                style: 'currency',
+                currency: 'EUR',
+                signDisplay: 'exceptZero',
+              }).format(n)
+            }
+          />
+        </Stagger>
+      </div>
 
       {explain && explain.direction !== 'ok' && (
         <MotionCard interactive={false}>

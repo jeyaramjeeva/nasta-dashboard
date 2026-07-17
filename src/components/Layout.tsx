@@ -3,10 +3,13 @@ import {
   Banknote,
   CalendarDays,
   CalendarRange,
+  ClipboardList,
+  FlaskConical,
   LayoutDashboard,
   Lightbulb,
   LogOut,
   Moon,
+  Package,
   PanelLeftClose,
   PanelLeftOpen,
   PlusCircle,
@@ -20,22 +23,27 @@ import { useEffect, useMemo, useState } from 'react'
 import { Link, NavLink, Outlet, useLocation } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { useData } from '../context/DataContext'
+import { useDemoMode } from '../context/DemoModeContext'
+import { useExtras } from '../context/ExtrasContext'
 import { useLocale } from '../context/LocaleContext'
 import { useTheme } from '../context/ThemeContext'
+import { canManageUploads } from '../lib/authAllowlist'
 import { formatGermanyDateTime } from '../lib/germanyTime'
-import { springSoft } from '../lib/motion'
 import { AmbientBackground } from './AmbientBackground'
 import { CommandPalette } from './CommandPalette'
 
 const links = [
-  { to: '/', label: 'Dashboard', icon: LayoutDashboard },
-  { to: '/events', label: 'Events', icon: CalendarDays },
-  { to: '/calendar', label: 'Calendar', icon: CalendarRange },
-  { to: '/partners', label: 'Partners', icon: Users },
-  { to: '/cash', label: 'Cash box', icon: Banknote },
-  { to: '/insights', label: 'Insights', icon: Lightbulb },
-  { to: '/upload', label: 'Upload', icon: Upload },
-  { to: '/quick-add', label: 'Quick add', icon: PlusCircle },
+  { to: '/', label: 'Dashboard', icon: LayoutDashboard, uploadOnly: false },
+  { to: '/events', label: 'Events', icon: CalendarDays, uploadOnly: false },
+  { to: '/calendar', label: 'Calendar', icon: CalendarRange, uploadOnly: false },
+  { to: '/partners', label: 'Partners', icon: Users, uploadOnly: false },
+  { to: '/cash', label: 'Cash box', icon: Banknote, uploadOnly: false },
+  { to: '/insights', label: 'Insights', icon: Lightbulb, uploadOnly: false },
+  { to: '/stock', label: 'Stock', icon: Package, uploadOnly: false },
+  { to: '/orders', label: 'Orders', icon: ClipboardList, uploadOnly: false },
+  { to: '/upload', label: 'Upload', icon: Upload, uploadOnly: true },
+  { to: '/quick-add', label: 'Quick add', icon: PlusCircle, uploadOnly: false },
+  { to: '/playground', label: 'Playground', icon: FlaskConical, uploadOnly: false },
 ]
 
 function formatWhen(iso: string | null) {
@@ -44,11 +52,28 @@ function formatWhen(iso: string | null) {
 }
 
 export function Layout() {
-  const { lastSynced, cloudEnabled, dataOrigin, loading, refresh } = useData()
+  const {
+    lastSynced,
+    cloudEnabled,
+    dataOrigin,
+    loading,
+    refresh,
+    pendingOffline,
+    autoPullStatus,
+    flushOfflineQueue,
+  } = useData()
+  const { pendingOps, flushOfflineQueue: flushExtras } = useExtras()
   const { user, signOut } = useAuth()
+  const { isDemo, exitDemo, resetDemo } = useDemoMode()
   const { resolved, mode, cycleMode } = useTheme()
   const { locale, toggleLocale, tr } = useLocale()
   const location = useLocation()
+  const canUpload = canManageUploads(user)
+  const queued = pendingOffline + pendingOps
+  const navLinks = useMemo(
+    () => links.filter((l) => !l.uploadOnly || canUpload),
+    [canUpload],
+  )
   const [collapsed, setCollapsed] = useState(false)
   const [cmdOpen, setCmdOpen] = useState(false)
   const [online, setOnline] = useState(
@@ -65,13 +90,6 @@ export function Layout() {
       window.removeEventListener('offline', off)
     }
   }, [])
-
-  const activeIndex = useMemo(() => {
-    const idx = links.findIndex((l) =>
-      l.to === '/' ? location.pathname === '/' : location.pathname.startsWith(l.to),
-    )
-    return Math.max(0, idx)
-  }, [location.pathname])
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -104,12 +122,7 @@ export function Layout() {
           </div>
 
           <nav className="nav">
-            <motion.div
-              className="nav-active"
-              animate={{ y: activeIndex * 48 }}
-              transition={springSoft}
-            />
-            {links.map((l) => (
+            {navLinks.map((l) => (
               <NavLink
                 key={l.to}
                 to={l.to}
@@ -164,7 +177,9 @@ export function Layout() {
                 </button>
               </div>
             )}
-            <div>{cloudEnabled ? 'Cloud sync on' : 'Local + seed mode'}</div>
+            <div>
+              {isDemo ? 'Demo sandbox' : cloudEnabled ? 'Cloud sync on' : 'Local + seed mode'}
+            </div>
             <div style={{ marginTop: 4 }}>
               {loading ? 'Syncing…' : `Updated ${formatWhen(lastSynced)}`}
             </div>
@@ -177,20 +192,76 @@ export function Layout() {
         </aside>
 
         <main className="main">
-          {!online && (
-            <div className="alert-item" style={{ marginBottom: '0.75rem' }}>
-              {tr('offline')}
+          {isDemo && (
+            <div className="alert-item demo-banner" style={{ marginBottom: '0.75rem' }}>
+              <FlaskConical size={14} style={{ verticalAlign: -2, marginRight: 6 }} />
+              <strong>Demo mode</strong> — practice sandbox only. Live Excel, cash, and cloud data
+              stay untouched.{' '}
+              <button
+                type="button"
+                className="btn ghost"
+                style={{ display: 'inline', padding: '0.15rem 0.5rem' }}
+                onClick={resetDemo}
+              >
+                Reset
+              </button>{' '}
+              <button
+                type="button"
+                className="btn ghost"
+                style={{ display: 'inline', padding: '0.15rem 0.5rem' }}
+                onClick={exitDemo}
+              >
+                Exit demo
+              </button>
             </div>
           )}
-          {dataOrigin === 'seed' && (
+          {!isDemo && !online && (
             <div className="alert-item" style={{ marginBottom: '0.75rem' }}>
-              Showing <strong>sample seed data</strong> (old demo file). Upload your latest Excel
-              on{' '}
-              <Link to="/upload" style={{ fontWeight: 700, color: 'var(--accent)' }}>
-                Upload
-              </Link>{' '}
-              → choose <strong>Replace</strong> → publish with password{' '}
-              <code>Nasta998#</code>. A localhost upload does not update this website.
+              {tr('offline')}
+              {queued > 0 ? ` · ${queued} change${queued === 1 ? '' : 's'} queued` : ''}
+            </div>
+          )}
+          {!isDemo && online && queued > 0 && (
+            <div className="alert-item" style={{ marginBottom: '0.75rem' }}>
+              {queued} offline change{queued === 1 ? '' : 's'} waiting.{' '}
+              <button
+                type="button"
+                className="btn ghost"
+                style={{ display: 'inline', padding: '0.15rem 0.5rem' }}
+                onClick={() => {
+                  void flushOfflineQueue()
+                  void flushExtras()
+                }}
+              >
+                Sync now
+              </button>
+            </div>
+          )}
+          {!isDemo && autoPullStatus && (
+            <div className="alert-item" style={{ marginBottom: '0.75rem' }}>
+              {autoPullStatus}
+            </div>
+          )}
+          {dataOrigin === 'seed' && !isDemo && (
+            <div className="alert-item" style={{ marginBottom: '0.75rem' }}>
+              Showing <strong>sample seed data</strong> (old demo file).{' '}
+              {canUpload ? (
+                <>
+                  Upload your latest Excel on{' '}
+                  <Link to="/upload" style={{ fontWeight: 700, color: 'var(--accent)' }}>
+                    Upload
+                  </Link>{' '}
+                  → choose <strong>Replace</strong> → publish with password{' '}
+                  <code>Nasta998#</code>. A localhost upload does not update this website.
+                </>
+              ) : (
+                <>Ask Jeeva to publish the latest Excel so everyone sees live numbers.</>
+              )}
+            </div>
+          )}
+          {isDemo && dataOrigin === 'seed' && (
+            <div className="hint-inline" style={{ marginBottom: '0.65rem' }}>
+              Demo uses sample stall numbers so you can click around safely.
             </div>
           )}
           <div className="topbar">
