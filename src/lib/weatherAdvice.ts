@@ -63,9 +63,9 @@ export function weatherGoCautionSkip(
     }
   }
   return {
-    call: 'caution',
-    title: 'Tag the weather',
-    line: 'Mark sunny / rainy on Calendar so the tip can learn from past stalls.',
+    call: 'go',
+    title: 'No weather tag yet',
+    line: 'Optional: mark sunny / rainy on Calendar so tips can learn from past stalls.',
   }
 }
 

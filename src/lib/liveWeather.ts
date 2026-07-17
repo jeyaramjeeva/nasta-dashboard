@@ -31,7 +31,10 @@ const CITY_FALLBACK: Record<string, GeoPoint> = {
   berlin: { name: 'Berlin', lat: 52.52, lon: 13.405 },
   hamburg: { name: 'Hamburg', lat: 53.551, lon: 9.994 },
   köln: { name: 'Köln', lat: 50.938, lon: 6.96 },
+  koln: { name: 'Köln', lat: 50.938, lon: 6.96 },
   cologne: { name: 'Köln', lat: 50.938, lon: 6.96 },
+  wilhelmplatz: { name: 'Köln', lat: 50.938, lon: 6.96 },
+  krefeld: { name: 'Krefeld', lat: 51.339, lon: 6.585 },
   frankfurt: { name: 'Frankfurt', lat: 50.11, lon: 8.682 },
   stuttgart: { name: 'Stuttgart', lat: 48.776, lon: 9.177 },
   düsseldorf: { name: 'Düsseldorf', lat: 51.227, lon: 6.774 },
@@ -127,29 +130,33 @@ export async function geocodeLocation(location: string): Promise<GeoPoint | null
   if (cache[cacheKey]) return cache[cacheKey]!
 
   const fallback = guessCityFallback(trimmed)
-  const query = trimmed.split(/[,·|–—-]/)[0]?.trim() || trimmed
+  // Prefer city after comma ("Wilhelmplatz, Köln" → Köln) so stall squares resolve.
+  const parts = trimmed.split(/[,·|]/).map((p) => p.trim()).filter(Boolean)
+  const queries = [...new Set([parts[parts.length - 1], parts[0], trimmed].filter(Boolean))]
 
-  try {
-    const url = new URL('https://geocoding-api.open-meteo.com/v1/search')
-    url.searchParams.set('name', query)
-    url.searchParams.set('count', '1')
-    url.searchParams.set('language', 'de')
-    url.searchParams.set('format', 'json')
-    url.searchParams.set('countryCode', 'DE')
-    const res = await fetch(url.toString())
-    if (!res.ok) throw new Error(`geocode ${res.status}`)
-    const json = (await res.json()) as {
-      results?: { name: string; latitude: number; longitude: number }[]
+  for (const query of queries) {
+    try {
+      const url = new URL('https://geocoding-api.open-meteo.com/v1/search')
+      url.searchParams.set('name', query!)
+      url.searchParams.set('count', '1')
+      url.searchParams.set('language', 'de')
+      url.searchParams.set('format', 'json')
+      url.searchParams.set('countryCode', 'DE')
+      const res = await fetch(url.toString())
+      if (!res.ok) continue
+      const json = (await res.json()) as {
+        results?: { name: string; latitude: number; longitude: number }[]
+      }
+      const hit = json.results?.[0]
+      if (hit) {
+        const point = { name: hit.name, lat: hit.latitude, lon: hit.longitude }
+        cache[cacheKey] = point
+        writeCache(GEO_CACHE, cache)
+        return point
+      }
+    } catch {
+      /* try next query / fallback */
     }
-    const hit = json.results?.[0]
-    if (hit) {
-      const point = { name: hit.name, lat: hit.latitude, lon: hit.longitude }
-      cache[cacheKey] = point
-      writeCache(GEO_CACHE, cache)
-      return point
-    }
-  } catch {
-    /* try fallback */
   }
 
   if (fallback) {
@@ -165,6 +172,53 @@ interface WxCacheEntry {
   days: LiveDayWeather[]
 }
 
+function parseDailyPayload(json: {
+  daily?: {
+    time: string[]
+    weather_code: number[]
+    temperature_2m_max: (number | null)[]
+    precipitation_sum: (number | null)[]
+  }
+}): LiveDayWeather[] {
+  const daily = json.daily
+  if (!daily?.time?.length) return []
+  return daily.time.map((date, i) => {
+    const code = Number(daily.weather_code[i] ?? 3)
+    return {
+      date,
+      code,
+      tempMax: daily.temperature_2m_max[i] ?? null,
+      precipMm: daily.precipitation_sum[i] ?? null,
+      tag: weatherCodeToTag(code),
+      icon: weatherCodeToIcon(code),
+      label: weatherCodeLabel(code),
+    }
+  })
+}
+
+async function fetchDailyFromUrl(url: URL): Promise<LiveDayWeather[]> {
+  const res = await fetch(url.toString())
+  if (!res.ok) throw new Error(`weather ${res.status}`)
+  return parseDailyPayload((await res.json()) as Parameters<typeof parseDailyPayload>[0])
+}
+
+function weatherQueryUrl(
+  base: string,
+  lat: number,
+  lon: number,
+  start: string,
+  end: string,
+): URL {
+  const url = new URL(base)
+  url.searchParams.set('latitude', String(lat))
+  url.searchParams.set('longitude', String(lon))
+  url.searchParams.set('daily', 'weather_code,temperature_2m_max,precipitation_sum')
+  url.searchParams.set('timezone', 'Europe/Berlin')
+  url.searchParams.set('start_date', start)
+  url.searchParams.set('end_date', end)
+  return url
+}
+
 async function fetchDailyRange(
   lat: number,
   lon: number,
@@ -178,45 +232,32 @@ async function fetchDailyRange(
 
   const today = new Date()
   const startD = new Date(start + 'T12:00:00Z')
-  const useArchive = startD.getTime() < today.getTime() - 2 * 86400000
+  // Forecast covers ~last 92 days + upcoming; archive lags and 400s on recent dates.
+  const useArchiveFirst = startD.getTime() < today.getTime() - 80 * 86400000
 
-  const base = useArchive
-    ? 'https://archive-api.open-meteo.com/v1/archive'
-    : 'https://api.open-meteo.com/v1/forecast'
+  const forecastUrl = weatherQueryUrl(
+    'https://api.open-meteo.com/v1/forecast',
+    lat,
+    lon,
+    start,
+    end,
+  )
+  const archiveUrl = weatherQueryUrl(
+    'https://archive-api.open-meteo.com/v1/archive',
+    lat,
+    lon,
+    start,
+    end,
+  )
 
-  const url = new URL(base)
-  url.searchParams.set('latitude', String(lat))
-  url.searchParams.set('longitude', String(lon))
-  url.searchParams.set('daily', 'weather_code,temperature_2m_max,precipitation_sum')
-  url.searchParams.set('timezone', 'Europe/Berlin')
-  url.searchParams.set('start_date', start)
-  url.searchParams.set('end_date', end)
-
-  const res = await fetch(url.toString())
-  if (!res.ok) throw new Error(`weather ${res.status}`)
-  const json = (await res.json()) as {
-    daily?: {
-      time: string[]
-      weather_code: number[]
-      temperature_2m_max: (number | null)[]
-      precipitation_sum: (number | null)[]
-    }
+  let days: LiveDayWeather[] = []
+  const primary = useArchiveFirst ? archiveUrl : forecastUrl
+  const secondary = useArchiveFirst ? forecastUrl : archiveUrl
+  try {
+    days = await fetchDailyFromUrl(primary)
+  } catch {
+    days = await fetchDailyFromUrl(secondary)
   }
-  const daily = json.daily
-  if (!daily?.time?.length) return []
-
-  const days: LiveDayWeather[] = daily.time.map((date, i) => {
-    const code = Number(daily.weather_code[i] ?? 3)
-    return {
-      date,
-      code,
-      tempMax: daily.temperature_2m_max[i] ?? null,
-      precipMm: daily.precipitation_sum[i] ?? null,
-      tag: weatherCodeToTag(code),
-      icon: weatherCodeToIcon(code),
-      label: weatherCodeLabel(code),
-    }
-  })
 
   cache[cacheKey] = { at: Date.now(), days }
   writeCache(WX_CACHE, cache)

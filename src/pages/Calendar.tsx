@@ -27,7 +27,6 @@ import { nextStallCard, platesToBreakEven } from '../lib/homeWidgets'
 import { WEATHER_OPTIONS, type InventoryLine, type WeatherTag } from '../lib/extrasStore'
 import {
   fetchLiveWeatherForStalls,
-  tagToIcon,
   type LiveDayWeather,
   type LiveWeatherByDate,
 } from '../lib/liveWeather'
@@ -255,7 +254,7 @@ export function CalendarPage() {
         </div>
       </div>
 
-      {next && (
+      {next && (next?.weather || nextLive) && (
         <div className="alert-item" style={{ marginBottom: '0.75rem' }}>
           {nextLive ? (
             <WeatherIcon
@@ -280,7 +279,7 @@ export function CalendarPage() {
       )}
 
       {wxError && (
-        <div className="alert-item" style={{ marginBottom: '0.75rem' }}>
+        <div className="hint-inline" style={{ marginBottom: '0.65rem' }}>
           {wxError}
         </div>
       )}
@@ -341,8 +340,6 @@ export function CalendarPage() {
                   const wx =
                     liveForMark(m.card.event.id, m.dayIndex, m.card.dateSpan) ||
                     null
-                  const fallbackIcon = tagToIcon(m.card.weather)
-                  const iconKind = wx?.icon || fallbackIcon
                   const tip = wx
                     ? `${wx.label}${wx.tempMax != null ? ` · ${Math.round(wx.tempMax)}°C` : ''}`
                     : m.card.weather || undefined
@@ -353,7 +350,6 @@ export function CalendarPage() {
                       title={`${m.card.event.location} · ${formatDaySpan(m.totalDays, m.card.event.startDate, m.card.event.endDate)}${tip ? ` · ${tip}` : ''}`}
                     >
                       <strong className="cal-pill__title">
-                        {iconKind && <WeatherIcon kind={iconKind} title={tip} />}
                         {m.card.event.id}
                         {m.totalDays > 1 ? ` · D${m.dayIndex}/${m.totalDays}` : ''}
                       </strong>
