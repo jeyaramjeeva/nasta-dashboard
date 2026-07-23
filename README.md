@@ -2,6 +2,33 @@
 
 Interactive dashboard for your stall Excel. Edit in Excel → validate → publish (merge or replace) → partners open the same cloud URL.
 
+**Live:** https://nastazentrum.vercel.app
+
+## Understand the codebase (READMEs)
+
+Every important folder has a `README.md` that explains **each file**: why it exists, what to check if it fails, and what to change.
+
+| Doc | What it explains |
+|-----|------------------|
+| [docs/README.md](docs/README.md) | **Index** of all docs |
+| [docs/PROJECT_MAP.md](docs/PROJECT_MAP.md) | Folders, architecture, env, deploy |
+| [TROUBLESHOOTING.md](TROUBLESHOOTING.md) | Symptom → where to check |
+| [MOBILE.md](MOBILE.md) | Phone app (Capacitor) |
+
+**Per-file guides** (open the folder on GitHub):
+
+| Folder | Guide |
+|--------|--------|
+| `api/` | [api/README.md](api/README.md) — every API route |
+| `src/` | [src/README.md](src/README.md) — App, main, CSS, types |
+| `src/pages/` | [pages README](src/pages/README.md) — every screen |
+| `src/components/` | [components README](src/components/README.md) — every component |
+| `src/context/` | [context README](src/context/README.md) — every provider |
+| `src/lib/` | [lib README](src/lib/README.md) — every helper |
+| `scripts/` | [scripts README](scripts/README.md) — every script |
+| `supabase/` | [supabase README](supabase/README.md) — SQL + Edge Functions |
+| `public/` | [public README](public/README.md) — every static asset |
+
 ## Weekly data workflow
 
 1. Update `Nasta Zentrum Tracker.xlsx` as usual.
@@ -80,3 +107,15 @@ cp .env.example .env
 | `npm run dev` | Local development |
 | `npm run build` | Production build |
 | `npm run preview` | Preview production |
+
+One-off Node scripts (i18n, merge tests, mobile assets, Supabase helpers) are listed in **[scripts/README.md](scripts/README.md)**.
+
+### Quick “something failed” map
+
+| Problem | Open |
+|---------|------|
+| Guest menu / claim code | [TROUBLESHOOTING](TROUBLESHOOTING.md) + [api/README](api/README.md) |
+| Pending / sold mix or resurrect | [TROUBLESHOOTING](TROUBLESHOOTING.md) + [src/context/README](src/context/README.md) |
+| Vercel build red | Build logs → fix TS; note CLI deploy ≠ GitHub `main` |
+| Excel upload | [docs/PROJECT_MAP](docs/PROJECT_MAP.md) + Upload page validation |
+| Mobile blank | [MOBILE.md](MOBILE.md) |
