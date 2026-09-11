@@ -1,0 +1,42 @@
+{
+	"appId": "de.nastazentrum.tracker",
+	"appName": "Nasta Zentrum",
+	"webDir": "dist",
+	"android": {
+		"allowMixedContent": false,
+		"backgroundColor": "#0f1410"
+	},
+	"ios": {
+		"scheme": "Nasta Zentrum",
+		"backgroundColor": "#0f1410",
+		"limitsNavigationsToAppBoundDomains": true,
+		"contentInset": "automatic"
+	},
+	"server": {
+		"url": "https://nastazentrum.vercel.app",
+		"cleartext": false,
+		"androidScheme": "https",
+		"allowNavigation": [
+			"https://nastazentrum.vercel.app/*",
+			"https://nasta-dashboard.vercel.app/*",
+			"https://*.supabase.co/*",
+			"https://formsubmit.co/*"
+		]
+	},
+	"plugins": {
+		"SplashScreen": {
+			"launchShowDuration": 1200,
+			"launchAutoHide": true,
+			"backgroundColor": "#0f1410",
+			"showSpinner": false
+		},
+		"StatusBar": {
+			"style": "DARK",
+			"backgroundColor": "#0f1410"
+		},
+		"Keyboard": {
+			"resize": "body",
+			"resizeOnFullScreen": true
+		}
+	}
+}
