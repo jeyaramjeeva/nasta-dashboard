@@ -1,5 +1,5 @@
 import { useReducedMotion } from 'framer-motion'
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 
 export function CountUp({
   value,
@@ -13,30 +13,45 @@ export function CountUp({
   className?: string
 }) {
   const reduce = useReducedMotion()
-  const [display, setDisplay] = useState(value)
+  const fromRef = useRef(reduce ? value : 0)
+  const displayRef = useRef(reduce ? value : 0)
+  const [display, setDisplay] = useState(reduce ? value : 0)
 
   useEffect(() => {
     if (reduce) {
+      fromRef.current = value
+      displayRef.current = value
       setDisplay(value)
       return
     }
 
-    let raf = 0
-    const from = 0
+    const from = fromRef.current
     const to = value
+    if (from === to) {
+      setDisplay(to)
+      displayRef.current = to
+      return
+    }
+
+    let raf = 0
     const start = performance.now()
     const ms = duration * 1000
 
     const tick = (now: number) => {
       const t = Math.min(1, (now - start) / ms)
-      // easeOut cubic
       const eased = 1 - Math.pow(1 - t, 3)
-      setDisplay(from + (to - from) * eased)
+      const next = from + (to - from) * eased
+      displayRef.current = next
+      setDisplay(next)
       if (t < 1) raf = requestAnimationFrame(tick)
+      else fromRef.current = to
     }
 
     raf = requestAnimationFrame(tick)
-    return () => cancelAnimationFrame(raf)
+    return () => {
+      cancelAnimationFrame(raf)
+      fromRef.current = displayRef.current
+    }
   }, [value, duration, reduce])
 
   const text = format

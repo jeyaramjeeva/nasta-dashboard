@@ -9,7 +9,7 @@ import {
   TrendingUp,
   Wallet,
 } from 'lucide-react'
-import { useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import {
   Bar,
@@ -23,8 +23,12 @@ import {
   YAxis,
 } from 'recharts'
 import { ChartChrome, chartTooltipStyle, euroFull, euroTick } from '../components/ChartChrome'
+import { EditableText } from '../components/EditableText'
+import { AiCoachPanel } from '../components/AiCoachPanel'
 import { HomeWidgets } from '../components/HomeWidgets'
 import { KpiCard } from '../components/KpiCard'
+import { PillTabs } from '../components/PillTabs'
+import { SpendStack } from '../components/SpendStack'
 import { Money } from '../components/Money'
 import { MotionCard, Stagger } from '../components/MotionCard'
 import { EmptyState, SkeletonPage } from '../components/Skeleton'
@@ -32,12 +36,22 @@ import { useAuth } from '../context/AuthContext'
 import { useData } from '../context/DataContext'
 import { useExtras } from '../context/ExtrasContext'
 import { useLocale } from '../context/LocaleContext'
+import { useStallOps } from '../context/StallOpsContext'
 import { canManageUploads } from '../lib/authAllowlist'
 import { buildCalendarCards } from '../lib/calendar'
+import {
+  displayStallStatus,
+  isFinishedStall,
+  isOpenUpcomingStall,
+  usesActuals,
+  usesActualsForEvent,
+} from '../lib/eventStatus'
 import { exportElementPdf, exportElementPng } from '../lib/exportReport'
 import { germanyTodayYmd } from '../lib/germanyTime'
 import { computeMetrics } from '../lib/metrics'
+import { detectMidDaySalesCrash } from '../lib/salesAnomaly'
 import { addSavedView, loadSavedViews, removeSavedView } from '../lib/savedViews'
+import { playCrashHush } from '../lib/sounds'
 import type { EventStatusFilter, SavedView } from '../types'
 
 type Focus = 'all' | 'income' | 'expense'
@@ -46,6 +60,7 @@ type EventPulseFilter = 'all' | 'completed' | 'upcoming'
 export function Dashboard() {
   const { snapshot, loading, error, cloudEnabled, refresh } = useData()
   const { weather } = useExtras()
+  const { orders } = useStallOps()
   const { user } = useAuth()
   const canUpload = canManageUploads(user)
   const { tr } = useLocale()
@@ -59,6 +74,17 @@ export function Dashboard() {
   const [eventPulse, setEventPulse] = useState<EventPulseFilter>('all')
   const [views, setViews] = useState<SavedView[]>(() => loadSavedViews())
   const [viewName, setViewName] = useState('')
+
+  const salesCrash = useMemo(() => detectMidDaySalesCrash(orders), [orders])
+  const crashHushKey = useRef<string | null>(null)
+
+  useEffect(() => {
+    if (!salesCrash) return
+    const key = `${salesCrash.severity}:${salesCrash.message}`
+    if (crashHushKey.current === key) return
+    crashHushKey.current = key
+    void playCrashHush()
+  }, [salesCrash])
 
   const allMonths = useMemo(() => {
     if (!snapshot) return []
@@ -91,8 +117,8 @@ export function Dashboard() {
       snapshot.events
         .filter((e) => {
           if (eventTypes.length && !eventTypes.includes(e.name)) return false
-          if (status === 'completed' && e.status !== 'Completed') return false
-          if (status === 'upcoming' && e.status === 'Completed') return false
+          if (status === 'completed' && !isFinishedStall(e) && !usesActuals(e.status)) return false
+          if (status === 'upcoming' && !isOpenUpcomingStall(e)) return false
           return true
         })
         .map((e) => e.id),
@@ -117,11 +143,11 @@ export function Dashboard() {
   }, [snapshot, metrics, weather])
 
   const completedCards = useMemo(
-    () => eventCards.filter((c) => c.event.status === 'Completed'),
+    () => eventCards.filter((c) => isFinishedStall(c.event)),
     [eventCards],
   )
   const upcomingCards = useMemo(
-    () => eventCards.filter((c) => c.event.status !== 'Completed'),
+    () => eventCards.filter((c) => isOpenUpcomingStall(c.event)),
     [eventCards],
   )
 
@@ -252,7 +278,7 @@ export function Dashboard() {
         body={
           canUpload
             ? 'Upload your Excel tracker to publish live KPIs for every machine.'
-            : 'Ask Jeeva to upload the Excel tracker so live KPIs appear for everyone.'
+            : 'Ask the Developer account to upload the Excel tracker so live KPIs appear for everyone.'
         }
         action={
           canUpload ? (
@@ -277,10 +303,10 @@ export function Dashboard() {
         transition={{ duration: 0.35 }}
       >
         <div className="cmd-bar__top">
-          <h1>{tr('commandCenter')}</h1>
+          <EditableText id="dashboard.pageTitle" as="h1" defaultText={tr('commandCenter')} />
           <div className="page-actions">
             <span className={`badge ${cloudEnabled ? 'ok' : 'warn'}`}>
-              {cloudEnabled ? 'Live sync' : 'Seed / local'}
+              {cloudEnabled ? tr('liveSync') : tr('localSeedMode')}
             </span>
             <button className="btn ghost" type="button" onClick={() => void doExport('png')}>
               {tr('downloadPng')}
@@ -353,22 +379,17 @@ export function Dashboard() {
 
           <div className="cmd-filter cmd-filter--status">
             <span className="cmd-filter__label">{tr('status')}</span>
-            <div className="cmd-filter__chips">
-              <button
-                type="button"
-                className={`chip chip--sm ${status === 'all' ? 'active' : ''}`}
-                onClick={() => setStatusFilter('all')}
-              >
-                {tr('all')}
-              </button>
-              <button
-                type="button"
-                className={`chip chip--sm ${status === 'completed' ? 'active' : ''}`}
-                onClick={() => setStatusFilter('completed')}
-              >
-                {tr('completed')}
-              </button>
-            </div>
+            <PillTabs
+              group="dash-status"
+              style={{ margin: 0 }}
+              value={status}
+              onChange={setStatusFilter}
+              items={[
+                { id: 'all', label: tr('all') },
+                { id: 'completed', label: tr('completed') },
+                { id: 'upcoming', label: tr('upcoming') },
+              ]}
+            />
           </div>
 
           <div className="cmd-filter cmd-filter--views">
@@ -468,7 +489,7 @@ export function Dashboard() {
 
       <div className="grid two" style={{ marginTop: '0.9rem', marginBottom: '0.9rem' }}>
         <ChartChrome
-          title="Monthly income vs expense"
+          title={tr('monthlyIncome')}
           hint="Click a bar to filter that month"
           delay={0.08}
         >
@@ -523,7 +544,7 @@ export function Dashboard() {
           </ResponsiveContainer>
         </ChartChrome>
 
-        <ChartChrome title="Spend by category" hint="Click a category to drill in" delay={0.12}>
+        <ChartChrome title={tr('spendByCategory')} hint="Click a category to drill in" delay={0.12}>
           <ResponsiveContainer width="100%" height="100%">
             <BarChart data={metrics.byCategory.slice(0, 8)} layout="vertical" margin={{ left: 8 }}>
               <CartesianGrid stroke="var(--grid)" strokeDasharray="3 6" horizontal={false} />
@@ -558,6 +579,20 @@ export function Dashboard() {
           </ResponsiveContainer>
         </ChartChrome>
       </div>
+      {metrics.byCategory.length > 0 && (
+        <div style={{ margin: '-0.35rem 0 0.9rem' }}>
+          <SpendStack
+            slices={metrics.byCategory.slice(0, 5).map((row, i) => ({
+              label: row.category,
+              amount: row.amount,
+              tone: (i === 0 ? 'accent' : i === 1 ? 'ok' : 'warn') as
+                | 'accent'
+                | 'ok'
+                | 'warn',
+            }))}
+          />
+        </div>
+      )}
 
       {category && (
         <MotionCard className="mb" delay={0.05} interactive={false}>
@@ -608,24 +643,17 @@ export function Dashboard() {
         <div className="card-head">
           <h2>Events — spend &amp; gain</h2>
           <div className="page-actions">
-            <div className="split-mode-row" style={{ margin: 0 }}>
-              {(
-                [
-                  ['all', 'All'],
-                  ['completed', 'Completed'],
-                  ['upcoming', 'Upcoming'],
-                ] as const
-              ).map(([id, label]) => (
-                <button
-                  key={id}
-                  type="button"
-                  className={`btn ghost ${eventPulse === id ? 'is-on' : ''}`}
-                  onClick={() => setEventPulse(id)}
-                >
-                  {label}
-                </button>
-              ))}
-            </div>
+            <PillTabs
+              group="dash-events"
+              style={{ margin: 0 }}
+              value={eventPulse}
+              onChange={setEventPulse}
+              items={[
+                { id: 'all', label: 'All' },
+                { id: 'completed', label: 'Completed' },
+                { id: 'upcoming', label: 'Upcoming' },
+              ]}
+            />
             <Link to="/calendar" className="hint-inline">
               Calendar →
             </Link>
@@ -651,8 +679,8 @@ export function Dashboard() {
           </div>
         </div>
 
-        <div className="table-wrap table-wrap--fit">
-          <table className="table-fit">
+        <div className="table-wrap" style={{ overflowX: 'auto' }}>
+          <table>
             <thead>
               <tr>
                 <th>Event</th>
@@ -666,7 +694,6 @@ export function Dashboard() {
               {pulseRows
                 .slice()
                 .sort((a, b) => (b.event.startDate || '').localeCompare(a.event.startDate || ''))
-                .slice(0, 12)
                 .map((c) => (
                   <tr
                     key={c.event.id}
@@ -683,11 +710,13 @@ export function Dashboard() {
                     </td>
                     <td>
                       <span
-                        className={`badge ${c.event.status === 'Completed' ? 'ok' : 'warn'}`}
+                        className={`badge ${
+                          displayStallStatus(c.event) === 'Completed' ? 'ok' : 'warn'
+                        }`}
                       >
-                        {c.event.status === 'Completed' ? 'Completed' : 'Upcoming'}
+                        {displayStallStatus(c.event)}
                       </span>
-                      {c.event.status !== 'Completed' && (
+                      {isOpenUpcomingStall(c.event) && !usesActualsForEvent(c.event) && (
                         <div className="hint-inline">forecast + logged</div>
                       )}
                     </td>
@@ -749,14 +778,14 @@ export function Dashboard() {
           <div className="grid" style={{ gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
             <div>
               <div className="kpi-label">Completed</div>
-              <div className="kpi-value">{metrics.eventsCompleted}</div>
+              <div className="kpi-value">{completedCards.length}</div>
               <div className="hint-inline">
                 Net <Money value={completedTotals.net} colored signed />
               </div>
             </div>
             <div>
               <div className="kpi-label">Upcoming</div>
-              <div className="kpi-value">{metrics.eventsUpcoming}</div>
+              <div className="kpi-value">{upcomingCards.length}</div>
               <div className="hint-inline">
                 Expected net <Money value={upcomingTotals.net} colored signed />
               </div>
@@ -802,7 +831,20 @@ export function Dashboard() {
               <CircleDollarSign size={12} /> Diff <Money value={metrics.cashMismatch} signed />
             </span>
           </div>
-          {metrics.alerts.length === 0 ? (
+          {salesCrash && (
+            <div
+              className="alert-item"
+              style={{
+                marginBottom: '0.65rem',
+                background:
+                  salesCrash.severity === 'critical' ? 'var(--danger-soft)' : 'var(--warn-soft)',
+              }}
+            >
+              <AlertTriangle size={14} style={{ marginRight: 6, verticalAlign: -2 }} />
+              {salesCrash.message}
+            </div>
+          )}
+          {metrics.alerts.length === 0 && !salesCrash ? (
             <p style={{ color: 'var(--muted)', margin: 0 }}>All clear — no alerts right now.</p>
           ) : (
             <div className="alert-list">
@@ -843,8 +885,8 @@ export function Dashboard() {
             <p className="hint-inline" style={{ marginBottom: '0.75rem' }}>
               Same day + person + amount — check Excel for accidental double entries.
             </p>
-            <div className="table-wrap table-wrap--fit">
-              <table className="table-fit">
+            <div className="table-wrap" style={{ overflowX: 'auto' }}>
+              <table>
                 <thead>
                   <tr>
                     <th>Date</th>
@@ -876,6 +918,10 @@ export function Dashboard() {
           </MotionCard>
         </div>
       )}
+
+      <div style={{ margin: '1rem 0 0' }}>
+        <AiCoachPanel />
+      </div>
       </div>
     </>
   )

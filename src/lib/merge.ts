@@ -33,9 +33,28 @@ export interface MergeResult {
   updatedEvents: number
   addedEvents: number
   addedCashRows: number
+  /** Incoming transactions that already matched live (merge skipped). */
+  skippedDuplicateTransactions: number
+  /** Exact duplicate rows inside the incoming file alone. */
+  incomingExactDuplicateRows: number
+}
+
+function countExactDuplicateRows(transactions: Transaction[]): number {
+  const counts = new Map<string, number>()
+  for (const t of transactions) {
+    const key = transactionKey(t)
+    counts.set(key, (counts.get(key) || 0) + 1)
+  }
+  let extra = 0
+  for (const n of counts.values()) {
+    if (n > 1) extra += n - 1
+  }
+  return extra
 }
 
 export function mergeSnapshots(current: Snapshot | null, incoming: Snapshot): MergeResult {
+  const incomingExactDuplicateRows = countExactDuplicateRows(incoming.transactions)
+
   if (!current) {
     return {
       snapshot: {
@@ -46,6 +65,8 @@ export function mergeSnapshots(current: Snapshot | null, incoming: Snapshot): Me
       updatedEvents: 0,
       addedEvents: incoming.events.length,
       addedCashRows: incoming.cashBox.length,
+      skippedDuplicateTransactions: 0,
+      incomingExactDuplicateRows,
     }
   }
 
@@ -63,14 +84,18 @@ export function mergeSnapshots(current: Snapshot | null, incoming: Snapshot): Me
     }
   }
 
+  const liveKeys = new Set(current.transactions.map(transactionKey))
   const txMap = new Map<string, Transaction>()
   for (const t of current.transactions) txMap.set(transactionKey(t), t)
   let addedTransactions = 0
+  let skippedDuplicateTransactions = 0
   for (const t of incoming.transactions) {
     const key = transactionKey(t)
     if (!txMap.has(key)) {
       txMap.set(key, t)
       addedTransactions += 1
+    } else if (liveKeys.has(key)) {
+      skippedDuplicateTransactions += 1
     }
   }
 
@@ -103,7 +128,15 @@ export function mergeSnapshots(current: Snapshot | null, incoming: Snapshot): Me
     partners: recomputePartners(transactions),
   }
 
-  return { snapshot, addedTransactions, updatedEvents, addedEvents, addedCashRows }
+  return {
+    snapshot,
+    addedTransactions,
+    updatedEvents,
+    addedEvents,
+    addedCashRows,
+    skippedDuplicateTransactions,
+    incomingExactDuplicateRows,
+  }
 }
 
 export function applyUploadMode(
@@ -122,6 +155,8 @@ export function applyUploadMode(
       updatedEvents: 0,
       addedEvents: incoming.events.length,
       addedCashRows: incoming.cashBox.length,
+      skippedDuplicateTransactions: 0,
+      incomingExactDuplicateRows: countExactDuplicateRows(incoming.transactions),
     }
   }
   return mergeSnapshots(current, incoming)

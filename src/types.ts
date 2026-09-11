@@ -2,6 +2,11 @@ export interface EventRow {
   id: string
   name: string
   location: string
+  /**
+   * Precise pin for Google Maps (street address or "lat,lng").
+   * Falls back to `location` when empty.
+   */
+  mapsQuery?: string
   startDate: string | null
   endDate: string | null
   month: string | null

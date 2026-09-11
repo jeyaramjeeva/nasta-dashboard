@@ -12,7 +12,8 @@ export interface SnapshotVersion {
     events: number
     transactions: number
   }
-  payload: Snapshot
+  /** Omitted on cloud list fetches — load via fetchSnapshotVersion when needed. */
+  payload?: Snapshot
 }
 
 const HISTORY_KEY = 'nasta-history-v1'

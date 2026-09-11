@@ -5,10 +5,16 @@ Run SQL in Supabase → **SQL Editor**. Deploy functions with Supabase CLI.
 ---
 
 ### `schema.sql`
-- **Why:** Main tables — snapshots, snapshot_versions, team_extras, user_prefs, plate_counts, RLS baseline.
+- **Why:** Main tables — snapshots, snapshot_versions, team_extras, user_prefs, plate_counts, login_pins, RLS baseline.
 - **When:** Once on a new project (or when adding missing tables).
 - **If broken:** Upload empty / stall ops not syncing → check tables exist + RLS allows your role; compare with this file.
 - **Change:** Add columns carefully; update client (`cloudExtras`, `supabase.ts`) in the same change.
+
+### `login_pins.sql`
+- **Why:** Per-user login PIN vault (`account_key` + encrypted password wrapper). RLS on, no client policies — `/api/login-pin` uses service role.
+- **When:** PIN save/unlock fails after deploy; run this once in SQL Editor.
+- **If broken:** PIN enroll error about service role; fallback is Auth `user_metadata.nastaLoginPin` (still needs service role to read on another PC).
+- **Change:** Keep vault JSON in sync with `src/lib/loginPin.ts`.
 
 ### `customer_reviews.sql`
 - **Why:** Guest reviews table (+ often used for append-only config/menu override rows when `team_extras` writes are RLS-blocked).

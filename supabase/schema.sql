@@ -33,6 +33,22 @@ create policy "Authed can upsert latest snapshot"
 create policy "Authed can update latest snapshot"
   on public.snapshots for update to authenticated using (true) with check (true);
 
+-- NOTE: Excel Publish prefers Vercel `/api/publish-snapshot` + SERVICE_ROLE.
+-- Also allow anon write for Developer local sessions (see fix_publish_rls.sql).
+drop policy if exists "Anon can read snapshots" on public.snapshots;
+drop policy if exists "Anon can insert latest snapshot" on public.snapshots;
+drop policy if exists "Anon can update latest snapshot" on public.snapshots;
+
+create policy "Anon can read snapshots"
+  on public.snapshots for select to anon using (true);
+
+create policy "Anon can insert latest snapshot"
+  on public.snapshots for insert to anon with check (id = 'latest');
+
+create policy "Anon can update latest snapshot"
+  on public.snapshots for update to anon
+  using (id = 'latest') with check (id = 'latest');
+
 -- Version history (restore previous uploads)
 create table if not exists public.snapshot_versions (
   id uuid primary key default gen_random_uuid(),
@@ -59,6 +75,15 @@ create policy "Authed can read versions"
 
 create policy "Authed can insert versions"
   on public.snapshot_versions for insert to authenticated with check (true);
+
+drop policy if exists "Anon can read versions" on public.snapshot_versions;
+drop policy if exists "Anon can insert versions" on public.snapshot_versions;
+
+create policy "Anon can read versions"
+  on public.snapshot_versions for select to anon using (true);
+
+create policy "Anon can insert versions"
+  on public.snapshot_versions for insert to anon with check (true);
 
 -- Shared team extras (weather, inventory, mission) — synced across devices
 create table if not exists public.team_extras (
@@ -145,3 +170,32 @@ create policy "Authed can update plate_counts"
 -- Stall stock + POS orders (JSON blob on team_extras)
 alter table public.team_extras
   add column if not exists stall_ops jsonb not null default '{}'::jsonb;
+
+-- Per-user login PIN (service role / API only — no client policies)
+create table if not exists public.login_pins (
+  account_key text primary key,
+  vault jsonb not null,
+  updated_at timestamptz not null default now()
+);
+alter table public.login_pins enable row level security;
+
+-- Customer feedback from public QR form (/review)
+create table if not exists public.customer_reviews (
+  id text primary key,
+  created_at timestamptz not null default now(),
+  payload jsonb not null
+);
+
+alter table public.customer_reviews enable row level security;
+
+drop policy if exists "Anyone can insert customer_reviews" on public.customer_reviews;
+drop policy if exists "Anyone can read customer_reviews" on public.customer_reviews;
+drop policy if exists "Authed can read customer_reviews" on public.customer_reviews;
+
+create policy "Anyone can insert customer_reviews"
+  on public.customer_reviews for insert to anon, authenticated
+  with check (true);
+
+-- Stall feedback is operational (not personal finance); anon read lets local team login sync.
+create policy "Anyone can read customer_reviews"
+  on public.customer_reviews for select to anon, authenticated using (true);

@@ -10,6 +10,9 @@ import {
   YAxis,
 } from 'recharts'
 import { ChartChrome, chartTooltipStyle, euroFull, euroTick } from '../components/ChartChrome'
+import { EditableText } from '../components/EditableText'
+import { PillTabs } from '../components/PillTabs'
+import { SpendStack } from '../components/SpendStack'
 import { Money } from '../components/Money'
 import { MotionCard } from '../components/MotionCard'
 import { EmptyState, SkeletonPage } from '../components/Skeleton'
@@ -34,15 +37,27 @@ export function Partners() {
       .map((p) => p.name)
   }, [metrics])
 
-  const [rules, setRules] = useState<SplitRules>(() => loadSplitRules(peopleNames))
+  const [rules, setRules] = useState<SplitRules>(() => {
+    const loaded = loadSplitRules(peopleNames)
+    if (loaded.mode === 'custom_pct') {
+      const next = { ...loaded, mode: 'expenses_first' as const }
+      saveSplitRules(next)
+      return next
+    }
+    return loaded
+  })
   const [potSource, setPotSource] = useState<PotSource>('sales')
   const [customPot, setCustomPot] = useState('')
 
   useEffect(() => {
     if (!peopleNames.length) return
     setRules((prev) => {
-      const next = { ...prev, shares: { ...prev.shares } }
-      let changed = false
+      const next = {
+        ...prev,
+        mode: prev.mode === 'custom_pct' ? ('expenses_first' as const) : prev.mode,
+        shares: { ...prev.shares },
+      }
+      let changed = prev.mode === 'custom_pct'
       const equal = 1 / peopleNames.length
       for (const n of peopleNames) {
         if (next.shares[n] == null) {
@@ -50,6 +65,7 @@ export function Partners() {
           changed = true
         }
       }
+      if (changed) saveSplitRules(next)
       return changed ? next : prev
     })
   }, [peopleNames])
@@ -75,11 +91,11 @@ export function Partners() {
 
   const plan = applySplitRules(
     metrics.partners,
-    rules,
+    rules.mode === 'custom_pct' ? { ...rules, mode: 'expenses_first' } : rules,
     rules.mode === 'expenses_first' || rules.mode === 'custom_pct' ? potValue : undefined,
   )
 
-  function updateMode(mode: SplitMode) {
+  function updateMode(mode: Exclude<SplitMode, 'custom_pct'>) {
     const next = { ...rules, mode }
     // Equal thirds when switching to expenses_first
     if (mode === 'expenses_first') {
@@ -87,15 +103,6 @@ export function Partners() {
       const shares: Record<string, number> = {}
       for (const n of peopleNames) shares[n] = equal
       next.shares = shares
-    }
-    setRules(next)
-    saveSplitRules(next)
-  }
-
-  function updateShare(name: string, pct: number) {
-    const next: SplitRules = {
-      ...rules,
-      shares: { ...rules.shares, [name]: Math.max(0, pct) / 100 },
     }
     setRules(next)
     saveSplitRules(next)
@@ -121,8 +128,12 @@ export function Partners() {
     <>
       <div className="page-head">
         <div>
-          <h1>Partners</h1>
-          <p>Pay back expenses first, then split profit equally (⅓ each).</p>
+          <EditableText id="partners.pageTitle" as="h1" defaultText="Partners" />
+          <EditableText
+            id="partners.pageSub"
+            as="p"
+            defaultText="Pay back expenses first, then split profit equally (⅓ each)."
+          />
         </div>
         <div className="page-actions">
           <span className="badge warn">
@@ -142,26 +153,17 @@ export function Partners() {
           <MotionCard interactive={false}>
             <h2>{tr('settlement')}</h2>
 
-            <div className="split-mode-row">
-              {(
-                [
-                  ['expenses_first', '1) Expenses → 2) Equal profit'],
-                  ['owed', "Pay what's owed only"],
-                  ['custom_pct', 'Custom % of pot'],
-                ] as const
-              ).map(([mode, label]) => (
-                <button
-                  key={mode}
-                  type="button"
-                  className={`btn ghost ${rules.mode === mode ? 'is-on' : ''}`}
-                  onClick={() => updateMode(mode)}
-                >
-                  {label}
-                </button>
-              ))}
-            </div>
+            <PillTabs
+              group="partners-split"
+              value={rules.mode === 'owed' ? 'owed' : 'expenses_first'}
+              onChange={updateMode}
+              items={[
+                { id: 'expenses_first', label: '1) Expenses → 2) Equal profit' },
+                { id: 'owed', label: "Pay what's owed only" },
+              ]}
+            />
 
-            {rules.mode === 'expenses_first' && (
+            {(rules.mode === 'expenses_first' || rules.mode === 'custom_pct') && (
               <div className="settle-waterfall">
                 <div className="filters" style={{ marginTop: '0.65rem', marginBottom: 0 }}>
                   <span className="hint-inline">Money to distribute (pot)</span>
@@ -188,48 +190,6 @@ export function Partners() {
                     Reset to ⅓ each
                   </button>
                 </div>
-              </div>
-            )}
-
-            {rules.mode === 'custom_pct' && (
-              <div className="filters" style={{ marginBottom: '0.5rem' }}>
-                <span className="hint-inline">Pot</span>
-                <select
-                  value={potSource}
-                  onChange={(e) => setPotSource(e.target.value as PotSource)}
-                >
-                  <option value="sales">Sales ({euro(metrics.totalIncome)})</option>
-                  <option value="cash">Cash + PayPal ({euro(metrics.cashWithPaypal)})</option>
-                  <option value="custom">Custom</option>
-                </select>
-                {potSource === 'custom' && (
-                  <input
-                    type="number"
-                    min={0}
-                    value={customPot}
-                    onChange={(e) => setCustomPot(e.target.value)}
-                    style={{ width: 120 }}
-                  />
-                )}
-                {people.map((p) => (
-                  <label
-                    key={p.name}
-                    className="hint-inline"
-                    style={{ display: 'flex', gap: 6, alignItems: 'center' }}
-                  >
-                    {p.name}
-                    <input
-                      type="number"
-                      min={0}
-                      max={100}
-                      step={5}
-                      value={Math.round((rules.shares[p.name] ?? 0) * 100)}
-                      style={{ width: 64 }}
-                      onChange={(e) => updateShare(p.name, Number(e.target.value) || 0)}
-                    />
-                    %
-                  </label>
-                ))}
               </div>
             )}
 
@@ -282,6 +242,16 @@ export function Partners() {
                 </tbody>
               </table>
             </div>
+            <SpendStack
+              slices={plan.map((p, i) => ({
+                label: p.name,
+                amount: p.suggestedPay,
+                tone: (i === 0 ? 'accent' : i === 1 ? 'ok' : 'warn') as
+                  | 'accent'
+                  | 'ok'
+                  | 'warn',
+              }))}
+            />
           </MotionCard>
         </div>
 

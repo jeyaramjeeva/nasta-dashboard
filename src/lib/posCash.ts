@@ -32,8 +32,10 @@ export interface PosCashSummary {
 export function summarizePosCashToday(
   orders: StallOrder[],
   now = new Date(),
+  eventId?: string,
 ): PosCashSummary {
   const today = germanyTodayYmd(now)
+  const wantEvent = String(eventId || '').trim()
   let netIn = 0
   let paidTotal = 0
   let changeReturned = 0
@@ -41,6 +43,7 @@ export function summarizePosCashToday(
   let orderCount = 0
   for (const o of orders) {
     if (o.status !== 'completed' || o.voided) continue
+    if (wantEvent && String(o.eventId || '').trim() !== wantEvent) continue
     const day = germanyYmd(new Date(o.completedAt || o.createdAt))
     if (day !== today) continue
     orderCount += 1
@@ -63,4 +66,43 @@ export function summarizePosCashToday(
 /** Excel physical count + today's POS net into the box. */
 export function liveCashCounted(excelCounted: number, posNetIn: number): number {
   return Math.round((excelCounted + posNetIn) * 100) / 100
+}
+
+export interface PayMethodSummary {
+  /** Order totals paid as cash (legacy missing method counted as cash). */
+  cashRevenue: number
+  /** Order totals paid via PayPal. */
+  paypalRevenue: number
+  /** cashRevenue + paypalRevenue */
+  totalRevenue: number
+  cashOrders: number
+  paypalOrders: number
+}
+
+/** Sum completed (non-void) order revenue by payment method. */
+export function summarizePayMethods(orders: StallOrder[]): PayMethodSummary {
+  let cashRevenue = 0
+  let paypalRevenue = 0
+  let cashOrders = 0
+  let paypalOrders = 0
+  for (const o of orders) {
+    if (o.status !== 'completed' || o.voided) continue
+    const total = Math.round(orderTotal(o.lines) * 100) / 100
+    if (o.payMethod === 'paypal') {
+      paypalRevenue += total
+      paypalOrders += 1
+    } else {
+      cashRevenue += total
+      cashOrders += 1
+    }
+  }
+  const cash = Math.round(cashRevenue * 100) / 100
+  const paypal = Math.round(paypalRevenue * 100) / 100
+  return {
+    cashRevenue: cash,
+    paypalRevenue: paypal,
+    totalRevenue: Math.round((cash + paypal) * 100) / 100,
+    cashOrders,
+    paypalOrders,
+  }
 }

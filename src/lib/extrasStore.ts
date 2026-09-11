@@ -25,6 +25,10 @@ export interface InventoryItemDef {
   name: string
   unit: string
   unitCost: number
+  /** Optional kg per prep unit (Food/Stock converter). */
+  kgPerUnit?: number
+  /** Optional portions per prep unit. */
+  portionPerUnit?: number
 }
 
 export interface InventoryLine {
@@ -41,15 +45,43 @@ const INV_EVENT_KEY = 'nasta-inventory-events-v1'
 const DEFAULT_ITEMS: InventoryItemDef[] = [
   { id: 'dosa-batter', name: 'Dosa batter', unit: 'batch', unitCost: 12 },
   { id: 'idli-batter', name: 'Idli batter', unit: 'batch', unitCost: 10 },
-  { id: 'cauliflower', name: 'Cauliflower', unit: 'kg', unitCost: 3 },
-  { id: 'potato-masala', name: 'Potato masala', unit: 'batch', unitCost: 8 },
-  { id: 'cheese', name: 'Cheese', unit: 'pack', unitCost: 5 },
-  { id: 'mango-lassi', name: 'Mango lassi', unit: 'litre', unitCost: 6 },
-  { id: 'masala-chai', name: 'Masala chai', unit: 'litre', unitCost: 4 },
-  { id: 'sambar', name: 'Sambar', unit: 'pot', unitCost: 8 },
+  { id: 'sambar', name: 'Sambar', unit: 'litre', unitCost: 8 },
   { id: 'tomato-chutney', name: 'Tomato chutney', unit: 'bowl', unitCost: 3.5 },
-  { id: 'linsen-tuffi', name: 'Linsen tuffi', unit: 'batch', unitCost: 7 },
+  { id: 'potato-masala', name: 'Potato masala', unit: 'batch', unitCost: 8 },
+  { id: 'masala-chai', name: 'Masala chai', unit: 'litre', unitCost: 4 },
+  { id: 'mango-lassi', name: 'Mango lassi', unit: 'litre', unitCost: 6 },
 ]
+
+/** Core prep items the Food tab focuses on (ensured on load). */
+export const FOOD_PREP_CORE: InventoryItemDef[] = DEFAULT_ITEMS.map((d) => ({ ...d }))
+
+/** Merge missing core prep items; fix sambar unit to litre if still “pot”. */
+export function ensureFoodPrepCatalog(defs?: InventoryItemDef[]): InventoryItemDef[] {
+  const current = defs?.length ? [...defs] : loadInventoryDefs()
+  const byId = new Map(current.map((d) => [d.id, { ...d }]))
+  const hasAnyCore = FOOD_PREP_CORE.some((c) => byId.has(c.id))
+
+  if (!hasAnyCore) {
+    for (const core of FOOD_PREP_CORE) byId.set(core.id, { ...core })
+  } else {
+    // Do not resurrect items the user deleted — only migrate units on items still present.
+    const sambar = byId.get('sambar')
+    if (sambar && (sambar.unit || '').toLowerCase() === 'pot') {
+      byId.set('sambar', { ...sambar, unit: 'litre' })
+    }
+  }
+
+  const next = [...byId.values()]
+  const coreIds = new Set(FOOD_PREP_CORE.map((d) => d.id))
+  const ordered = [
+    ...FOOD_PREP_CORE.map((c) => byId.get(c.id)).filter(
+      (d): d is InventoryItemDef => Boolean(d),
+    ),
+    ...next.filter((d) => !coreIds.has(d.id)),
+  ]
+  saveInventoryDefs(ordered)
+  return ordered
+}
 
 function readJson<T>(key: string, fallback: T): T {
   try {
@@ -143,6 +175,54 @@ export function updateInventoryUnitCost(itemId: string, unitCost: number) {
     d.id === itemId ? { ...d, unitCost: Math.max(0, unitCost) } : d,
   )
   saveInventoryDefs(defs)
+  return defs
+}
+
+export function updateInventoryDish(
+  itemId: string,
+  patch: Partial<
+    Pick<InventoryItemDef, 'name' | 'unit' | 'unitCost' | 'kgPerUnit' | 'portionPerUnit'>
+  >,
+): InventoryItemDef[] {
+  const defs = loadInventoryDefs().map((d) => {
+    if (d.id !== itemId) return d
+    const next = { ...d }
+    if (patch.name != null) {
+      const n = String(patch.name).trim()
+      if (n) next.name = n
+    }
+    if (patch.unit != null) {
+      const u = String(patch.unit).trim()
+      if (u) next.unit = u
+    }
+    if (patch.unitCost != null && Number.isFinite(Number(patch.unitCost))) {
+      next.unitCost = Math.max(0, Number(patch.unitCost))
+    }
+    if (patch.kgPerUnit != null && Number.isFinite(Number(patch.kgPerUnit))) {
+      next.kgPerUnit = Math.max(0, Number(patch.kgPerUnit))
+    }
+    if (patch.portionPerUnit != null && Number.isFinite(Number(patch.portionPerUnit))) {
+      next.portionPerUnit = Math.max(0, Number(patch.portionPerUnit))
+    }
+    return next
+  })
+  saveInventoryDefs(defs)
+  return defs
+}
+
+export function removeInventoryDish(itemId: string): InventoryItemDef[] {
+  const defs = loadInventoryDefs().filter((d) => d.id !== itemId)
+  saveInventoryDefs(defs)
+  const all = loadEventInventory()
+  let touched = false
+  for (const eid of Object.keys(all)) {
+    const next = (all[eid] || []).filter((l) => l.itemId !== itemId)
+    if (next.length !== (all[eid] || []).length) {
+      all[eid] = next
+      touched = true
+    }
+  }
+  if (touched) writeJson(INV_EVENT_KEY, all)
   return defs
 }
 

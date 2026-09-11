@@ -80,5 +80,7 @@ export function formatDuplicateAlert(group: DuplicateExpenseGroup): string {
     group.descriptions.length > 3
       ? ` +${group.descriptions.length - 3} more`
       : ''
-  return `Possible duplicate: ${group.person} €${group.amount.toFixed(2)} on ${group.date} (${group.count}×) — ${descs}${more}`
+  const events =
+    group.eventIds.length > 0 ? ` · events ${group.eventIds.join(', ')}` : ''
+  return `Possible duplicate: ${group.person} €${group.amount.toFixed(2)} on ${group.date} (${group.count}×)${events} — ${descs}${more}`
 }

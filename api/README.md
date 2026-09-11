@@ -24,7 +24,11 @@ These run on **Vercel**, not in the browser. The React app calls them as `/api/<
 - **If something fails / what to check:** Team login for POST; config ids `__rform_*`; empty config rejected.
 - **What to change:** Schema / field types when form editor gains options.
 
-### `site-config.ts`
+### `login-pin.ts`
+- **Why we need it:** Per-user 4-digit login PIN (not per computer). GET `?key=email` → `{ hasPin }`. POST `save` / `unlock` / `delete`.
+- **Used by:** Login, PinEnroll, Account (`src/lib/loginPin.ts`).
+- **If something fails / what to check:** PIN save uses `customer_reviews` (`__nasta_login_pin__*`) so it works without `SUPABASE_SERVICE_ROLE_KEY`. Optional: `supabase/login_pins.sql`. Wrong PIN is rate-limited.
+- **What to change:** PIN length (`PIN_DIGITS`), storage backends.
 - **Why we need it:** GET/POST global site config (`__site_config__` in `customer_reviews`) for Developer Studio branding/nav/theme.
 - **Used by:** `siteConfig.ts`, `SiteConfigContext.tsx`.
 - **If something fails / what to check:** Developer role for POST; upsert failures fall back to local-only.
@@ -41,6 +45,12 @@ These run on **Vercel**, not in the browser. The React app calls them as `/api/<
 - **Used by:** `aiClient.ts` → `AiHelperFab`.
 - **If something fails / what to check:** `OPENAI_API_KEY` or `AI_HELPER_OPENAI_KEY`, `AI_HELPER_MODEL`; 403 if role not allowed; falls back to FAQ.
 - **What to change:** System prompt, FAQ list, allowed roles.
+
+### `ai-coach.ts`
+- **Why we need it:** Background stall coach briefing (OpenAI) from rule tips + sales snapshot; falls back to rules text.
+- **Used by:** `aiClient.ts` → `BackgroundAiContext` / AI Coach panel.
+- **If something fails / what to check:** Same OpenAI env vars as helper; 403 if role not allowed.
+- **What to change:** System prompt / briefing style.
 
 ### `ai-agent.ts`
 - **Why we need it:** Jeeva-only: launch/follow-up Cursor Cloud Agents against this repo (auto-PR).

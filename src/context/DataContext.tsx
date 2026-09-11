@@ -23,7 +23,9 @@ import {
   type SnapshotVersion,
 } from '../lib/history'
 import { applyUploadMode, type UploadMode } from '../lib/merge'
+import { applyEventBook } from '../lib/eventBook'
 import { computeMetrics } from '../lib/metrics'
+import { loadStallOps } from '../lib/stallOps'
 import { parseWorkbook, parseWorkbookFile } from '../lib/parseWorkbook'
 import { recomputePartners } from '../lib/partners'
 import { canManageUploads } from '../lib/authAllowlist'
@@ -31,20 +33,21 @@ import { demoStorageKey, isDemoMode } from '../lib/demoMode'
 import {
   enqueueOffline,
   offlineQueueCount,
-  peekOfflineQueue,
-  replaceOfflineQueue,
 } from '../lib/offlineQueue'
+import { flushAllOfflineOps } from '../lib/flushOffline'
 import {
   checkUploadPassword,
   fetchLatestSnapshot,
   fetchSnapshotVersion,
   fetchSnapshotVersions,
   isCloudConfigured,
+  publishSnapshotViaApi,
   saveSnapshot,
   saveSnapshotVersion,
   supabaseAnonKey,
   supabaseUrl,
 } from '../lib/supabase'
+import { standardUploadFileName, standardUploadFileNameFrom } from '../lib/uploadNaming'
 import { validateSnapshot, type ValidationReport } from '../lib/validate'
 import type { DashboardMetrics, EventCashCount, Snapshot, Transaction } from '../types'
 import { useAuth } from './AuthContext'
@@ -247,14 +250,23 @@ export function DataProvider({ children }: { children: ReactNode }) {
   }, [])
 
   const refreshVersions = useCallback(async () => {
+    const local = loadLocalHistory()
     if (cloudEnabled) {
-      const remote = await fetchSnapshotVersions(20)
-      if (remote.length) {
-        setVersions(remote)
+      const remote = await fetchSnapshotVersions(40)
+      if (remote.length || local.length) {
+        const map = new Map<string, SnapshotVersion>()
+        for (const v of [...remote, ...local]) {
+          const key = `${v.createdAt}|${v.sourceFile}|${v.mode}`
+          if (!map.has(key)) map.set(key, v)
+        }
+        const merged = [...map.values()].sort((a, b) =>
+          (b.createdAt || '').localeCompare(a.createdAt || ''),
+        )
+        setVersions(merged.slice(0, 40))
         return
       }
     }
-    setVersions(loadLocalHistory())
+    setVersions(local)
   }, [cloudEnabled])
 
   const refresh = useCallback(async () => {
@@ -319,7 +331,12 @@ export function DataProvider({ children }: { children: ReactNode }) {
   const prepareUpload = useCallback(
     async (file: File, mode: UploadMode) => {
       const incoming = await parseWorkbookFile(file)
-      return prepareFromIncoming(incoming, mode)
+      // Canonical name for history / live snapshot (date from file if present)
+      const named = {
+        ...incoming,
+        sourceFile: standardUploadFileNameFrom(file.name || incoming.sourceFile),
+      }
+      return prepareFromIncoming(named, mode)
     },
     [prepareFromIncoming],
   )
@@ -327,7 +344,11 @@ export function DataProvider({ children }: { children: ReactNode }) {
   const prepareBuffer = useCallback(
     async (buffer: ArrayBuffer, sourceFile: string, mode: UploadMode) => {
       const incoming = parseWorkbook(buffer, sourceFile)
-      return prepareFromIncoming(incoming, mode)
+      const named = {
+        ...incoming,
+        sourceFile: standardUploadFileNameFrom(sourceFile || incoming.sourceFile),
+      }
+      return prepareFromIncoming(named, mode)
     },
     [prepareFromIncoming],
   )
@@ -337,38 +358,65 @@ export function DataProvider({ children }: { children: ReactNode }) {
       next: Snapshot,
       mode: SnapshotVersion['mode'],
       note?: string,
+      creds?: { password?: string; trustedSession?: boolean },
     ) => {
+      const stampedName = {
+        ...next,
+        sourceFile: standardUploadFileNameFrom(next.sourceFile),
+      }
+
       // Archive current latest before overwrite (restore safety)
+      let archive: SnapshotVersion | undefined
       if (snapshot) {
-        const archive = pushLocalHistory(snapshot, 'restore', 'Auto-archive before publish')
-        if (cloudEnabled) {
+        archive = pushLocalHistory(snapshot, 'restore', 'Auto-archive before publish')
+      }
+
+      const version = pushLocalHistory(stampedName, mode, note)
+      if (cloudEnabled) {
+        try {
+          await publishSnapshotViaApi({
+            snapshot: stampedName,
+            version,
+            archive,
+            password: creds?.password,
+            trustedSession: creds?.trustedSession,
+            userName: user?.name || 'Developer',
+            userEmail: user?.email || '',
+          })
+        } catch (apiErr) {
+          // Fallback when SERVICE_ROLE is not set yet — needs anon RLS policies
+          // (see supabase/fix_publish_rls.sql).
           try {
-            await saveSnapshotVersion(archive)
-          } catch {
-            /* versions table may be missing */
+            if (archive) {
+              try {
+                await saveSnapshotVersion(archive)
+              } catch {
+                /* ignore archive failure */
+              }
+            }
+            await saveSnapshot(stampedName)
+            await saveSnapshotVersion(version)
+          } catch (directErr) {
+            const apiMsg =
+              apiErr instanceof Error ? apiErr.message : 'Cloud publish failed'
+            const directMsg =
+              directErr instanceof Error ? directErr.message : 'Direct save failed'
+            throw new Error(
+              `${apiMsg} — ${directMsg}. Run supabase/fix_publish_rls.sql in Supabase SQL Editor, or add SUPABASE_SERVICE_ROLE_KEY on Vercel.`,
+            )
           }
         }
       }
-
-      const version = pushLocalHistory(next, mode, note)
-      if (cloudEnabled) {
-        await saveSnapshot(next)
-        try {
-          await saveSnapshotVersion(version)
-        } catch {
-          /* ignore if versions table missing */
-        }
-      }
-      apply(next, cloudEnabled ? 'cloud' : 'local')
+      apply(stampedName, cloudEnabled ? 'cloud' : 'local')
       await refreshVersions()
     },
-    [apply, cloudEnabled, refreshVersions, snapshot],
+    [apply, cloudEnabled, refreshVersions, snapshot, user?.email, user?.name],
   )
 
   const publishSnapshot = useCallback(
     async (candidate: Snapshot, options: PublishOptions) => {
       if (!canManageUploads(user)) {
-        throw new Error('Only Jeeva can publish Excel updates.')
+        throw new Error('Only the Developer account can publish Excel updates.')
       }
       const trusted = Boolean(options.trustedSession && canManageUploads(user))
       if (!trusted && !checkUploadPassword(options.password)) {
@@ -384,9 +432,13 @@ export function DataProvider({ children }: { children: ReactNode }) {
       const stamped = {
         ...candidate,
         uploadedAt: new Date().toISOString(),
+        sourceFile: standardUploadFileName(),
         partners: recomputePartners(candidate.transactions),
       }
-      await persistVersion(stamped, options.mode, options.note)
+      await persistVersion(stamped, options.mode, options.note || stamped.sourceFile, {
+        password: options.password,
+        trustedSession: trusted,
+      })
       return validateSnapshot(stamped, { mode: options.mode })
     },
     [persistVersion, user],
@@ -395,21 +447,28 @@ export function DataProvider({ children }: { children: ReactNode }) {
   const restoreVersion = useCallback(
     async (id: string, password: string) => {
       if (!canManageUploads(user)) {
-        throw new Error('Only Jeeva can restore Excel versions.')
+        throw new Error('Only the Developer account can restore Excel versions.')
       }
       if (!checkUploadPassword(password)) {
         throw new Error('Wrong upload password')
       }
-      let version =
-        getLocalVersion(id) ||
-        (cloudEnabled ? await fetchSnapshotVersion(id) : null)
-      if (!version) throw new Error('Version not found')
+      let version = getLocalVersion(id)
+      // Cloud history list is metadata-only — fetch full Excel when restoring.
+      if (!version?.payload && cloudEnabled) {
+        version = await fetchSnapshotVersion(id)
+      }
+      if (!version?.payload) throw new Error('Version not found')
       const restored: Snapshot = {
         ...normalizeSnapshot(version.payload),
         uploadedAt: new Date().toISOString(),
-        sourceFile: `${version.sourceFile} (restored)`,
+        sourceFile: standardUploadFileName(),
       }
-      await persistVersion(restored, 'restore', `Restored from ${version.createdAt}`)
+      await persistVersion(
+        restored,
+        'restore',
+        `Restored from ${version.sourceFile} (${version.createdAt})`,
+        { password },
+      )
     },
     [cloudEnabled, persistVersion, user],
   )
@@ -471,7 +530,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
       const next: Snapshot = {
         ...snapshot,
         uploadedAt: new Date().toISOString(),
-        sourceFile: snapshot.sourceFile || 'quick-add',
+        sourceFile: standardUploadFileNameFrom(snapshot.sourceFile),
         transactions,
         partners: recomputePartners(transactions),
       }
@@ -487,7 +546,12 @@ export function DataProvider({ children }: { children: ReactNode }) {
       }
 
       try {
-        await persistVersion(next, 'quick-add', `Quick add: ${row.description || row.category}`)
+        await persistVersion(
+          next,
+          'quick-add',
+          `Quick add: ${row.description || row.category}`,
+          { password: input.password },
+        )
       } catch (e) {
         if (cloudEnabled) {
           enqueueOffline({ kind: 'quick_add', payload: { input, next } })
@@ -503,27 +567,14 @@ export function DataProvider({ children }: { children: ReactNode }) {
 
   const flushOfflineQueue = useCallback(async () => {
     if (!navigator.onLine) return
-    const ops = peekOfflineQueue()
-    const still = []
-    for (const op of ops) {
-      if (op.kind !== 'quick_add') {
-        still.push(op)
-        continue
-      }
-      try {
-        const payload = op.payload as { next?: Snapshot }
-        if (payload.next) {
-          await persistVersion(
-            payload.next,
-            'quick-add',
-            'Synced from offline queue',
-          )
-        }
-      } catch {
-        still.push(op)
-      }
-    }
-    replaceOfflineQueue(still)
+    await flushAllOfflineOps(async (op) => {
+      const payload = op.payload as { input?: QuickAddInput; next?: Snapshot }
+      if (!payload.next) return
+      await persistVersion(payload.next, 'quick-add', 'Synced from offline queue', {
+        password: payload.input?.password,
+        trustedSession: true,
+      })
+    })
     setPendingOffline(offlineQueueCount())
   }, [persistVersion])
 
@@ -590,13 +641,25 @@ export function DataProvider({ children }: { children: ReactNode }) {
     publishSnapshot,
   ])
 
+  const [eventBookTick, setEventBookTick] = useState(0)
+  useEffect(() => {
+    const bump = () => setEventBookTick((n) => n + 1)
+    window.addEventListener('nasta-event-book', bump)
+    return () => window.removeEventListener('nasta-event-book', bump)
+  }, [])
+
+  const liveSnapshot = useMemo(() => {
+    if (!snapshot) return null
+    return applyEventBook(snapshot, loadStallOps().eventBook)
+  }, [snapshot, eventBookTick])
+
   const metrics = useMemo(
-    () => (snapshot ? computeMetrics(snapshot) : null),
-    [snapshot],
+    () => (liveSnapshot ? computeMetrics(liveSnapshot) : null),
+    [liveSnapshot],
   )
 
   const value: DataContextValue = {
-    snapshot,
+    snapshot: liveSnapshot,
     metrics,
     loading,
     error,

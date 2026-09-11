@@ -10,7 +10,6 @@ import {
 import {
   fetchTeamExtras,
   saveTeamExtras,
-  upsertPlateCount,
   type TeamExtrasPayload,
 } from '../lib/cloudExtras'
 import {
@@ -25,13 +24,12 @@ import {
   type WeatherTag,
   addInventoryDish as localAddDish,
   updateInventoryUnitCost as localUpdateCost,
+  updateInventoryDish as localUpdateDish,
+  removeInventoryDish as localRemoveDish,
+  ensureFoodPrepCatalog,
 } from '../lib/extrasStore'
-import {
-  enqueueOffline,
-  offlineQueueCount,
-  peekOfflineQueue,
-  replaceOfflineQueue,
-} from '../lib/offlineQueue'
+import { enqueueOffline, offlineQueueCount } from '../lib/offlineQueue'
+import { flushAllOfflineOps } from '../lib/flushOffline'
 import { demoStorageKey, isDemoMode } from '../lib/demoMode'
 import { isCloudConfigured } from '../lib/supabase'
 import { useAuth } from './AuthContext'
@@ -62,7 +60,16 @@ interface ExtrasContextValue {
   setEventInventory: (eventId: string, lines: InventoryLine[]) => void
   setMission: (mission: string) => void
   updateUnitCost: (itemId: string, unitCost: number) => void
+  updateDish: (
+    itemId: string,
+    patch: Partial<
+      Pick<InventoryItemDef, 'name' | 'unit' | 'unitCost' | 'kgPerUnit' | 'portionPerUnit'>
+    >,
+  ) => void
+  removeDish: (itemId: string) => void
   addDish: (name: string, unit?: string, unitCost?: number) => void
+  /** Ensure dosa batter / sambar / chutney / … exist in the prep catalog. */
+  ensureFoodPrep: () => void
   flushOfflineQueue: () => Promise<void>
   refreshExtras: () => Promise<void>
 }
@@ -93,19 +100,13 @@ export function ExtrasProvider({ children }: { children: ReactNode }) {
   const [pendingOps, setPendingOps] = useState(() => offlineQueueCount())
 
   const snapshotPayload = useCallback((): TeamExtrasPayload => {
-    let stallOps = null
-    try {
-      const raw = localStorage.getItem(demoStorageKey('nasta-stall-ops-v1'))
-      if (raw) stallOps = JSON.parse(raw)
-    } catch {
-      /* ignore */
-    }
+    // Omit stallOps — StallOpsContext owns that blob; including it would
+    // re-upload multi‑MB photos on every weather/inventory tweak.
     return {
       weather: loadWeather(),
       inventoryDefs: loadInventoryDefs(),
       inventoryEvents: loadEventInventory(),
       mission: loadLocalMission(),
-      stallOps,
     }
   }, [])
 
@@ -155,26 +156,7 @@ export function ExtrasProvider({ children }: { children: ReactNode }) {
 
   const flushOfflineQueue = useCallback(async () => {
     if (!cloudExtras || !user || !navigator.onLine) return
-    const ops = peekOfflineQueue()
-    if (!ops.length) return
-    const still = []
-    for (const op of ops) {
-      try {
-        if (op.kind === 'team_extras') {
-          await saveTeamExtras(op.payload as unknown as TeamExtrasPayload)
-        } else if (op.kind === 'plate_count') {
-          await upsertPlateCount(op.payload)
-        } else if (op.kind === 'stall_ops') {
-          const { saveStallOpsCloud } = await import('../lib/cloudExtras')
-          await saveStallOpsCloud(op.payload as import('../lib/stallOps').StallOpsState)
-        } else {
-          still.push(op) // quick_add → DataContext
-        }
-      } catch {
-        still.push(op)
-      }
-    }
-    replaceOfflineQueue(still)
+    await flushAllOfflineOps()
     setPendingOps(offlineQueueCount())
     await refreshExtras()
   }, [cloudExtras, refreshExtras, user])
@@ -226,6 +208,31 @@ export function ExtrasProvider({ children }: { children: ReactNode }) {
     [pushCloud, snapshotPayload],
   )
 
+  const updateDish = useCallback(
+    (
+      itemId: string,
+      patch: Partial<
+        Pick<InventoryItemDef, 'name' | 'unit' | 'unitCost' | 'kgPerUnit' | 'portionPerUnit'>
+      >,
+    ) => {
+      const next = localUpdateDish(itemId, patch)
+      setDefs(next)
+      setInvEvents(loadEventInventory())
+      void pushCloud(snapshotPayload())
+    },
+    [pushCloud, snapshotPayload],
+  )
+
+  const removeDish = useCallback(
+    (itemId: string) => {
+      const next = localRemoveDish(itemId)
+      setDefs(next)
+      setInvEvents(loadEventInventory())
+      void pushCloud(snapshotPayload())
+    },
+    [pushCloud, snapshotPayload],
+  )
+
   const addDish = useCallback(
     (name: string, unit = 'portion', unitCost = 0) => {
       const next = localAddDish(name, unit, unitCost)
@@ -234,6 +241,12 @@ export function ExtrasProvider({ children }: { children: ReactNode }) {
     },
     [pushCloud, snapshotPayload],
   )
+
+  const ensureFoodPrep = useCallback(() => {
+    const next = ensureFoodPrepCatalog()
+    setDefs(next)
+    void pushCloud(snapshotPayload())
+  }, [pushCloud, snapshotPayload])
 
   const value = useMemo(
     () => ({
@@ -248,7 +261,10 @@ export function ExtrasProvider({ children }: { children: ReactNode }) {
       setEventInventory,
       setMission,
       updateUnitCost,
+      updateDish,
+      removeDish,
       addDish,
+      ensureFoodPrep,
       flushOfflineQueue,
       refreshExtras,
     }),
@@ -264,7 +280,10 @@ export function ExtrasProvider({ children }: { children: ReactNode }) {
       setEventInventory,
       setMission,
       updateUnitCost,
+      updateDish,
+      removeDish,
       addDish,
+      ensureFoodPrep,
       flushOfflineQueue,
       refreshExtras,
     ],

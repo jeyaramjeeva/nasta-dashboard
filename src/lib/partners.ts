@@ -7,7 +7,7 @@ export function recomputePartners(transactions: Transaction[]): PartnerRow[] {
       names.add(t.person)
     }
   }
-  for (const n of ['Jeeva', 'Sriram', 'Sneha']) names.add(n)
+  for (const n of ['Sriram', 'Sneha', 'Jeeva']) names.add(n)
 
   return [...names]
     .sort()

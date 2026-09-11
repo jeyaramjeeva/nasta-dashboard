@@ -36,14 +36,25 @@ export function clearDemoStorage() {
   for (const k of keys) localStorage.removeItem(k)
 }
 
+function clearTillTrainingFlags() {
+  try {
+    sessionStorage.removeItem('nasta-till-training')
+    sessionStorage.removeItem('nasta-till-training-meta')
+  } catch {
+    /* ignore */
+  }
+}
+
 export function enterDemoMode() {
   clearDemoStorage()
+  clearTillTrainingFlags()
   setDemoMode(true)
   window.location.assign('/playground')
 }
 
 export function exitDemoMode() {
   clearDemoStorage()
+  clearTillTrainingFlags()
   setDemoMode(false)
   window.location.assign('/')
 }

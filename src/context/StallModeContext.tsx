@@ -10,15 +10,12 @@ import {
 } from 'react'
 import { useLocation } from 'react-router-dom'
 import { isGuestUser } from '../lib/guestAuth'
-import {
-  checkStallUnlockPin,
-  enterStallMode,
-  exitStallMode,
-  isStallMode,
-  STALL_IDLE_ENTER_MS,
-  STALL_IDLE_RELOCK_MS,
-} from '../lib/stallMode'
+import { setDataSaver } from '../lib/dataSaver'
+import { checkStallUnlockPin, enterStallMode, exitStallMode, isStallMode, isStallUnlockedSession } from '../lib/stallMode'
+import { idleEnterMs, idleRelockMs } from '../lib/siteConfig'
+import { isStallDayToday } from '../lib/loginOpenToday'
 import { useAuth } from './AuthContext'
+import { useSiteConfig } from './SiteConfigContext'
 
 interface StallModeContextValue {
   isStall: boolean
@@ -35,9 +32,15 @@ const StallModeContext = createContext<StallModeContextValue | null>(null)
 
 export function StallModeProvider({ children }: { children: ReactNode }) {
   const { user } = useAuth()
+  const { config } = useSiteConfig()
+  const idleEnter = idleEnterMs(config.settings)
+  const idleRelock = idleRelockMs(config.settings)
   const isGuestLocked = isGuestUser(user)
 
-  const [stallFlag, setStallFlag] = useState(() => isStallMode())
+  const [stallFlag, setStallFlag] = useState(() => {
+    if (isStallMode()) return true
+    return !isStallUnlockedSession() && isStallDayToday()
+  })
   /** After a successful unlock, idle will re-lock. Fresh sessions stay unlocked. */
   const [relockArmed, setRelockArmed] = useState(false)
   const ordersIdleRef = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -51,7 +54,15 @@ export function StallModeProvider({ children }: { children: ReactNode }) {
     if (!isGuestLocked) return
     enterStallMode()
     setStallFlag(true)
+    setDataSaver(true)
   }, [isGuestLocked])
+
+  useEffect(() => {
+    if (isGuestLocked) return
+    if (!stallFlag) return
+    enterStallMode()
+    setDataSaver(true)
+  }, [isGuestLocked, stallFlag])
 
   const clearOrdersIdle = useCallback(() => {
     if (ordersIdleRef.current) {
@@ -70,6 +81,8 @@ export function StallModeProvider({ children }: { children: ReactNode }) {
   const enterStall = useCallback(() => {
     enterStallMode()
     setStallFlag(true)
+    // Event POS: cut cloud GB — slow sync + hide chat/AI in the dock.
+    setDataSaver(true)
     clearRelockIdle()
   }, [clearRelockIdle])
 
@@ -91,8 +104,9 @@ export function StallModeProvider({ children }: { children: ReactNode }) {
     relockIdleRef.current = setTimeout(() => {
       enterStallMode()
       setStallFlag(true)
-    }, STALL_IDLE_RELOCK_MS)
-  }, [clearRelockIdle])
+      setDataSaver(true)
+    }, idleRelock)
+  }, [clearRelockIdle, idleRelock])
 
   const bumpOrdersActivity = useCallback(() => {
     clearOrdersIdle()
@@ -100,8 +114,9 @@ export function StallModeProvider({ children }: { children: ReactNode }) {
     ordersIdleRef.current = setTimeout(() => {
       enterStallMode()
       setStallFlag(true)
-    }, STALL_IDLE_ENTER_MS)
-  }, [clearOrdersIdle])
+      setDataSaver(true)
+    }, idleEnter)
+  }, [clearOrdersIdle, idleEnter])
 
   // After unlock: idle → re-lock Stall mode
   useEffect(() => {
@@ -135,7 +150,7 @@ export function StallModeProvider({ children }: { children: ReactNode }) {
   return <StallModeContext.Provider value={value}>{children}</StallModeContext.Provider>
 }
 
-/** Mount on Orders page to auto-enter Stall mode after 2 min idle. */
+/** Mount on Orders page to auto-enter Stall mode after idle timeout. */
 export function useOrdersStallIdle() {
   const { isStall, bumpOrdersActivity } = useStallMode()
   const location = useLocation()

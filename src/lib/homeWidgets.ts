@@ -1,6 +1,7 @@
 import type { CalendarEventCard } from './calendar'
 import type { EventMetrics } from '../types'
-import { germanyWallTime } from './germanyTime'
+import { isOpenUpcomingStall } from './eventStatus'
+import { germanyTodayYmd, germanyWallTime } from './germanyTime'
 
 export interface CountdownParts {
   totalMs: number
@@ -41,17 +42,13 @@ export function countdownTo(target: Date, now = new Date()): CountdownParts {
 }
 
 export function nextStallCard(cards: CalendarEventCard[], now = new Date()): CalendarEventCard | null {
+  const today = germanyTodayYmd(now)
   const upcoming = cards
-    .filter((c) => c.event.status !== 'Completed' && c.event.startDate)
+    .filter((c) => isOpenUpcomingStall(c.event, today) && c.event.startDate)
     .map((c) => ({ c, start: parseEventStart(c.event.startDate)! }))
     .filter((x) => x.start)
     .sort((a, b) => a.start.getTime() - b.start.getTime())
 
-  // Prefer not-yet-finished: start within last 14h still "next/live"
-  for (const row of upcoming) {
-    const cd = countdownTo(row.start, now)
-    if (!cd.isPast) return row.c
-  }
   return upcoming[0]?.c ?? null
 }
 

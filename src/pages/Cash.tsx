@@ -11,7 +11,9 @@ import {
   YAxis,
 } from 'recharts'
 import { ChartChrome, chartTooltipStyle, euroFull } from '../components/ChartChrome'
+import { EditableText } from '../components/EditableText'
 import { KpiCard } from '../components/KpiCard'
+import { SpendStack } from '../components/SpendStack'
 import { Money } from '../components/Money'
 import { MotionCard, Stagger } from '../components/MotionCard'
 import { EmptyState, SkeletonPage } from '../components/Skeleton'
@@ -134,14 +136,18 @@ export function Cash() {
   const liveWithPaypal = liveCounted + (snapshot.paypalBalance || 0)
   const eventLive =
     activeCount != null
-      ? Math.round((activeCount.beforeCash + posToday.netIn) * 100) / 100
+      ? Math.round(
+          (activeCount.beforeCash +
+            summarizePosCashToday(orders, new Date(), activeCount.eventId).netIn) *
+            100,
+        ) / 100
       : null
 
   return (
     <>
       <div className="page-head">
         <div>
-          <h1>{tr('cashBox')}</h1>
+          <EditableText id="cash.pageTitle" as="h1" defaultText={tr('cashBox')} />
         </div>
         <span className={`badge ${mismatchBad ? 'warn' : 'ok'}`}>
           {mismatchBad ? tr('mismatch') : 'Cash + PayPal matches ledger'}
@@ -201,6 +207,14 @@ export function Cash() {
             </div>
           )}
         </div>
+        <SpendStack
+          total={Math.max(liveWithPaypal, 1)}
+          slices={[
+            { label: 'Excel count', amount: excelCounted, tone: 'accent' },
+            { label: 'POS today', amount: Math.max(0, posToday.netIn), tone: 'ok' },
+            { label: 'PayPal', amount: snapshot?.paypalBalance || 0, tone: 'warn' },
+          ]}
+        />
         <p className="hint-inline" style={{ marginTop: '0.75rem' }}>
           Excel remains the official recount. At stall end, count notes/coins in Excel and publish —
           this live figure is for during the day.

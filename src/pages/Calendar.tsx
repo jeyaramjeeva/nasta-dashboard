@@ -8,14 +8,19 @@ import {
   RefreshCw,
 } from 'lucide-react'
 import { useCallback, useEffect, useMemo, useState } from 'react'
+import { EditableText } from '../components/EditableText'
+import { LabeledBar } from '../components/LabeledBar'
+import { PillTabs } from '../components/PillTabs'
 import { Money } from '../components/Money'
 import { MotionCard } from '../components/MotionCard'
 import { EmptyState, SkeletonPage } from '../components/Skeleton'
 import { WeatherIcon } from '../components/WeatherIcon'
+import { useAuth } from '../context/AuthContext'
 import { useData } from '../context/DataContext'
 import { useExtras } from '../context/ExtrasContext'
 import { useStallMode } from '../context/StallModeContext'
 import { useStallOps } from '../context/StallOpsContext'
+import { canManageStallEvents } from '../lib/authAllowlist'
 import type { PrepAssignee } from '../lib/stallOps'
 import {
   buildCalendarCards,
@@ -26,6 +31,12 @@ import {
 import { downloadStallBriefingPdf } from '../lib/briefingPdf'
 import { germanyMonthLabel, germanyParts } from '../lib/germanyTime'
 import { downloadIcs, buildStallCalendarIcs } from '../lib/ics'
+import {
+  displayStallStatus,
+  isFinishedStall,
+  isOpenUpcomingStall,
+  usesActualsForEvent,
+} from '../lib/eventStatus'
 import { nextStallCard, platesToBreakEven } from '../lib/homeWidgets'
 import { WEATHER_OPTIONS, type InventoryLine, type WeatherTag } from '../lib/extrasStore'
 import {
@@ -33,6 +44,7 @@ import {
   type LiveDayWeather,
   type LiveWeatherByDate,
 } from '../lib/liveWeather'
+import { specialsByDay, specialsForMonth } from '../lib/seasonalSpecials'
 import { weatherCallBadge, weatherGoCautionSkip } from '../lib/weatherAdvice'
 
 const PREP_BADGE: Record<string, string> = {
@@ -45,8 +57,10 @@ const PREP_BADGE: Record<string, string> = {
 type ListFilter = 'all' | 'completed' | 'upcoming'
 
 export function CalendarPage() {
+  const { user } = useAuth()
   const { metrics, snapshot, loading } = useData()
   const { isStall } = useStallMode()
+  const canEditCalendar = canManageStallEvents(user)
   const {
     weather,
     inventoryDefs: defs,
@@ -55,6 +69,8 @@ export function CalendarPage() {
     setEventWeather,
     setEventInventory,
     updateUnitCost,
+    updateDish,
+    removeDish,
     addDish: addDishExtra,
   } = useExtras()
   const {
@@ -62,10 +78,15 @@ export function CalendarPage() {
     ensurePrepChecklist,
     setPrepTask,
     addPrepTask,
+    calendarNotes,
+    addCalendarNote,
+    deleteCalendarNote,
   } = useStallOps()
   const berlinNow = germanyParts()
   const [year, setYear] = useState(berlinNow.year)
   const [month, setMonth] = useState(berlinNow.month)
+  const monthSpecials = useMemo(() => specialsForMonth(year, month), [year, month])
+  const specialsOnDay = useMemo(() => specialsByDay(year, month), [year, month])
   const [invEvent, setInvEvent] = useState('')
   const [listFilter, setListFilter] = useState<ListFilter>('all')
   const [newDish, setNewDish] = useState('')
@@ -77,6 +98,9 @@ export function CalendarPage() {
   const [liveByEventDate, setLiveByEventDate] = useState<Record<string, LiveDayWeather>>({})
   const [wxLoading, setWxLoading] = useState(false)
   const [wxTick, setWxTick] = useState(0)
+  const [noteDate, setNoteDate] = useState('')
+  const [noteTitle, setNoteTitle] = useState('')
+  const [noteBody, setNoteBody] = useState('')
 
   const cards = useMemo(() => {
     if (!metrics || !snapshot) return []
@@ -87,10 +111,24 @@ export function CalendarPage() {
   const byDay = useMemo(() => marksForMonth(cards, year, month), [cards, year, month])
 
   const filteredCards = useMemo(() => {
-    if (listFilter === 'completed') return cards.filter((c) => c.event.status === 'Completed')
-    if (listFilter === 'upcoming') return cards.filter((c) => c.event.status !== 'Completed')
+    if (listFilter === 'completed') return cards.filter((c) => isFinishedStall(c.event))
+    if (listFilter === 'upcoming') return cards.filter((c) => isOpenUpcomingStall(c.event))
     return cards
   }, [cards, listFilter])
+
+  const notesByDay = useMemo(() => {
+    const map = new Map<number, typeof calendarNotes>()
+    const prefix = `${year}-${String(month).padStart(2, '0')}-`
+    for (const n of calendarNotes) {
+      if (!n.date.startsWith(prefix)) continue
+      const day = Number(n.date.slice(8, 10))
+      if (!day) continue
+      const list = map.get(day) || []
+      list.push(n)
+      map.set(day, list)
+    }
+    return map
+  }, [calendarNotes, year, month])
 
   const monthLabel = germanyMonthLabel(year, month)
   const todayParts = germanyParts()
@@ -213,7 +251,7 @@ export function CalendarPage() {
     <>
       <div className="page-head">
         <div>
-          <h1>Calendar</h1>
+          <EditableText id="calendar.pageTitle" as="h1" defaultText="Calendar" />
         </div>
         <div className="page-actions">
           <button
@@ -287,6 +325,82 @@ export function CalendarPage() {
         </div>
       )}
 
+      {monthSpecials.length > 0 && (
+        <div style={{ marginBottom: '0.75rem' }}>
+          <MotionCard interactive={false}>
+            <div className="card-head">
+              <h2>Seasonal specials · IN + DE</h2>
+              <span className="hint-inline">{monthSpecials.length} this month</span>
+            </div>
+            <ul className="cal-specials-list">
+              {monthSpecials.map((s) => (
+                <li key={`${s.date}-${s.name}`}>
+                  <span className={`cal-special-chip region-${s.region.toLowerCase()}`}>
+                    {s.region}
+                  </span>
+                  <strong>
+                    {s.date.slice(8)}.{s.date.slice(5, 7)} · {s.name}
+                  </strong>
+                  <span className="hint-inline">{s.tip}</span>
+                </li>
+              ))}
+            </ul>
+          </MotionCard>
+        </div>
+      )}
+
+      {canEditCalendar ? (
+      <div style={{ marginBottom: '0.9rem' }}>
+      <MotionCard interactive={false}>
+        <div className="card-head">
+          <h2>Add to calendar</h2>
+        </div>
+        <p className="hint-inline">
+          Notes on any day (meeting, market tip, reminder). Tap a note on the grid to delete. Stall
+          events: edit dates & status on the Events tab.
+        </p>
+        <div className="filters" style={{ marginTop: '0.65rem', alignItems: 'flex-end', flexWrap: 'wrap' }}>
+          <div className="field">
+            <label>Date</label>
+            <input
+              type="date"
+              value={noteDate}
+              onChange={(e) => setNoteDate(e.target.value)}
+            />
+          </div>
+          <div className="field">
+            <label>Title</label>
+            <input
+              value={noteTitle}
+              onChange={(e) => setNoteTitle(e.target.value)}
+              placeholder="e.g. Call organizer"
+            />
+          </div>
+          <div className="field" style={{ flex: '1 1 12rem' }}>
+            <label>Note</label>
+            <input
+              value={noteBody}
+              onChange={(e) => setNoteBody(e.target.value)}
+              placeholder="Optional details"
+            />
+          </div>
+          <button
+            type="button"
+            className="btn"
+            disabled={!noteDate || !noteTitle.trim()}
+            onClick={() => {
+              addCalendarNote(noteDate, noteTitle.trim(), noteBody.trim() || undefined)
+              setNoteTitle('')
+              setNoteBody('')
+            }}
+          >
+            <Plus size={14} /> Add note
+          </button>
+        </div>
+      </MotionCard>
+      </div>
+      ) : null}
+
       <MotionCard interactive={false} className="cal-card">
         <div className="card-head" style={{ marginBottom: '0.45rem', justifyContent: 'flex-end' }}>
           <button
@@ -336,6 +450,36 @@ export function CalendarPage() {
                     )}
                   </div>
                 )}
+                {day != null &&
+                  (specialsOnDay.get(day) || []).map((s) => (
+                    <div
+                      key={`${s.date}-${s.label}`}
+                      className={`cal-special region-${s.region.toLowerCase()}`}
+                      title={`${s.name} · ${s.region} — ${s.tip}`}
+                    >
+                      {s.label}
+                    </div>
+                  ))}
+                {day != null &&
+                  (notesByDay.get(day) || []).map((n) => (
+                    <div
+                      key={n.id}
+                      className="cal-note"
+                      title={
+                        canEditCalendar
+                          ? `${n.note || n.title} (tap to delete)`
+                          : n.note || n.title
+                      }
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        if (!canEditCalendar) return
+                        if (window.confirm(`Delete note “${n.title}”?`)) deleteCalendarNote(n.id)
+                      }}
+                      style={canEditCalendar ? undefined : { cursor: 'default' }}
+                    >
+                      {n.title}
+                    </div>
+                  ))}
                 {dayMarks.map((m) => {
                   const wx =
                     liveForMark(m.card.event.id, m.dayIndex, m.card.dateSpan) ||
@@ -376,27 +520,20 @@ export function CalendarPage() {
         <MotionCard interactive={false}>
           <div className="card-head">
             <h2>{isStall ? 'Stall list' : 'Stall list — spend & gain'}</h2>
-            <div className="split-mode-row" style={{ margin: 0 }}>
-              {(
-                [
-                  ['all', 'All'],
-                  ['completed', 'Completed'],
-                  ['upcoming', 'Upcoming'],
-                ] as const
-              ).map(([id, label]) => (
-                <button
-                  key={id}
-                  type="button"
-                  className={`btn ghost ${listFilter === id ? 'is-on' : ''}`}
-                  onClick={() => setListFilter(id)}
-                >
-                  {label}
-                </button>
-              ))}
-            </div>
+            <PillTabs
+              group="cal-stalls"
+              style={{ margin: 0 }}
+              value={listFilter}
+              onChange={setListFilter}
+              items={[
+                { id: 'all', label: 'All' },
+                { id: 'completed', label: 'Completed' },
+                { id: 'upcoming', label: 'Upcoming' },
+              ]}
+            />
           </div>
           <div className="table-wrap table-wrap--fit" style={{ marginTop: '0.75rem' }}>
-            <table className="table-fit">
+            <table className="table-fit calendar-stall-table">
               <thead>
                 <tr>
                   <th>Event</th>
@@ -418,7 +555,7 @@ export function CalendarPage() {
                     <td className="cell-wrap">
                       <strong>{c.event.id}</strong>
                       <div className="hint-inline">
-                        {c.event.location} · {c.event.status}
+                        {c.event.location} · {displayStallStatus(c.event)}
                       </div>
                       <div className="hint-inline">
                         {formatDaySpan(c.totalDays, c.event.startDate, c.event.endDate)}
@@ -445,7 +582,7 @@ export function CalendarPage() {
                         </td>
                         <td>
                           <Money value={c.gain} />
-                          {c.event.status !== 'Completed' && (
+                          {!usesActualsForEvent(c.event) && (
                             <div className="hint-inline">expected</div>
                           )}
                         </td>
@@ -495,7 +632,21 @@ export function CalendarPage() {
               ))}
             </select>
           </div>
-          <p className="hint-inline">Assign Jeeva / Sriram / Sneha before the stall.</p>
+          <p className="hint-inline">Assign Sriram / Sneha / Jeeva before the stall.</p>
+          {prepTasks.length > 0 && (
+            <div style={{ margin: '0.65rem 0 0.85rem' }}>
+              <LabeledBar
+                percent={Math.round(
+                  (prepTasks.filter((t) => t.done).length / prepTasks.length) * 100,
+                )}
+                labels={
+                  prepTasks.every((t) => t.done)
+                    ? ['ready', 'all set']
+                    : ['working now', 'one moment', 'almost there']
+                }
+              />
+            </div>
+          )}
           <ul className="prep-list">
             {prepTasks.map((t) => (
               <li key={t.id} className={t.done ? 'is-done' : ''}>
@@ -517,9 +668,9 @@ export function CalendarPage() {
                     }
                   >
                     <option value="">Unassigned</option>
-                    <option value="Jeeva">Jeeva</option>
                     <option value="Sriram">Sriram</option>
                     <option value="Sneha">Sneha</option>
+                    <option value="Jeeva">Jeeva</option>
                   </select>
                 </label>
               </li>
@@ -541,9 +692,9 @@ export function CalendarPage() {
                 onChange={(e) => setNewPrepAssignee(e.target.value as PrepAssignee)}
               >
                 <option value="">Unassigned</option>
-                <option value="Jeeva">Jeeva</option>
                 <option value="Sriram">Sriram</option>
                 <option value="Sneha">Sneha</option>
+                <option value="Jeeva">Jeeva</option>
               </select>
             </div>
             <button
@@ -570,7 +721,7 @@ export function CalendarPage() {
             <select value={activeInvId} onChange={(e) => setInvEvent(e.target.value)}>
               {cards.map((c) => (
                 <option key={c.event.id} value={c.event.id}>
-                  {c.event.id} · {c.event.status === 'Completed' ? 'done' : 'upcoming'}
+                  {c.event.id} · {c.event.location || c.event.name}
                 </option>
               ))}
             </select>
@@ -579,7 +730,7 @@ export function CalendarPage() {
             <div className="grid three" style={{ margin: '0.65rem 0' }}>
               <div>
                 <div className="kpi-label">
-                  {activeCard.event.status === 'Completed' ? 'Spend' : 'Expected spend'}
+                  {usesActualsForEvent(activeCard.event) ? 'Spend' : 'Expected spend'}
                 </div>
                 <strong>
                   <Money value={activeCard.spend} />
@@ -587,7 +738,7 @@ export function CalendarPage() {
               </div>
               <div>
                 <div className="kpi-label">
-                  {activeCard.event.status === 'Completed' ? 'Gain' : 'Expected gain'}
+                  {usesActualsForEvent(activeCard.event) ? 'Gain' : 'Expected gain'}
                 </div>
                 <strong className="pos">
                   <Money value={activeCard.gain} />
@@ -615,11 +766,13 @@ export function CalendarPage() {
               <thead>
                 <tr>
                   <th>Dish</th>
+                  <th>Unit</th>
                   <th>Qty</th>
                   {!isStall && (
                     <>
                       <th>€/unit</th>
                       <th>Total</th>
+                      <th></th>
                     </>
                   )}
                 </tr>
@@ -630,8 +783,20 @@ export function CalendarPage() {
                   return (
                     <tr key={d.id}>
                       <td>
-                        {d.name}
-                        <div className="hint-inline">{d.unit}</div>
+                        <input
+                          type="text"
+                          value={d.name}
+                          style={{ width: '100%', minWidth: 120 }}
+                          onChange={(e) => updateDish(d.id, { name: e.target.value })}
+                        />
+                      </td>
+                      <td>
+                        <input
+                          type="text"
+                          value={d.unit}
+                          style={{ width: 72 }}
+                          onChange={(e) => updateDish(d.id, { unit: e.target.value })}
+                        />
                       </td>
                       <td>
                         <input
@@ -657,6 +822,18 @@ export function CalendarPage() {
                           </td>
                           <td>
                             <Money value={d.unitCost * qty} />
+                          </td>
+                          <td>
+                            <button
+                              type="button"
+                              className="btn ghost"
+                              title="Remove dish"
+                              onClick={() => {
+                                if (window.confirm(`Remove “${d.name}”?`)) removeDish(d.id)
+                              }}
+                            >
+                              ×
+                            </button>
                           </td>
                         </>
                       )}

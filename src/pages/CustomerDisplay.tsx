@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { GermanSpokenAmount } from '../components/GermanSpokenAmount'
 import { Money } from '../components/Money'
 import { useLocale } from '../context/LocaleContext'
 import {
@@ -37,6 +38,11 @@ export function CustomerDisplay() {
           <div className="cust-display__total">
             <Money value={state.total} />
           </div>
+          <div className="cust-display__spoken" lang="de">
+            {state.total > 0 ? (
+              <GermanSpokenAmount value={state.total} />
+            ) : null}
+          </div>
           {state.lineSummary && (
             <p className="cust-display__lines">{state.lineSummary}</p>
           )}
@@ -62,6 +68,9 @@ export function CustomerDisplay() {
           {state.total > 0 && (
             <div className="cust-display__total cust-display__total--sm">
               <Money value={state.total} />
+              <div className="cust-display__spoken" lang="de">
+                <GermanSpokenAmount value={state.total} />
+              </div>
             </div>
           )}
         </>

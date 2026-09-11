@@ -3,7 +3,7 @@ import { Navigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { canManageUploads } from '../lib/authAllowlist'
 
-/** Blocks /upload for anyone who is not Jeeva. */
+/** Blocks Upload / Quick add / AI Code for anyone who is not Developer. */
 export function RequireUploadAccess({ children }: { children: ReactNode }) {
   const { user } = useAuth()
   if (!canManageUploads(user)) {

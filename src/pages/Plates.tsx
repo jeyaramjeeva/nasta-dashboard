@@ -1,5 +1,6 @@
 import { Minus, Plus, UtensilsCrossed } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
+import { LabeledBar } from '../components/LabeledBar'
 import { MotionCard } from '../components/MotionCard'
 import { EmptyState, SkeletonPage } from '../components/Skeleton'
 import { useData } from '../context/DataContext'
@@ -211,6 +212,18 @@ export function Plates() {
           </div>
         </div>
 
+        {breakEvenPlates > 0 && (
+          <div style={{ marginTop: '0.85rem' }}>
+            <LabeledBar
+              percent={Math.min(100, Math.round((plates / breakEvenPlates) * 100))}
+              labels={
+                plates >= breakEvenPlates
+                  ? ['break-even hit', 'keep going']
+                  : ['counting plates', 'almost there', 'hang tight']
+              }
+            />
+          </div>
+        )}
         <div className="chip-row" style={{ marginTop: '0.85rem' }}>
           <span className="badge ok">Revenue ~ €{revenue.toFixed(0)}</span>
           <span className={`badge ${plates >= breakEvenPlates && breakEvenPlates > 0 ? 'ok' : 'warn'}`}>

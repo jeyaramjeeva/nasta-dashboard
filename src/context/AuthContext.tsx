@@ -9,8 +9,12 @@ import {
 } from 'react'
 import type { Session } from '@supabase/supabase-js'
 import {
+  DEVELOPER_EMAIL,
+  DEVELOPER_NAME,
   findAllowedUser,
   getAllowedUsers,
+  isDeveloperEmail,
+  isDeveloperName,
   isEmailAllowed,
   type AllowedUser,
 } from '../lib/authAllowlist'
@@ -22,10 +26,12 @@ import {
   isGuestName,
 } from '../lib/guestAuth'
 import { sendForgotPasswordRequest } from '../lib/passwordHelp'
+import { clearPinSkip } from '../lib/loginPin'
+import { resetStallSession } from '../lib/stallMode'
 import { checkUploadPassword, getSupabase, isCloudConfigured } from '../lib/supabase'
 
 const LOCAL_AUTH_KEY = 'nasta-local-auth-v1'
-const TEAM = ['Jeeva', 'Sriram', 'Sneha', GUEST_NAME] as const
+const TEAM = ['Sriram', 'Sneha', 'Jeeva', 'Developer', GUEST_NAME] as const
 
 export interface AuthUser {
   email: string
@@ -85,6 +91,15 @@ function emailForTeamName(name: string): string {
   return hit?.email ?? `${name.toLowerCase()}@local`
 }
 
+/** Prefer Supabase session; keep Guest/Developer local when cloud user is missing. */
+function resolveAuthUser(sessionEmail: string | undefined): AuthUser | null {
+  const mapped = toAuthUser(sessionEmail)
+  if (mapped) return mapped
+  const local = loadLocalAuth()
+  if (local && (isGuestName(local.name) || isDeveloperName(local.name))) return local
+  return null
+}
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const cloudAuth = isCloudConfigured()
   const [loading, setLoading] = useState(true)
@@ -102,6 +117,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     const sb = getSupabase()
     if (!sb) {
+      setUser(loadLocalAuth())
       setLoading(false)
       return
     }
@@ -109,7 +125,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     void sb.auth.getSession().then(({ data }) => {
       if (cancelled) return
       const mapped = toAuthUser(data.session?.user?.email)
-      setUser(mapped)
+      setUser(resolveAuthUser(data.session?.user?.email))
       if (data.session?.user && !mapped) {
         void sb.auth.signOut()
       }
@@ -121,7 +137,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setNeedsNewPassword(true)
       }
       const mapped = toAuthUser(next?.user?.email)
-      setUser(mapped)
+      setUser(resolveAuthUser(next?.user?.email))
       if (next?.user && !mapped) {
         void sb.auth.signOut()
       }
@@ -143,30 +159,113 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const sb = getSupabase()
     if (!sb) throw new Error('Supabase is not configured')
 
+    // Guest: use shared password; create Supabase user if missing, else local session.
+    if (isGuestEmail(trimmed)) {
+      if (!checkGuestPassword(password)) {
+        throw new Error('Wrong guest password.')
+      }
+
+      let { data, error } = await sb.auth.signInWithPassword({
+        email: trimmed,
+        password,
+      })
+
+      if (error) {
+        const { error: signUpError } = await sb.auth.signUp({
+          email: trimmed,
+          password,
+          options: { data: { name: GUEST_NAME } },
+        })
+        if (!signUpError) {
+          ;({ data, error } = await sb.auth.signInWithPassword({
+            email: trimmed,
+            password,
+          }))
+        }
+      }
+
+      if (!error && data.user) {
+        const mapped = toAuthUser(data.user.email)
+        if (mapped) {
+          saveLocalAuth(null)
+          setUser(mapped)
+          return
+        }
+      }
+
+      // Fallback: Guest works with Guest9987 even without a Supabase Auth user.
+      const localGuest: AuthUser = {
+        email: GUEST_EMAIL,
+        name: GUEST_NAME,
+        source: 'local',
+      }
+      saveLocalAuth(localGuest)
+      setUser(localGuest)
+      return
+    }
+
+    // Developer: team password; create Supabase user if missing, else local session.
+    if (isDeveloperEmail(trimmed)) {
+      if (!checkUploadPassword(password)) {
+        throw new Error('Wrong team password.')
+      }
+
+      let { data, error } = await sb.auth.signInWithPassword({
+        email: trimmed,
+        password,
+      })
+
+      if (error) {
+        const { error: signUpError } = await sb.auth.signUp({
+          email: trimmed,
+          password,
+          options: { data: { name: DEVELOPER_NAME } },
+        })
+        if (!signUpError) {
+          ;({ data, error } = await sb.auth.signInWithPassword({
+            email: trimmed,
+            password,
+          }))
+        }
+      }
+
+      if (!error && data.user) {
+        const mapped = toAuthUser(data.user.email)
+        if (mapped) {
+          saveLocalAuth(null)
+          setUser(mapped)
+          return
+        }
+      }
+
+      const localDev: AuthUser = {
+        email: DEVELOPER_EMAIL,
+        name: DEVELOPER_NAME,
+        source: 'local',
+      }
+      saveLocalAuth(localDev)
+      setUser(localDev)
+      return
+    }
+
     const { data, error } = await sb.auth.signInWithPassword({
       email: trimmed,
       password,
     })
-    if (error) {
-      if (isGuestEmail(trimmed)) {
-        throw new Error(
-          `Guest login failed. In Supabase → Authentication → Users, create ${GUEST_EMAIL} with password Guest9987 (Auto Confirm), then try again.`,
-        )
-      }
-      throw new Error(error.message)
-    }
+    if (error) throw new Error(error.message)
 
     const mapped = toAuthUser(data.user?.email)
     if (!mapped) {
       await sb.auth.signOut()
       throw new Error('Account is not allowed. Contact Jeeva.')
     }
+    saveLocalAuth(null)
     setUser(mapped)
   }, [])
 
   const signInLocal = useCallback(async (name: string, password: string) => {
     if (!TEAM.includes(name as (typeof TEAM)[number])) {
-      throw new Error('Pick Jeeva, Sriram, Sneha, or Guest.')
+      throw new Error('Pick Sriram, Sneha, Jeeva, Developer, or Guest.')
     }
     if (isGuestName(name)) {
       if (!checkGuestPassword(password)) {
@@ -192,6 +291,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     saveLocalAuth(null)
     setUser(null)
     setNeedsNewPassword(false)
+    clearPinSkip()
+    resetStallSession()
     const sb = getSupabase()
     if (sb) await sb.auth.signOut()
   }, [])

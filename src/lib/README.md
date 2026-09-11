@@ -87,7 +87,13 @@ For each file: **why** · **used by** · **if broken** · **what to change**.
 - **Why:** Supabase client; snapshot CRUD; versions; upload password; publish via API.
 - **Used by:** Auth, Data, Extras, StallOps, Reviews, Plates, ThemeCloudSync, drive.
 - **If broken:** `VITE_SUPABASE_*`; tables `snapshots`, `snapshot_versions`; `VITE_UPLOAD_PASSWORD`; service role for publish API.
-- **Change:** New table accessors / publish payload.
+- **Change:** Table names, publish body, password gate.
+
+### `loginPin.ts`
+- **Why:** Per-user 4-digit login PIN (cloud via `/api/login-pin`, local cache for offline).
+- **Used by:** Login, PinEnroll, Account, AuthGate.
+- **If broken:** Table `login_pins` (`supabase/login_pins.sql`); `SUPABASE_SERVICE_ROLE_KEY`; stale device PIN was the old model — cloud `hasPin` is source of truth.
+- **Change:** PIN length `LOGIN_PIN_DIGITS`; vault crypto must stay in sync with `api/login-pin.ts`.
 
 ### `authAllowlist.ts`
 - **Why:** Who can login + roles (Developer, upload, AI helper, AI code).

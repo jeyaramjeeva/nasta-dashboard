@@ -1,5 +1,6 @@
 import { forecastEvent } from './insights'
 import { inventoryCostForEvent, type WeatherTag } from './extrasStore'
+import { usesActualsForEvent } from './eventStatus'
 import type { DashboardMetrics, EventMetrics, Snapshot } from '../types'
 
 export type PrepStatus = 'ready' | 'partial' | 'missing' | 'done'
@@ -50,7 +51,11 @@ function toIso(d: Date): string {
 }
 
 /** Build every calendar day an event occupies (start → end, or start + days). */
-export function eventDateSpan(event: EventMetrics): string[] {
+export function eventCalendarDays(event: {
+  startDate: string | null
+  endDate: string | null
+  days?: number
+}): string[] {
   if (!event.startDate) return []
   const start = parseIso(event.startDate)
   let total = Math.max(1, event.days || 1)
@@ -68,6 +73,11 @@ export function eventDateSpan(event: EventMetrics): string[] {
   return out
 }
 
+/** Build every calendar day an event occupies (start → end, or start + days). */
+export function eventDateSpan(event: EventMetrics): string[] {
+  return eventCalendarDays(event)
+}
+
 function prepFor(
   e: EventMetrics,
   snapshot: Snapshot,
@@ -82,9 +92,9 @@ function prepFor(
   const notes: string[] = []
   if (!hasFee) notes.push('No stall fee logged')
   if (!hasGrocery) notes.push('No grocery prep')
-  if (!hasBefore && e.status !== 'Completed') notes.push('No start-of-day cash count')
+  if (!hasBefore && !usesActualsForEvent(e)) notes.push('No start-of-day cash count')
 
-  if (e.status === 'Completed') {
+  if (usesActualsForEvent(e)) {
     return { prep: 'done', notes: notes.length ? notes : ['Closed'], hasBefore }
   }
   if (!notes.length) return { prep: 'ready', notes: ['Fee + grocery + float ready'], hasBefore }
@@ -111,7 +121,7 @@ export function buildCalendarCards(
       let expectedNet: number | null = null
       let net: number | null = null
 
-      if (event.status === 'Completed') {
+      if (usesActualsForEvent(event)) {
         gain = event.income
         spend = round2(event.expense + inv)
         net = round2(gain - spend)

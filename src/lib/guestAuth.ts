@@ -1,4 +1,4 @@
-/** Shared “helper / guest” login — same screens as Stall mode, no money pages. */
+/** Shared Guest login — same screens as Stall mode (Calendar, Stock, Orders). */
 
 export const GUEST_NAME = 'Guest'
 export const GUEST_EMAIL = 'guest@nastazentrum.de'

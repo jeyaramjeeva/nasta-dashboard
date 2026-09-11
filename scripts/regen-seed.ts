@@ -1,3 +1,8 @@
+/**
+ * Rebuild public/seed-data.json from the local Excel workbook path below.
+ * Used for offline / first-load demo data. See scripts/README.md.
+ * Run via your usual TS runner for scripts (e.g. tsx / project script).
+ */
 import fs from 'fs'
 import path from 'path'
 import { fileURLToPath } from 'url'

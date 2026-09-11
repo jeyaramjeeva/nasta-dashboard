@@ -3,6 +3,7 @@ import {
   findDuplicateExpenses,
   formatDuplicateAlert,
 } from './duplicateExpenses'
+import { impactsMetrics, normalizeEventStatus } from './eventStatus'
 import { categorySpendForEvent } from './insights'
 import type {
   DashboardMetrics,
@@ -21,8 +22,19 @@ function isSetupEventId(eventId: string): boolean {
   return eventId.trim().toLowerCase() === 'setup'
 }
 
+/** Confirmed (+ legacy Completed) — these hit income/cost books. */
 function isCompletedStatus(status: string | undefined | null): boolean {
-  return (status || '').trim().toLowerCase() === 'completed'
+  return impactsMetrics(status)
+}
+
+function eventCountsInBooks(
+  eventId: string,
+  eventById: Map<string, { status: string }>,
+): boolean {
+  if (isSetupEventId(eventId)) return true
+  const ev = eventById.get(eventId)
+  if (!ev) return true
+  return impactsMetrics(ev.status)
 }
 
 export function computeMetrics(
@@ -56,7 +68,7 @@ export function computeMetrics(
       if (!ev || !eventTypes.has(ev.name)) return false
     }
     if (statusFilter === 'completed') {
-      // Keep Setup in "completed so far" books; drop only upcoming stalls.
+      // Keep Setup in "completed so far" books; drop Applied / Rejected / Upcoming.
       if (isSetupEventId(eventId)) return true
       const ev = eventById.get(eventId)
       return Boolean(ev && isCompletedStatus(ev.status))
@@ -66,7 +78,8 @@ export function computeMetrics(
       const ev = eventById.get(eventId)
       return Boolean(ev && !isCompletedStatus(ev.status))
     }
-    return true
+    // Default KPIs: only Confirmed (+ legacy Completed) + Setup impact the books.
+    return eventCountsInBooks(eventId, eventById)
   }
 
   const transactions = snapshot.transactions.filter((t) => {
@@ -204,7 +217,7 @@ export function computeMetrics(
     { income: number; expense: number; days: number; events: string[] }
   >()
   for (const e of byEvent) {
-    if (e.status !== 'Completed' && e.income <= 0) continue
+    if (!impactsMetrics(e.status) && e.income <= 0) continue
     const loc = e.location || 'Unknown'
     if (!locMap.has(loc)) locMap.set(loc, { income: 0, expense: 0, days: 0, events: [] })
     const row = locMap.get(loc)!
@@ -243,7 +256,7 @@ export function computeMetrics(
     }
   >()
   for (const e of byEvent) {
-    if (e.status !== 'Completed') continue
+    if (!impactsMetrics(e.status)) continue
     if (!typeMap.has(e.name)) {
       typeMap.set(e.name, {
         income: 0,
@@ -327,13 +340,17 @@ export function computeMetrics(
     })
   }
 
-  for (const e of snapshot.events.filter((x) => x.status === 'Upcoming')) {
+  for (const e of snapshot.events.filter((x) => {
+    const n = normalizeEventStatus(x.status)
+    return n === 'Upcoming' || n === 'Applied' || n === 'Confirmed'
+  })) {
+    if (!impactsMetrics(e.status) && normalizeEventStatus(e.status) === 'Rejected') continue
     const prep = snapshot.transactions.filter((t) => t.eventId === e.id).length
-    if (prep === 0) {
+    if (prep === 0 && impactsMetrics(e.status)) {
       alerts.push({
         kind: 'upcoming_empty',
         severity: 'warn',
-        message: `${e.id} ${e.name} (${e.location}) upcoming with no prep costs`,
+        message: `${e.id} ${e.name} (${e.location}) confirmed with no prep costs`,
         meta: { eventId: e.id },
       })
     }

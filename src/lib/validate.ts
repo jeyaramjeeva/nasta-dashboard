@@ -1,3 +1,10 @@
+import {
+  buildDuplicateReport,
+  formatDuplicateAlert,
+  formatExactDuplicate,
+  hasDuplicates,
+  type DuplicateReport,
+} from './duplicateCheck'
 import { computeMetrics } from './metrics'
 import type { MergeResult, UploadMode } from './merge'
 import type { Snapshot } from '../types'
@@ -14,6 +21,7 @@ export interface ValidationIssue {
 export interface ValidationReport {
   ok: boolean
   issues: ValidationIssue[]
+  duplicates: DuplicateReport
   summary: {
     events: number
     transactions: number
@@ -21,10 +29,16 @@ export interface ValidationReport {
     unpaid: number
     unknownEvents: number
     cashMismatch: number
+    duplicateGroups: number
   }
   merge?: Pick<
     MergeResult,
-    'addedTransactions' | 'addedEvents' | 'updatedEvents' | 'addedCashRows'
+    | 'addedTransactions'
+    | 'addedEvents'
+    | 'updatedEvents'
+    | 'addedCashRows'
+    | 'skippedDuplicateTransactions'
+    | 'incomingExactDuplicateRows'
   >
 }
 
@@ -104,6 +118,95 @@ export function validateSnapshot(
     })
   }
 
+  // Always scan for duplicates (exact rows, soft expenses, event ids, merge skips)
+  const duplicates = buildDuplicateReport(snapshot, {
+    alreadyInLive: opts?.merge?.skippedDuplicateTransactions ?? 0,
+  })
+
+  if (duplicates.duplicateEventIds.length) {
+    issues.push({
+      level: 'warn',
+      code: 'duplicate_events',
+      count: duplicates.duplicateEventIds.length,
+      message: `Duplicate event ID(s) in sheet: ${duplicates.duplicateEventIds.slice(0, 8).join(', ')}`,
+    })
+  }
+
+  if (duplicates.exactTx.length) {
+    const rows = duplicates.exactTx.reduce((s, g) => s + g.count, 0)
+    issues.push({
+      level: 'warn',
+      code: 'duplicate_exact',
+      count: duplicates.exactTx.length,
+      message: `${duplicates.exactTx.length} exact duplicate group(s) (${rows} rows) — same date/event/person/amount/description`,
+    })
+    for (const g of duplicates.exactTx.slice(0, 8)) {
+      issues.push({
+        level: 'warn',
+        code: 'duplicate_exact_row',
+        count: g.count,
+        message: formatExactDuplicate(g),
+      })
+    }
+    if (duplicates.exactTx.length > 8) {
+      issues.push({
+        level: 'info',
+        code: 'duplicate_exact_more',
+        message: `…and ${duplicates.exactTx.length - 8} more exact duplicate group(s)`,
+      })
+    }
+  }
+
+  if (duplicates.softExpenses.length) {
+    issues.push({
+      level: 'warn',
+      code: 'duplicate_expense',
+      count: duplicates.softExpenses.length,
+      message: `${duplicates.softExpenses.length} possible duplicate expense group(s) (same day + person + amount)`,
+    })
+    for (const g of duplicates.softExpenses.slice(0, 8)) {
+      issues.push({
+        level: 'warn',
+        code: 'duplicate_expense_row',
+        count: g.count,
+        message: formatDuplicateAlert(g),
+      })
+    }
+    if (duplicates.softExpenses.length > 8) {
+      issues.push({
+        level: 'info',
+        code: 'duplicate_expense_more',
+        message: `…and ${duplicates.softExpenses.length - 8} more expense duplicate group(s)`,
+      })
+    }
+  }
+
+  if (opts?.merge?.skippedDuplicateTransactions) {
+    issues.push({
+      level: 'warn',
+      code: 'duplicate_already_live',
+      count: opts.merge.skippedDuplicateTransactions,
+      message: `${opts.merge.skippedDuplicateTransactions} row(s) in this file already exist in live data (merge will skip them)`,
+    })
+  }
+
+  if (opts?.merge?.incomingExactDuplicateRows) {
+    issues.push({
+      level: 'warn',
+      code: 'duplicate_in_file',
+      count: opts.merge.incomingExactDuplicateRows,
+      message: `${opts.merge.incomingExactDuplicateRows} extra duplicate row(s) inside the Excel file itself`,
+    })
+  }
+
+  if (!hasDuplicates(duplicates) && !(opts?.merge?.skippedDuplicateTransactions)) {
+    issues.push({
+      level: 'info',
+      code: 'duplicates_ok',
+      message: 'No duplicate transactions or event IDs detected',
+    })
+  }
+
   if (!snapshot.transactions.length) {
     issues.push({
       level: 'error',
@@ -113,10 +216,15 @@ export function validateSnapshot(
   }
 
   const hasError = issues.some((i) => i.level === 'error')
+  const dupGroups =
+    duplicates.exactTx.length +
+    duplicates.softExpenses.length +
+    duplicates.duplicateEventIds.length
 
   return {
     ok: !hasError,
     issues,
+    duplicates,
     summary: {
       events: snapshot.events.length,
       transactions: snapshot.transactions.length,
@@ -124,6 +232,7 @@ export function validateSnapshot(
       unpaid: unpaid.length,
       unknownEvents: unknown.length,
       cashMismatch: metrics.cashMismatch,
+      duplicateGroups: dupGroups,
     },
     merge: opts?.merge
       ? {
@@ -131,6 +240,8 @@ export function validateSnapshot(
           addedEvents: opts.merge.addedEvents,
           updatedEvents: opts.merge.updatedEvents,
           addedCashRows: opts.merge.addedCashRows,
+          skippedDuplicateTransactions: opts.merge.skippedDuplicateTransactions,
+          incomingExactDuplicateRows: opts.merge.incomingExactDuplicateRows,
         }
       : undefined,
   }

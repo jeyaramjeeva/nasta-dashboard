@@ -28,3 +28,17 @@ dist-ssr
 
 .vercel
 .env*
+
+# Capacitor / native (local SDK outputs — keep android/ios project sources)
+*.keystore
+*.jks
+android/keystore.properties
+android/nasta-release.keystore
+android/.gradle
+android/app/build
+android/build
+android/local.properties
+android/app/release
+ios/App/Pods
+ios/App/build
+ios/DerivedData

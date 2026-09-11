@@ -18,7 +18,7 @@ const CATEGORIES = [
   'Other',
 ]
 
-const PEOPLE = ['Jeeva', 'Sriram', 'Sneha', 'Box', 'Paypal']
+const PEOPLE = ['Sriram', 'Sneha', 'Jeeva', 'Box', 'Paypal']
 
 export function QuickAdd() {
   const { snapshot, quickAddTransaction, cloudEnabled } = useData()
@@ -33,7 +33,7 @@ export function QuickAdd() {
   const [type, setType] = useState('Expense')
   const [category, setCategory] = useState('Grocery')
   const [amount, setAmount] = useState('')
-  const [person, setPerson] = useState('Jeeva')
+  const [person, setPerson] = useState('Sriram')
   const [description, setDescription] = useState('')
   const [status, setStatus] = useState('Paid')
 
@@ -104,7 +104,7 @@ export function QuickAdd() {
         <div className="alert-item" style={{ marginBottom: '0.9rem' }}>
           {canUpload
             ? 'No snapshot loaded yet. Publish an Excel file once from Upload before using quick-add.'
-            : 'No snapshot loaded yet. Ask Jeeva to publish Excel once before using quick-add.'}
+            : 'No snapshot loaded yet. Ask Developer to publish Excel once before using quick-add.'}
         </div>
       )}
 

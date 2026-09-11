@@ -1,5 +1,7 @@
 import {
   CloudDownload,
+  Copy,
+  Download,
   GitCompare,
   History,
   Link2,
@@ -12,10 +14,12 @@ import { MotionCard } from '../components/MotionCard'
 import { useData } from '../context/DataContext'
 import { useDemoMode } from '../context/DemoModeContext'
 import { isPullDue, parseDriveLink } from '../lib/drive'
+import { downloadSnapshotExcel } from '../lib/exportWorkbook'
 import { formatGermanyDateTime } from '../lib/germanyTime'
 import type { UploadMode } from '../lib/merge'
 import { diffSnapshots, summarizeDiff } from '../lib/snapshotDiff'
-import type { ValidationReport } from '../lib/validate'
+import { fetchSnapshotVersion } from '../lib/supabase'
+import { validateSnapshot, type ValidationReport } from '../lib/validate'
 import type { Snapshot } from '../types'
 
 export function Upload() {
@@ -46,6 +50,13 @@ export function Upload() {
   const [restoreId, setRestoreId] = useState<string | null>(null)
 
   const driveInfo = useMemo(() => parseDriveLink(driveUrl), [driveUrl])
+
+  /** Background scan of live data so duplicates show even before a new upload. */
+  const liveDupReport = useMemo(
+    () => (snapshot ? validateSnapshot(snapshot) : null),
+    [snapshot],
+  )
+  const liveDupCount = liveDupReport?.summary.duplicateGroups ?? 0
   const pullDue = isPullDue(driveSettings)
 
   const previousPayload = versions[0]?.payload ?? null
@@ -102,7 +113,7 @@ export function Upload() {
         password,
         mode,
         force,
-        note: file?.name || candidate.sourceFile,
+        note: candidate.sourceFile,
       })
       setMsg({
         type: 'ok',
@@ -191,6 +202,25 @@ export function Upload() {
         </div>
       )}
 
+      {liveDupCount > 0 && liveDupReport && (
+        <div
+          className="alert-item"
+          style={{
+            marginBottom: '0.9rem',
+            background: 'var(--warn-soft)',
+            borderColor: 'transparent',
+          }}
+        >
+          <Copy size={14} style={{ verticalAlign: -2, marginRight: 6 }} />
+          <strong>Live data has {liveDupCount} duplicate group(s).</strong>{' '}
+          {liveDupReport.issues
+            .filter((i) => i.code.startsWith('duplicate_') && i.level === 'warn')
+            .slice(0, 3)
+            .map((i) => i.message)
+            .join(' · ')}
+        </div>
+      )}
+
       {pullDue && driveSettings.url && !isDemo && (
         <div className="alert-item" style={{ marginBottom: '0.9rem' }}>
           Weekly Drive pull is due
@@ -260,8 +290,8 @@ export function Upload() {
           </div>
           <p className="hint-inline" style={{ marginTop: 0 }}>
             {mode === 'merge'
-              ? 'Keeps existing history; adds only new transactions / events from the file.'
-              : 'Full replace — dashboard becomes exactly what’s in this Excel.'}
+              ? 'Keeps existing history; adds only new rows. Rows removed or date-changed in Excel stay on the dashboard — use Replace all if costs look too high.'
+              : 'Full replace — dashboard becomes exactly what’s in this Excel. Use this after cleaning duplicates.'}
           </p>
 
           <div className="field">
@@ -407,6 +437,11 @@ export function Upload() {
               ? 'Comparing current live data → your validated candidate.'
               : 'Comparing previous upload → current live snapshot.'}
           </p>
+          {candidate?.sourceFile && (
+            <p className="badge ok" style={{ marginTop: 8 }}>
+              Will publish as: {candidate.sourceFile}
+            </p>
+          )}
           <div className="diff-list">
             {diffLines.length === 0 && (
               <div className="hint-inline">No differences to show yet.</div>
@@ -447,12 +482,40 @@ export function Upload() {
             <span className="badge">
               cash Δ €{report.summary.cashMismatch.toFixed(2)}
             </span>
+            {report.summary.duplicateGroups > 0 ? (
+              <span className="badge warn">
+                {report.summary.duplicateGroups} duplicate group
+                {report.summary.duplicateGroups === 1 ? '' : 's'}
+              </span>
+            ) : (
+              <span className="badge ok">No duplicates</span>
+            )}
             {report.merge && (
               <span className="badge ok">
                 +{report.merge.addedTransactions} new txs
               </span>
             )}
+            {report.merge && report.merge.skippedDuplicateTransactions > 0 && (
+              <span className="badge warn">
+                {report.merge.skippedDuplicateTransactions} already in live
+              </span>
+            )}
           </div>
+          {report.summary.duplicateGroups > 0 ||
+          (report.merge?.skippedDuplicateTransactions ?? 0) > 0 ? (
+            <div
+              className="alert-item"
+              style={{
+                marginTop: '0.75rem',
+                background: 'var(--warn-soft)',
+                borderColor: 'transparent',
+              }}
+            >
+              <Copy size={14} style={{ verticalAlign: -2, marginRight: 6 }} />
+              <strong>Duplicates found</strong> — review the WARN lines below before
+              publishing. Merge skips rows that already match live data.
+            </div>
+          ) : null}
           <div className="alert-list" style={{ marginTop: '0.75rem' }}>
             {report.issues.map((issue) => (
               <div
@@ -461,9 +524,11 @@ export function Upload() {
                 style={
                   issue.level === 'error'
                     ? { background: 'var(--danger-soft)', borderColor: 'transparent' }
-                    : issue.level === 'info'
-                      ? { background: 'var(--ok-soft)', borderColor: 'transparent' }
-                      : undefined
+                    : issue.code.startsWith('duplicate')
+                      ? { background: 'var(--warn-soft)', borderColor: 'transparent' }
+                      : issue.level === 'info'
+                        ? { background: 'var(--ok-soft)', borderColor: 'transparent' }
+                        : undefined
                 }
               >
                 <strong style={{ textTransform: 'uppercase', fontSize: '0.7rem' }}>
@@ -497,7 +562,8 @@ export function Upload() {
             Upload history
           </h2>
           <span className="hint-inline">
-            {versions.length} version{versions.length === 1 ? '' : 's'}
+            {versions.length} version{versions.length === 1 ? '' : 's'} · Excel =
+            data rebuild from saved snapshot
           </span>
         </div>
         <div className="table-wrap">
@@ -525,15 +591,53 @@ export function Upload() {
                     {v.summary.events} ev · {v.summary.transactions} tx
                   </td>
                   <td>
-                    <button
-                      type="button"
-                      className="btn ghost"
-                      style={{ padding: '0.35rem 0.65rem' }}
-                      disabled={busy}
-                      onClick={() => void runRestore(v.id)}
-                    >
-                      {restoreId === v.id ? '…' : 'Restore'}
-                    </button>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                      <button
+                        type="button"
+                        className="btn ghost"
+                        style={{ padding: '0.35rem 0.65rem' }}
+                        title="Download Excel rebuilt from this version"
+                        onClick={() => {
+                          void (async () => {
+                            try {
+                              const full = v.payload
+                                ? v
+                                : await fetchSnapshotVersion(v.id)
+                              if (!full?.payload) {
+                                setMsg({
+                                  type: 'err',
+                                  text: 'Could not load that version Excel data.',
+                                })
+                                return
+                              }
+                              downloadSnapshotExcel(
+                                full.payload,
+                                v.sourceFile || `nasta-${v.id}.xlsx`,
+                              )
+                            } catch (e) {
+                              setMsg({
+                                type: 'err',
+                                text:
+                                  e instanceof Error
+                                    ? e.message
+                                    : 'Could not download Excel',
+                              })
+                            }
+                          })()
+                        }}
+                      >
+                        <Download size={14} /> Excel
+                      </button>
+                      <button
+                        type="button"
+                        className="btn ghost"
+                        style={{ padding: '0.35rem 0.65rem' }}
+                        disabled={busy}
+                        onClick={() => void runRestore(v.id)}
+                      >
+                        {restoreId === v.id ? '…' : 'Restore'}
+                      </button>
+                    </div>
                   </td>
                 </tr>
               ))}

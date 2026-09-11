@@ -12,23 +12,30 @@ import {
   XAxis,
   YAxis,
 } from 'recharts'
+import { AiCoachPanel } from '../components/AiCoachPanel'
+import { BusinessIntelSection } from '../components/BusinessIntelSection'
 import { ChartChrome, chartTooltipStyle, euroFull, euroTick } from '../components/ChartChrome'
 import { CountUp } from '../components/CountUp'
+import { EditableText } from '../components/EditableText'
 import { Money } from '../components/Money'
 import { MotionCard } from '../components/MotionCard'
 import { EmptyState, SkeletonPage } from '../components/Skeleton'
 import { useData } from '../context/DataContext'
 import { useLocale } from '../context/LocaleContext'
+import { useStallOps } from '../context/StallOpsContext'
 import { channelByEventType } from '../lib/channelSplit'
+import { buildWeeklyCoachDigest } from '../lib/coachDigest'
 import { exportElementPdf, exportElementPng } from '../lib/exportReport'
 import { germanyTodayYmd } from '../lib/germanyTime'
 import { WEATHER_OPTIONS, loadWeather } from '../lib/extrasStore'
 import { forecastEvent } from '../lib/insights'
 import { seasonPairs, weatherCompare } from '../lib/seasons'
+import { locationGoCautionSkip, weatherCallBadge } from '../lib/weatherAdvice'
 import { feeWhatIf } from '../lib/whatIf'
 
 export function Insights() {
   const { metrics, snapshot, loading } = useData()
+  const { orders, menu, stock, foodMade, lowStock } = useStallOps()
   const { tr } = useLocale()
   const location = useLocation()
   const reportRef = useRef<HTMLDivElement>(null)
@@ -37,6 +44,7 @@ export function Insights() {
   const [pnlEvent, setPnlEvent] = useState<string>('')
   const [whatIfEvent, setWhatIfEvent] = useState('')
   const [whatIfFee, setWhatIfFee] = useState(200)
+  const [digestCopied, setDigestCopied] = useState(false)
   const estimate = useMemo(() => {
     if (!metrics) return null
     return forecastEvent(metrics.byEventType, estimateType, days)
@@ -72,11 +80,16 @@ export function Insights() {
     [metrics],
   )
 
-  const weatherRows = useMemo(
-    () => (metrics ? weatherCompare(metrics.byEvent, loadWeather()) : []),
+  const weatherByEvent = useMemo(
+    () => loadWeather(),
     // refresh when navigating back from Calendar after tagging
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [metrics, location.key],
+    [location.key],
+  )
+
+  const weatherRows = useMemo(
+    () => (metrics ? weatherCompare(metrics.byEvent, weatherByEvent) : []),
+    [metrics, weatherByEvent],
   )
 
   const pnlChart = useMemo(() => {
@@ -89,13 +102,47 @@ export function Insights() {
     ]
   }, [selected, tr])
 
-  if (loading) return <SkeletonPage />
-  if (!metrics) {
-    return <EmptyState title="No insights yet" body="Upload Excel to unlock location intelligence." />
-  }
+  const nextEvent = useMemo(() => {
+    if (!metrics) return null
+    return (
+      metrics.byEvent
+        .filter((event) => event.status !== 'Completed')
+        .slice()
+        .sort((a, b) => (a.startDate || '9999-12-31').localeCompare(b.startDate || '9999-12-31'))[0] ||
+      metrics.byEvent[0] ||
+      null
+    )
+  }, [metrics])
 
-  const best = metrics.byLocation[0]
-  const worst = metrics.byLocation[metrics.byLocation.length - 1]
+  const goSkipAdvice = useMemo(
+    () =>
+      locationGoCautionSkip({
+        tag: nextEvent ? weatherByEvent[nextEvent.id] : undefined,
+        history: metrics?.byEvent || [],
+        weatherByEvent,
+        event: nextEvent,
+        locationScores: metrics?.byLocation,
+      }),
+    [metrics?.byEvent, metrics?.byLocation, nextEvent, weatherByEvent],
+  )
+
+  const coachDigest = useMemo(
+    () =>
+      buildWeeklyCoachDigest({
+        orders,
+        menu,
+        stock,
+        foodMade,
+        events: metrics?.byEvent,
+        lowStockCount: lowStock.length,
+      }),
+    [foodMade, lowStock.length, menu, metrics?.byEvent, orders, stock],
+  )
+
+  if (loading) return <SkeletonPage />
+
+  const best = metrics?.byLocation[0]
+  const worst = metrics ? metrics.byLocation[metrics.byLocation.length - 1] : undefined
 
   async function doExport(kind: 'png' | 'pdf') {
     if (!reportRef.current) return
@@ -104,23 +151,113 @@ export function Insights() {
     else await exportElementPdf(reportRef.current, name)
   }
 
+  async function copyCoachDigest() {
+    await navigator.clipboard.writeText(coachDigest.copyText)
+    setDigestCopied(true)
+  }
+
   return (
     <>
       <div className="page-head">
         <div>
-          <h1>{tr('insights')}</h1>
+          <EditableText id="insights.pageTitle" as="h1" defaultText={tr('insights')} />
+          <EditableText
+            id="insights.pageSub"
+            as="p"
+            defaultText="Live stall intel plus location scorecards, forecasts, and Excel event analytics."
+          />
         </div>
-        <div className="page-actions">
-          <button className="btn ghost" type="button" onClick={() => void doExport('png')}>
-            {tr('downloadPng')}
-          </button>
-          <button className="btn ghost" type="button" onClick={() => void doExport('pdf')}>
-            {tr('downloadPdf')}
-          </button>
-        </div>
+        {metrics && (
+          <div className="page-actions">
+            <button className="btn ghost" type="button" onClick={() => void doExport('png')}>
+              {tr('downloadPng')}
+            </button>
+            <button className="btn ghost" type="button" onClick={() => void doExport('pdf')}>
+              {tr('downloadPdf')}
+            </button>
+          </div>
+        )}
       </div>
 
-      <div ref={reportRef}>
+      <BusinessIntelSection />
+      <div style={{ marginTop: '1rem' }}>
+        <AiCoachPanel />
+      </div>
+
+      <div className="grid two" style={{ marginTop: '1rem' }}>
+        <MotionCard interactive={false} className="go-skip-card">
+          <div className="card-head">
+            <div>
+              <div className="kpi-label">Next stall recommendation</div>
+              <h2>{goSkipAdvice.title}</h2>
+            </div>
+            <span className={`badge ${weatherCallBadge(goSkipAdvice.call)}`}>
+              {goSkipAdvice.call.toUpperCase()}
+            </span>
+          </div>
+          {nextEvent && (
+            <p className="hint-inline">
+              {nextEvent.id} · {nextEvent.name}
+              {nextEvent.location ? ` · ${nextEvent.location}` : ''}
+            </p>
+          )}
+          <p style={{ marginBottom: 0 }}>{goSkipAdvice.line}</p>
+        </MotionCard>
+
+        <MotionCard interactive={false} className="coach-digest">
+          <div className="card-head">
+            <div>
+              <div className="kpi-label">Weekly coach digest</div>
+              <h2>{coachDigest.weekLabel}</h2>
+            </div>
+          </div>
+          <div className="coach-digest__lists">
+            <div>
+              <strong>Wins</strong>
+              <ol>
+                {coachDigest.wins.map((item) => (
+                  <li key={item.text}>{item.text}</li>
+                ))}
+              </ol>
+            </div>
+            <div>
+              <strong>Fix next</strong>
+              <ol>
+                {coachDigest.fixes.map((item) => (
+                  <li key={item.text}>{item.text}</li>
+                ))}
+              </ol>
+            </div>
+          </div>
+          <div className="page-actions" style={{ marginTop: '0.75rem' }}>
+            <button className="btn ghost" type="button" onClick={() => void copyCoachDigest()}>
+              {digestCopied ? 'Copied' : 'Copy text'}
+            </button>
+            <a
+              className="btn ghost"
+              href={`mailto:?subject=${encodeURIComponent('Nasta weekly coach digest')}&body=${encodeURIComponent(coachDigest.copyText)}`}
+            >
+              Email digest
+            </a>
+          </div>
+        </MotionCard>
+      </div>
+
+      {!metrics ? (
+        <div style={{ marginTop: '1.25rem' }}>
+          <EmptyState
+            title="No Excel insights yet"
+            body="Upload Excel to unlock location scorecards, event P&L, weather, and seasons."
+          />
+        </div>
+      ) : (
+      <div ref={reportRef} style={{ marginTop: '1.5rem' }}>
+        <div className="section-label" style={{ marginBottom: '0.75rem' }}>
+          Event & location analytics
+          <span className="hint-inline" style={{ marginLeft: 8, fontWeight: 400 }}>
+            From uploaded Excel
+          </span>
+        </div>
         <div className="grid two" style={{ marginBottom: '0.9rem' }}>
           <ChartChrome title={tr('locationScorecard')} hint="Ranked by €/day, then margin">
             <ResponsiveContainer width="100%" height="100%">
@@ -201,7 +338,7 @@ export function Insights() {
               >
                 {metrics.byEvent.map((e) => (
                   <option key={e.id} value={e.id}>
-                    {e.id} · {e.name}
+                    {e.id} · {e.location || e.name}
                   </option>
                 ))}
               </select>
@@ -391,13 +528,23 @@ export function Insights() {
               >
                 {metrics.byEvent.map((e) => (
                   <option key={e.id} value={e.id}>
-                    {e.id} · fee €{e.fee.toFixed(0)}
+                    {e.id} · {e.location || e.name}
+                    {e.fee ? ` · fee €${e.fee.toFixed(0)}` : ''}
                   </option>
                 ))}
               </select>
             </div>
-            <div className="filters" style={{ marginTop: '0.5rem' }}>
+            <div className="range-field">
               <label className="hint-inline">If fee were</label>
+              <input
+                type="range"
+                min={0}
+                max={2000}
+                step={10}
+                value={whatIfFee}
+                onChange={(e) => setWhatIfFee(Number(e.target.value) || 0)}
+                aria-label="What-if stall fee"
+              />
               <input
                 type="number"
                 min={0}
@@ -541,6 +688,7 @@ export function Insights() {
           </div>
         </MotionCard>
       </div>
+      )}
     </>
   )
 }

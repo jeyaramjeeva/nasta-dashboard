@@ -5,6 +5,7 @@ import {
   Flame,
   MapPin,
   Sparkles,
+  StickyNote,
   Timer,
   UtensilsCrossed,
 } from 'lucide-react'
@@ -23,11 +24,14 @@ import {
   prepPercent,
   profitStreak,
 } from '../lib/homeWidgets'
-import { weatherCallBadge, weatherGoCautionSkip } from '../lib/weatherAdvice'
+import { locationGoCautionSkip, weatherCallBadge } from '../lib/weatherAdvice'
 import type { DashboardMetrics } from '../types'
-import { useAuth } from '../context/AuthContext'
 import { useExtras } from '../context/ExtrasContext'
-import { canManageUploads } from '../lib/authAllowlist'
+import { useLocale } from '../context/LocaleContext'
+import { useSiteConfig } from '../context/SiteConfigContext'
+import { isFinishedStall, usesActuals } from '../lib/eventStatus'
+import type { BuiltinWidgetId, SiteWidget } from '../lib/siteConfig'
+import { LabeledBar } from './LabeledBar'
 import { Money } from './Money'
 
 function pad(n: number) {
@@ -42,9 +46,9 @@ export function HomeWidgets({
   metrics: DashboardMetrics
 }) {
   const reduce = useReducedMotion()
-  const { user } = useAuth()
-  const canUpload = canManageUploads(user)
   const { mission, weather } = useExtras()
+  const { config } = useSiteConfig()
+  const { locale } = useLocale()
   const [now, setNow] = useState(() => new Date())
 
   useEffect(() => {
@@ -58,16 +62,24 @@ export function HomeWidgets({
   const prep = next ? prepPercent(next) : 0
 
   const completed = useMemo(
-    () => metrics.byEvent.filter((e) => e.status === 'Completed'),
+    () => metrics.byEvent.filter((e) => isFinishedStall(e) || usesActuals(e.status)),
     [metrics.byEvent],
   )
   const streak = profitStreak(completed)
   const mood = moneyMood(metrics.net, next?.net ?? null)
-  const plates = next ? platesToBreakEven(next.event, 8) : 0
+  const platePrice = config.settings.platePriceHint || 8
+  const plates = next ? platesToBreakEven(next.event, platePrice) : 0
   const locationHint = bestLocationHint(metrics.byLocation)
   const advice = useMemo(
-    () => weatherGoCautionSkip(next?.weather, metrics.byEvent, weather),
-    [next, metrics.byEvent, weather],
+    () =>
+      locationGoCautionSkip({
+        tag: next?.weather,
+        history: metrics.byEvent,
+        weatherByEvent: weather,
+        event: next?.event,
+        locationScores: metrics.byLocation,
+      }),
+    [next, metrics.byEvent, metrics.byLocation, weather],
   )
 
   const fallbackMission = next
@@ -80,21 +92,102 @@ export function HomeWidgets({
     ? formatGermanyCalendarDay(next.event.startDate)
     : ''
 
+  const visible = config.widgets.filter((w) => w.visible)
+  const showCountdown =
+    config.settings.showCountdown &&
+    visible.some((w) => w.kind === 'builtin' && w.builtinId === 'countdown')
+  const gridWidgets = visible.filter(
+    (w) => !(w.kind === 'builtin' && w.builtinId === 'countdown'),
+  )
+
+  function titleOf(w: SiteWidget) {
+    return locale === 'de' ? w.titleDe || w.titleEn : w.titleEn
+  }
+
+  function bodyOf(w: SiteWidget) {
+    return locale === 'de' ? w.bodyDe || w.bodyEn : w.bodyEn
+  }
+
+  function builtinBody(id: BuiltinWidgetId | undefined): ReactNode {
+    switch (id) {
+      case 'weather':
+        return (
+          <>
+            <span className={`badge ${weatherCallBadge(advice.call)}`} style={{ marginRight: 6 }}>
+              {advice.call}
+            </span>
+            {advice.line}
+          </>
+        )
+      case 'plates':
+        return next && plates > 0 ? (
+          <>
+            Need about <strong>{plates} plates</strong> at €{platePrice} to clear break-even for{' '}
+            {next.event.id}. <Link to="/plates">Live counter →</Link>
+          </>
+        ) : (
+          <>Pick an upcoming stall with fee + grocery to unlock plate math.</>
+        )
+      case 'streak':
+        return streak > 0 ? (
+          <>
+            Last {streak} completed stall{streak === 1 ? '' : 's'} finished in profit. Keep the
+            batter flowing.
+          </>
+        ) : (
+          <>No profit streak yet — one solid Flohmarkt can light it.</>
+        )
+      case 'mood':
+        return mood.line
+      case 'location':
+        return locationHint ? (
+          <>
+            {locationHint}. <Link to="/insights">See scorecard →</Link>
+          </>
+        ) : (
+          <>Locations will rank here after a few completed events.</>
+        )
+      default:
+        return null
+    }
+  }
+
+  function builtinTitle(w: SiteWidget): string {
+    if (w.builtinId === 'weather') return advice.title
+    if (w.builtinId === 'streak' && streak > 0) return `${streak}-stall hot streak`
+    if (w.builtinId === 'mood') return mood.title
+    return titleOf(w)
+  }
+
+  function builtinTone(w: SiteWidget): 'leaf' | 'gold' | 'warn' {
+    if (w.builtinId === 'weather') return advice.call === 'go' ? 'leaf' : 'warn'
+    if (w.builtinId === 'mood')
+      return mood.tone === 'hot' ? 'gold' : mood.tone === 'ok' ? 'leaf' : 'warn'
+    if (w.builtinId === 'streak') return 'gold'
+    return w.tone
+  }
+
+  const countdownTitle =
+    visible.find((w) => w.builtinId === 'countdown')?.titleEn || 'Next stall'
+
   return (
     <div className="home-widgets">
-      <motion.div
-        className="home-countdown glass-card"
-        initial={reduce ? false : { opacity: 0, y: 12 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.35 }}
-      >
-        <div className="home-countdown__glow" aria-hidden />
-        <div className="home-countdown__top">
-          <span className="home-countdown__eyebrow">
-            <Timer size={14} /> Next stall
-          </span>
-          <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-            {next ? (
+      {showCountdown && next && cd && (
+        <motion.div
+          className="home-countdown glass-card"
+          initial={reduce ? false : { opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.35 }}
+        >
+          <div className="home-countdown__glow" aria-hidden />
+          <div className="home-countdown__top">
+            <span className="home-countdown__eyebrow">
+              <Timer size={14} />{' '}
+              {locale === 'de'
+                ? visible.find((w) => w.builtinId === 'countdown')?.titleDe || countdownTitle
+                : countdownTitle}
+            </span>
+            <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
               <button
                 type="button"
                 className="btn ghost"
@@ -110,145 +203,92 @@ export function HomeWidgets({
               >
                 <FileDown size={14} /> Briefing
               </button>
-            ) : null}
-            {next ? (
               <Link to="/calendar" className="hint-inline">
                 Open calendar →
               </Link>
-            ) : null}
+            </div>
           </div>
+
+          <div className="home-countdown__title">
+            <strong>{next.event.id}</strong>
+            <span>
+              {next.event.name} · {next.event.location}
+            </span>
+          </div>
+          <div className="home-countdown__meta">
+            {dateLabel}
+            {next.totalDays > 1 ? ` · ${next.totalDays}-day stall` : ''}
+          </div>
+
+          {cd.isLive ? (
+            <div className="home-countdown__live">
+              <span className="home-live-dot" />
+              Live today — <Link to="/plates">count plates →</Link>
+            </div>
+          ) : (
+            <div className="home-countdown__digits" aria-label="Countdown">
+              <TimeBlock value={cd.days} label="Days" />
+              <TimeBlock value={cd.hours} label="Hrs" />
+              <TimeBlock value={cd.minutes} label="Min" />
+              <TimeBlock value={cd.seconds} label="Sec" pulse={!reduce} />
+            </div>
+          )}
+
+          <div className="home-countdown__foot">
+            <LabeledBar
+              percent={prep}
+              labels={
+                prep >= 90
+                  ? ['ready', 'good to go']
+                  : ['working now', 'one moment', 'almost there', 'hang tight']
+              }
+            />
+            <div className="home-countdown__expect">
+              <div className="kpi-label">Expected net</div>
+              <strong>
+                {next.net != null ? <Money value={next.net} colored signed /> : '—'}
+              </strong>
+            </div>
+          </div>
+        </motion.div>
+      )}
+
+      {gridWidgets.length > 0 && (
+        <div className="home-widget-grid">
+          {gridWidgets.map((w) => {
+            if (w.kind === 'note') {
+              return (
+                <Widget
+                  key={w.id}
+                  icon={StickyNote}
+                  title={titleOf(w)}
+                  tone={w.tone}
+                  body={bodyOf(w)}
+                />
+              )
+            }
+            const Icon =
+              w.builtinId === 'weather'
+                ? CloudRain
+                : w.builtinId === 'plates'
+                  ? UtensilsCrossed
+                  : w.builtinId === 'streak'
+                    ? Flame
+                    : w.builtinId === 'mood'
+                      ? Sparkles
+                      : MapPin
+            return (
+              <Widget
+                key={w.id}
+                icon={Icon}
+                title={builtinTitle(w)}
+                tone={builtinTone(w)}
+                body={builtinBody(w.builtinId)}
+              />
+            )
+          })}
         </div>
-
-        {next && cd ? (
-          <>
-            <div className="home-countdown__title">
-              <strong>{next.event.id}</strong>
-              <span>
-                {next.event.name} · {next.event.location}
-              </span>
-            </div>
-            <div className="home-countdown__meta">
-              {dateLabel}
-              {next.totalDays > 1 ? ` · ${next.totalDays}-day stall` : ''}
-            </div>
-
-            {cd.isLive ? (
-              <div className="home-countdown__live">
-                <span className="home-live-dot" />
-                Live today —{' '}
-                <Link to="/plates">count plates →</Link>
-              </div>
-            ) : cd.isPast ? (
-              <div className="home-countdown__live is-past">Stall window passed</div>
-            ) : (
-              <div className="home-countdown__digits" aria-label="Countdown">
-                <TimeBlock value={cd.days} label="Days" />
-                <TimeBlock value={cd.hours} label="Hrs" />
-                <TimeBlock value={cd.minutes} label="Min" />
-                <TimeBlock value={cd.seconds} label="Sec" pulse={!reduce} />
-              </div>
-            )}
-
-            <div className="home-countdown__foot">
-              <div className="home-prep">
-                <div className="home-prep__label">Prep readiness</div>
-                <div className="home-prep__bar">
-                  <motion.div
-                    className="home-prep__fill"
-                    animate={{ width: `${prep}%` }}
-                    transition={{ type: 'spring', stiffness: 120, damping: 18 }}
-                  />
-                </div>
-                <div className="home-prep__pct">{prep}%</div>
-              </div>
-              <div className="home-countdown__expect">
-                <div className="kpi-label">Expected net</div>
-                <strong>
-                  {next.net != null ? <Money value={next.net} colored signed /> : '—'}
-                </strong>
-              </div>
-            </div>
-          </>
-        ) : (
-          <div className="home-countdown__empty">
-            <p>No upcoming stall dated yet.</p>
-            {canUpload ? (
-              <Link className="btn ghost" to="/upload">
-                Sync Excel dates
-              </Link>
-            ) : (
-              <p style={{ opacity: 0.75, margin: 0 }}>Ask Jeeva to sync Excel dates.</p>
-            )}
-          </div>
-        )}
-      </motion.div>
-
-      <div className="home-widget-grid">
-        <Widget
-          icon={CloudRain}
-          title={advice.title}
-          tone={advice.call === 'go' ? 'leaf' : 'warn'}
-          body={
-            <>
-              <span className={`badge ${weatherCallBadge(advice.call)}`} style={{ marginRight: 6 }}>
-                {advice.call}
-              </span>
-              {advice.line}
-            </>
-          }
-        />
-        <Widget
-          icon={UtensilsCrossed}
-          title="Plate hunt"
-          tone="leaf"
-          body={
-            next && plates > 0 ? (
-              <>
-                Need about <strong>{plates} plates</strong> at €8 to clear break-even for{' '}
-                {next.event.id}. <Link to="/plates">Live counter →</Link>
-              </>
-            ) : (
-              <>Pick an upcoming stall with fee + grocery to unlock plate math.</>
-            )
-          }
-        />
-        <Widget
-          icon={Flame}
-          title={streak > 0 ? `${streak}-stall hot streak` : 'Streak kitchen'}
-          tone="gold"
-          body={
-            streak > 0 ? (
-              <>
-                Last {streak} completed stall{streak === 1 ? '' : 's'} finished in profit. Keep the
-                batter flowing.
-              </>
-            ) : (
-              <>No profit streak yet — one solid Flohmarkt can light it.</>
-            )
-          }
-        />
-        <Widget
-          icon={Sparkles}
-          title={mood.title}
-          tone={mood.tone === 'hot' ? 'gold' : mood.tone === 'ok' ? 'leaf' : 'warn'}
-          body={mood.line}
-        />
-        <Widget
-          icon={MapPin}
-          title="Lucky pitch"
-          tone="leaf"
-          body={
-            locationHint ? (
-              <>
-                {locationHint}.{' '}
-                <Link to="/insights">See scorecard →</Link>
-              </>
-            ) : (
-              <>Locations will rank here after a few completed events.</>
-            )
-          }
-        />
-      </div>
+      )}
     </div>
   )
 }

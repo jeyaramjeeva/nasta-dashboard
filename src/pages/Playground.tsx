@@ -1,129 +1,89 @@
 import {
-  Banknote,
-  CalendarRange,
   ClipboardList,
   FlaskConical,
-  LayoutDashboard,
-  Package,
+  GraduationCap,
   RotateCcw,
   ShoppingBag,
-  UtensilsCrossed,
 } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { MotionCard } from '../components/MotionCard'
 import { useDemoMode } from '../context/DemoModeContext'
 
-const TOURS = [
-  {
-    to: '/orders',
-    icon: ClipboardList,
-    title: 'Orders & payment',
-    body: 'Pick event → Combo Pack with chai or lassi → singles → Delivered → cash/change. Set event prices under Menu prices.',
-  },
-  {
-    to: '/stock',
-    icon: Package,
-    title: 'Stall stock',
-    body: 'Buy packets, Use for the stall, watch Remaining and low-stock alerts.',
-  },
-  {
-    to: '/cash',
-    icon: Banknote,
-    title: 'Live cash box',
-    body: 'After a few deliveries, see Excel count + POS cash in on Cash box.',
-  },
-  {
-    to: '/calendar',
-    icon: CalendarRange,
-    title: 'Calendar & weather',
-    body: 'Open Calendar for live weather icons and go/caution/skip tip.',
-  },
-  {
-    to: '/plates',
-    icon: UtensilsCrossed,
-    title: 'Plate counter',
-    body: 'Tap +/− during a stall. Demo counters stay in the sandbox.',
-  },
-  {
-    to: '/',
-    icon: LayoutDashboard,
-    title: 'Dashboard widgets',
-    body: 'Countdown, plate hunt, streak widgets — all on demo seed numbers.',
-  },
-]
-
 export function Playground() {
-  const { isDemo, enterDemo, exitDemo, resetDemo } = useDemoMode()
+  const { isDemo, enterDemo, exitDemo, resetDemo, enterTillTraining, isTillTraining } = useDemoMode()
 
   return (
     <>
       <div className="page-head">
         <div>
           <h1>
-            <FlaskConical size={22} style={{ verticalAlign: -3, marginRight: 8 }} />
-            Feature playground
+            <GraduationCap size={22} style={{ verticalAlign: -3, marginRight: 8 }} />
+            Till training
           </h1>
           <p>
-            Safe sandbox to show how Orders, Stock, Cash, and more work.{' '}
-            <strong>Live Excel, partners, and cloud data are never changed.</strong>
+            Practice the till on <strong>last Saturday’s real menu</strong> with fake tickets.
+            Live sales, Excel, and cloud data stay untouched.
           </p>
         </div>
         <div className="page-actions">
-          {isDemo ? (
+          {isTillTraining || isDemo ? (
             <>
               <button type="button" className="btn ghost" onClick={resetDemo}>
-                <RotateCcw size={14} /> Reset demo
+                <RotateCcw size={14} /> Restart
               </button>
               <button type="button" className="btn" onClick={exitDemo}>
-                Exit demo
+                Exit
               </button>
             </>
           ) : (
-            <button type="button" className="btn" onClick={enterDemo}>
-              <ShoppingBag size={14} /> Enter demo mode
+            <button type="button" className="btn" onClick={enterTillTraining}>
+              <GraduationCap size={14} /> Start 5-minute training
             </button>
           )}
         </div>
       </div>
 
-      {!isDemo && (
-        <div className="alert-item" style={{ marginBottom: '0.9rem' }}>
-          You are still on <strong>live data</strong>. Click <strong>Enter demo mode</strong> to
-          load a disposable sandbox (sample stalls + empty POS). Nothing you do there syncs to
-          Supabase or overwrites your real tracker.
+      <MotionCard interactive={false}>
+        <div className="card-head">
+          <h2>What the cousin should do</h2>
         </div>
-      )}
+        <ol style={{ margin: '0.5rem 0 0.85rem', paddingLeft: '1.2rem' }}>
+          <li>Open <strong>New order</strong> — dishes and prices match last Saturday’s stall.</li>
+          <li>Two fake customers are already in <strong>Pending</strong> — tap Delivered, take Cash or PayPal.</li>
+          <li>Add one more ticket yourself, then check <strong>Sold</strong>.</li>
+        </ol>
+        {isTillTraining ? (
+          <Link className="btn" to="/orders">
+            Back to Orders →
+          </Link>
+        ) : (
+          <button type="button" className="btn" onClick={enterTillTraining}>
+            <ClipboardList size={14} /> Train on the till
+          </button>
+        )}
+        <p className="hint-inline" style={{ marginTop: '0.75rem' }}>
+          Timer is 5 minutes. After that you can keep practicing or exit. Nothing here is a real
+          sale.
+        </p>
+      </MotionCard>
 
-      {isDemo && (
-        <div className="alert-item demo-banner" style={{ marginBottom: '0.9rem' }}>
-          <strong>Demo mode is ON.</strong> Try the tour below. Reset anytime. Exit to return to
-          live numbers.
+      <div className="page-head" style={{ marginTop: '1.5rem' }}>
+        <div>
+          <h2>
+            <FlaskConical size={18} style={{ verticalAlign: -3, marginRight: 6 }} />
+            Feature playground
+          </h2>
+          <p className="hint-inline">
+            Older sandbox with sample stalls (not last Saturday’s menu).
+          </p>
         </div>
-      )}
-
-      <div className="grid two">
-        {TOURS.map((t) => (
-          <MotionCard key={t.to} interactive={false}>
-            <div className="card-head">
-              <h2>
-                <t.icon size={18} style={{ verticalAlign: -3, marginRight: 6 }} />
-                {t.title}
-              </h2>
-            </div>
-            <p className="hint-inline" style={{ margin: '0.5rem 0 0.85rem' }}>
-              {t.body}
-            </p>
-            {isDemo ? (
-              <Link className="btn" to={t.to}>
-                Try it →
-              </Link>
-            ) : (
-              <button type="button" className="btn ghost" onClick={enterDemo}>
-                Enter demo first
-              </button>
-            )}
-          </MotionCard>
-        ))}
+        <div className="page-actions">
+          {!isDemo && !isTillTraining && (
+            <button type="button" className="btn ghost" onClick={enterDemo}>
+              <ShoppingBag size={14} /> Enter demo mode
+            </button>
+          )}
+        </div>
       </div>
     </>
   )

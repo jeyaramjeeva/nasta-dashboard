@@ -12,12 +12,15 @@ import {
   isDemoMode,
   resetDemoSandbox,
 } from '../lib/demoMode'
+import { enterTillTraining, isTillTraining } from '../lib/tillTraining'
 
 interface DemoModeContextValue {
   isDemo: boolean
   enterDemo: () => void
   exitDemo: () => void
   resetDemo: () => void
+  enterTillTraining: () => void
+  isTillTraining: boolean
 }
 
 const DemoModeContext = createContext<DemoModeContextValue | null>(null)
@@ -27,11 +30,22 @@ export function DemoModeProvider({ children }: { children: ReactNode }) {
 
   const enterDemo = useCallback(() => enterDemoMode(), [])
   const exitDemo = useCallback(() => exitDemoMode(), [])
-  const resetDemo = useCallback(() => resetDemoSandbox(), [])
+  const startTillTraining = useCallback(() => enterTillTraining(), [])
+  const resetDemo = useCallback(() => {
+    if (isTillTraining()) enterTillTraining()
+    else resetDemoSandbox()
+  }, [])
 
   const value = useMemo(
-    () => ({ isDemo, enterDemo, exitDemo, resetDemo }),
-    [isDemo, enterDemo, exitDemo, resetDemo],
+    () => ({
+      isDemo,
+      enterDemo,
+      exitDemo,
+      resetDemo,
+      enterTillTraining: startTillTraining,
+      isTillTraining: isTillTraining(),
+    }),
+    [isDemo, enterDemo, exitDemo, resetDemo, startTillTraining],
   )
 
   return <DemoModeContext.Provider value={value}>{children}</DemoModeContext.Provider>

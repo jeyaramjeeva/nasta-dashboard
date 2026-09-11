@@ -1,6 +1,7 @@
 import { createClient, type SupabaseClient } from '@supabase/supabase-js'
 import type { SnapshotVersion } from './history'
 import type { Snapshot } from '../types'
+import { teamApiHeaders } from './teamApiHeaders'
 
 export const supabaseUrl = import.meta.env.VITE_SUPABASE_URL as string | undefined
 export const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY as string | undefined
@@ -48,6 +49,55 @@ export async function saveSnapshot(snapshot: Snapshot): Promise<void> {
   if (error) throw new Error(error.message)
 }
 
+/** Publish via Vercel API (service role) — works even with a local Developer session. */
+export async function publishSnapshotViaApi(opts: {
+  snapshot: Snapshot
+  version?: Omit<SnapshotVersion, 'id'> & { id?: string }
+  archive?: Omit<SnapshotVersion, 'id'> & { id?: string }
+  password?: string
+  trustedSession?: boolean
+  userName?: string
+  userEmail?: string
+}): Promise<{ versionId: string | null }> {
+  const res = await fetch('/api/publish-snapshot', {
+    method: 'POST',
+    headers: await teamApiHeaders({
+      name: opts.userName || 'Developer',
+      email: opts.userEmail || '',
+    }),
+    body: JSON.stringify({
+      password: opts.password,
+      trustedSession: Boolean(opts.trustedSession),
+      snapshot: opts.snapshot,
+      version: opts.version
+        ? {
+            createdAt: opts.version.createdAt,
+            sourceFile: opts.version.sourceFile,
+            mode: opts.version.mode,
+            note: opts.version.note,
+            summary: opts.version.summary,
+            payload: opts.version.payload,
+          }
+        : undefined,
+      archive: opts.archive
+        ? {
+            createdAt: opts.archive.createdAt,
+            sourceFile: opts.archive.sourceFile,
+            mode: opts.archive.mode,
+            note: opts.archive.note,
+            summary: opts.archive.summary,
+            payload: opts.archive.payload,
+          }
+        : undefined,
+    }),
+  })
+  const data = (await res.json()) as { error?: string; versionId?: string | null }
+  if (!res.ok) {
+    throw new Error(data.error || 'Publish to cloud failed')
+  }
+  return { versionId: data.versionId ?? null }
+}
+
 export async function saveSnapshotVersion(
   version: Omit<SnapshotVersion, 'id'> & { id?: string },
 ): Promise<SnapshotVersion> {
@@ -55,6 +105,7 @@ export async function saveSnapshotVersion(
   if (!sb) throw new Error('Supabase is not configured')
 
   // Let Postgres generate uuid — local string ids are not valid UUIDs
+  if (!version.payload) throw new Error('Snapshot version payload is required')
   const row = {
     created_at: version.createdAt,
     source_file: version.sourceFile,
@@ -82,9 +133,10 @@ export async function fetchSnapshotVersions(limit = 20): Promise<SnapshotVersion
   const sb = getSupabase()
   if (!sb) return []
 
+  // Metadata only — full payloads for 40 versions can be several MB each load.
   const { data, error } = await sb
     .from(VERSIONS)
-    .select('id, created_at, source_file, mode, note, summary, payload')
+    .select('id, created_at, source_file, mode, note, summary')
     .order('created_at', { ascending: false })
     .limit(limit)
 
@@ -101,7 +153,6 @@ export async function fetchSnapshotVersions(limit = 20): Promise<SnapshotVersion
     mode: row.mode as SnapshotVersion['mode'],
     note: (row.note as string | null) ?? undefined,
     summary: row.summary as SnapshotVersion['summary'],
-    payload: row.payload as Snapshot,
   }))
 }
 

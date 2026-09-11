@@ -7,6 +7,7 @@ import {
   useState,
   type ReactNode,
 } from 'react'
+import { applySeasonTheme } from '../lib/seasonTheme'
 
 export type ThemeMode = 'light' | 'dark' | 'system'
 
@@ -46,7 +47,14 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     document.documentElement.dataset.theme = resolved
     document.documentElement.style.colorScheme = resolved
     localStorage.setItem(KEY, mode)
+    applySeasonTheme()
   }, [mode, resolved])
+
+  useEffect(() => {
+    applySeasonTheme()
+    const id = window.setInterval(() => applySeasonTheme(), 60 * 60 * 1000)
+    return () => window.clearInterval(id)
+  }, [])
 
   const setMode = useCallback((next: ThemeMode) => setModeState(next), [])
   const cycleMode = useCallback(() => {

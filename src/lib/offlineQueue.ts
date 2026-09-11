@@ -56,6 +56,11 @@ export function enqueueOffline(op: Omit<OfflineOp, 'id' | 'ts'> & { id?: string 
     id: op.id || `op-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
     ts: new Date().toISOString(),
   }
+  // stall_ops payloads are large (menu photos) — keep only the newest
+  if (next.kind === 'stall_ops') {
+    write([...read().filter((o) => o.kind !== 'stall_ops'), next])
+    return
+  }
   write([...read(), next])
 }
 
