@@ -3,18 +3,8 @@
  * 30/90/365-day growth stays unknown until two Google snapshots exist.
  */
 
-const _RESEARCH_CHECKED_DATE = new Date()
-export const RESEARCH_CHECKED_AT = _RESEARCH_CHECKED_DATE.toISOString()
-export const RESEARCH_CHECKED_LABEL = _RESEARCH_CHECKED_DATE.toLocaleString('en-GB', {
-  day: 'numeric',
-  month: 'long',
-  year: 'numeric',
-  hour: '2-digit',
-  minute: '2-digit',
-  hour12: false,
-  timeZone: 'Europe/Berlin',
-  timeZoneName: 'short',
-})
+export const RESEARCH_CHECKED_AT = '2026-09-08T15:28:00+02:00'
+export const RESEARCH_CHECKED_LABEL = '8 September 2026, 15:28 CEST'
 export const GMAPS_SOURCE = 'Google Maps (manual copy by Jeeva)'
 
 export type Confidence = 'High' | 'Medium' | 'Low'

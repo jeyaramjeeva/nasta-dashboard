@@ -459,7 +459,7 @@ export function normalizeSiteConfig(raw: Partial<SiteConfig> | null | undefined)
         ...nav[i],
         to: '/market-analysis',
         visible: true,
-        audience: 'jeeva',
+        audience: 'all',
         stallOk: false,
       }
     }
